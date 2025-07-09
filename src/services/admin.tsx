@@ -34,7 +34,6 @@ export const getPermisosMe = async () => {
       Authorization: `Bearer ${token}`,
     },
   });
-
   return response.data;
 };
 
