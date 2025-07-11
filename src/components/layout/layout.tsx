@@ -11,6 +11,7 @@ import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { ReactNode } from "react";
 import { getPermisosMe } from "@/services/admin";
+import { PermisoLayout } from "@/interface/permisos";
 
 const { Header, Sider, Content } = Layout;
 
@@ -18,24 +19,34 @@ export default function MainLayout({ children }: { children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
+  const [permisos, setPermisos] = useState<PermisoLayout[]>([]);
 
   const fetchPermisos = async () => {
     try {
       const data = await getPermisosMe();
-      console.log("data => ", data);
+      console.log("se recargo la data de permisos del layout => ", data);
+      setPermisos(data);
     } catch (error) {
       console.log("error => ", error);
       message.error("error al traer permisos");
     }
   };
 
+  const tienePermiso = (codigo: string): boolean => {
+    if (!Array.isArray(permisos)) return false;
+    const existe = permisos.some((permiso) => {
+      return permiso.item?.codigo === codigo;
+    });
+
+    return existe;
+  };
+
   useEffect(() => {
-    console.log("inicio de layout");
     const fetch = async () => {
       await fetchPermisos();
     };
     fetch();
-  });
+  }, []);
 
   const handleMenuClick = ({ key }: { key: string }) => {
     router.push(key);
@@ -53,6 +64,92 @@ export default function MainLayout({ children }: { children: ReactNode }) {
     ],
   };
 
+  const menuItems = [
+    {
+      key: "dashboard",
+      icon: <DashboardOutlined />,
+      label: "Dashboard",
+      children: [
+        { key: "/", label: "Inicio" },
+        { key: "/resumen", label: "Resumen" },
+      ],
+    },
+    {
+      key: "Gestion de usuarios",
+      icon: <UserOutlined />,
+      label: "Gestion de usuarios",
+      children: [
+        tienePermiso("1.1")
+          ? { key: "/admin/usuario", label: "Listado de usuarios" }
+          : null,
+        tienePermiso("1.2")
+          ? { key: "/admin/permisos", label: "Permisos" }
+          : null,
+        tienePermiso("1.3")
+          ? { key: "/admin/roles", label: "Gestión de Roles" }
+          : null,
+        tienePermiso("1.4")
+          ? { key: "/admin/areas", label: "Gestión de Áreas" }
+          : null,
+      ].filter(Boolean),
+    },
+    {
+      key: "Gestion de tickets",
+      icon: <UserOutlined />,
+      label: "Gestion de tickets",
+      children: [
+        tienePermiso("2.1")
+          ? { key: "/admin/tickets", label: "Bandeja de tickets" }
+          : null,
+        tienePermiso("2.2")
+          ? { key: "/admin/tickets/asignar", label: "Asignar Ticket" }
+          : null,
+      ].filter(Boolean),
+    },
+    {
+      key: "Incidencias y Categorías",
+      icon: <UserOutlined />,
+      label: "Incidencias y Categorías",
+      children: [
+        tienePermiso("3.1")
+          ? { key: "/admin/incidencias", label: "Gestion de incidencias" }
+          : null,
+        tienePermiso("3.2")
+          ? { key: "/admin/categorias", label: "Gestion de categorias" }
+          : null,
+      ].filter(Boolean),
+    },
+    {
+      key: "SLA y Prioridades",
+      icon: <UserOutlined />,
+      label: "SLA y Prioridades",
+      children: [
+        tienePermiso("4.1")
+          ? { key: "/admin/sla", label: "Configuración SLA" }
+          : null,
+        tienePermiso("4.2")
+          ? { key: "/admin/prioridades", label: "Gestión de Prioridades" }
+          : null,
+      ].filter(Boolean),
+    },
+    {
+      key: "Reportes y Auditoría",
+      icon: <UserOutlined />,
+      label: "Reportes y Auditoría",
+      children: [
+        tienePermiso("5.1")
+          ? { key: "/admin/reportes", label: "Reportes Generales" }
+          : null,
+        tienePermiso("5.2")
+          ? { key: "/admin/auditoria", label: "Log de Auditoría" }
+          : null,
+      ].filter(Boolean),
+    },
+  ]
+    // ⬇️ Esto asegura que no incluyas menús sin hijos
+    .map((item) => (item.children.length ? item : null))
+    .filter(Boolean);
+
   return (
     <Layout style={{ minHeight: "100vh" }}>
       <Sider collapsed={collapsed} onCollapse={setCollapsed}>
@@ -65,35 +162,7 @@ export default function MainLayout({ children }: { children: ReactNode }) {
           selectedKeys={[pathname]}
           onClick={handleMenuClick}
           style={{ fontSize: 12 }}
-          items={[
-            {
-              key: "dashboard",
-              icon: <DashboardOutlined />,
-              label: "Dashboard",
-              children: [
-                { key: "/", label: "Inicio" },
-                { key: "/resumen", label: "Resumen" },
-              ],
-            },
-            {
-              key: "usuarios",
-              icon: <UserOutlined />,
-              label: "Usuarios",
-              children: [
-                { key: "/admin/usuario", label: "Listado de usuarios" },
-                { key: "/admin/permisos", label: "Permisos" },
-              ],
-            },
-            {
-              key: "ticket_ti",
-              icon: <UserOutlined />,
-              label: "Ticket Ti",
-              children: [
-                { key: "/ticket_ti/ticket", label: "Listado Tickets" },
-                { key: "/ticket_ti/ticket/crear", label: "Crear Ticket" },
-              ],
-            },
-          ]}
+          items={menuItems}
         />
       </Sider>
 

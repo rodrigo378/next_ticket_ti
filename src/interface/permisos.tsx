@@ -4,3 +4,12 @@ export interface Permiso {
   item_id: number;
   estado: string;
 }
+
+export interface PermisoLayout {
+  item: {
+    codigo: string;
+    modulo: {
+      codigo: string;
+    };
+  };
+}

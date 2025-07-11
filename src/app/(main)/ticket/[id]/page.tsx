@@ -66,18 +66,16 @@ export default function Page() {
       {/* Información general */}
       <Card className="mb-6">
         <Descriptions column={1} size="middle" bordered>
-          <Descriptions.Item label="Título">
-            {ticketTi?.titulo}
-          </Descriptions.Item>
+          <Descriptions.Item label="Título">ticketTi?.titulo</Descriptions.Item>
           <Descriptions.Item label="Descripción">
-            {ticketTi?.descripcion}
+            ticketTi?.descripcion
           </Descriptions.Item>
 
           <Descriptions.Item label="Estado">
-            <Tag color="orange">{ticketTi?.estado_id}</Tag>
+            <Tag color="orange">ticketTi?.estado_id</Tag>
           </Descriptions.Item>
           <Descriptions.Item label="Prioridad">
-            <Tag color="red">{ticketTi?.prioridad_id}</Tag>
+            <Tag color="red">ticketTi?.prioridad_id</Tag>
           </Descriptions.Item>
           <Descriptions.Item label="Fecha de creación">
             {ticketTi?.createdAt

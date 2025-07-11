@@ -1,8 +1,13 @@
-import { UpdateUsuario, Usuario } from "@/interface/usuario";
+import { CreateUsuario, UpdateUsuario, Usuario } from "@/interface/usuario";
 import { AxiosResponse } from "axios";
 import { api } from "./api";
 import { Modulo } from "@/interface/modulo";
-import { Permiso } from "@/interface/permisos";
+import { Permiso, PermisoLayout } from "@/interface/permisos";
+
+export const createUsuario = async (data: CreateUsuario) => {
+  const response = await api.post("/admin/usuario/create", data);
+  return response.data;
+};
 
 export const getUsuarios = async (): Promise<Usuario[]> => {
   const response: AxiosResponse<Usuario[]> = await api.get("/admin/usuario");
@@ -26,7 +31,7 @@ export const getPermisosTo = async (
   return res.data;
 };
 
-export const getPermisosMe = async () => {
+export const getPermisosMe = async (): Promise<PermisoLayout[]> => {
   const token = localStorage.getItem("token");
 
   const response = await api.get("/admin/permisos/me", {

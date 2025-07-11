@@ -1,3 +1,6 @@
+import { Area } from "./area";
+import { Rol } from "./rol";
+
 export interface Usuario {
   id: string;
   nombre: string;
@@ -9,6 +12,14 @@ export interface Usuario {
   createdAt: string;
   updatedAt: string;
   estado: "A" | "I";
+  roles: UsuarioRol[];
+  area: Area;
+}
+
+export interface UsuarioRol {
+  usuario_id: number;
+  rol_id: number;
+  rol: Rol;
 }
 
 export interface SignIn {
@@ -16,7 +27,7 @@ export interface SignIn {
   password: string;
 }
 
-export interface SignUp {
+export interface CreateUsuario {
   email: string;
   password: string;
   nombre: string;

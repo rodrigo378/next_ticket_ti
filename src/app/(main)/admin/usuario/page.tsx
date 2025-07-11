@@ -7,37 +7,59 @@ import {
   Button,
   Typography,
   Input,
-  Modal,
+  Drawer,
   Form,
   Select,
-  Row,
-  Col,
   message,
 } from "antd";
-import {
-  SearchOutlined,
-  PlusOutlined,
-  CloseOutlined,
-  EyeOutlined,
-} from "@ant-design/icons";
+import { SearchOutlined, PlusOutlined, EyeOutlined } from "@ant-design/icons";
 import { ColumnsType } from "antd/es/table";
-
-import { getUsuarios, updateUsuario } from "@/services/admin";
+import { createUsuario, getUsuarios } from "@/services/admin";
+import { CreateUsuario, Usuario } from "@/interface/usuario";
 import { getAreas } from "@/services/area";
-import { signup } from "@/services/auth";
-import { Usuario, SignUp } from "@/interface/usuario";
 import { Area } from "@/interface/area";
+import { Rol } from "@/interface/rol";
+import { getRoles } from "@/services/rol";
 
 const { Title, Paragraph } = Typography;
-const { Option } = Select;
 
 export default function Page() {
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [areas, setAreas] = useState<Area[]>([]);
+  const [roles, setRoles] = useState<Rol[]>([]);
+  const [usuarioSeleccionado, setUsuarioSeleccionado] =
+    useState<Usuario | null>(null);
+
   const [filtro, setFiltro] = useState("");
-  const [modalVisible, setModalVisible] = useState(false);
-  const [editarUsuario, setEditarUsuario] = useState<Usuario | null>(null);
+  const [open, setOpen] = useState(false);
   const [form] = Form.useForm();
+
+  const showDrawer = (usuario?: Usuario) => {
+    console.log("se abrio el drawer");
+
+    if (usuario) {
+      console.log("se abrio para editar", usuario);
+      setUsuarioSeleccionado(usuario);
+      form.setFieldsValue({
+        nombre: usuario.nombre,
+        apellidos: usuario.apellidos,
+        email: usuario.email,
+        genero: usuario.genero,
+        grado: usuario.grado,
+        estado: usuario.estado,
+        area_id: usuario.area_id,
+      });
+    } else {
+      setUsuarioSeleccionado(null);
+      form.resetFields();
+    }
+    setOpen(true);
+  };
+
+  const onClose = () => {
+    setOpen(false);
+    form.resetFields();
+  };
 
   const fetchUsuarios = async () => {
     try {
@@ -54,53 +76,25 @@ export default function Page() {
       setAreas(data);
     } catch (error) {
       console.log("error => ", error);
+      message.error("");
+    }
+  };
+
+  const fetchRoles = async () => {
+    try {
+      const data = await getRoles();
+      setRoles(data);
+    } catch (error) {
+      console.log("error => ", error);
+      message.error("");
     }
   };
 
   useEffect(() => {
-    const fetch = async () => {
-      await fetchUsuarios();
-      await fetchAreas();
-    };
-    fetch();
+    fetchUsuarios();
+    fetchAreas();
+    fetchRoles();
   }, []);
-
-  const abrirModal = (usuario?: Usuario) => {
-    setEditarUsuario(usuario || null);
-    setModalVisible(true);
-    if (usuario) {
-      form.setFieldsValue(usuario);
-    } else {
-      form.resetFields();
-    }
-  };
-
-  const cerrarModal = () => {
-    setModalVisible(false);
-    setEditarUsuario(null);
-    form.resetFields();
-  };
-
-  const manejarEnvioFormulario = async (valores: SignUp & { id?: number }) => {
-    try {
-      if (editarUsuario) {
-        console.log("actualizado => ", valores);
-
-        const response = await updateUsuario(valores.id!, valores);
-        console.log("response => ", response);
-
-        message.success("Usuario actualizado");
-      } else {
-        await signup(valores);
-        message.success("Usuario creado");
-      }
-      await fetchUsuarios();
-      cerrarModal();
-    } catch (err) {
-      console.log("error => ", err);
-      message.error("Error al guardar usuario => ");
-    }
-  };
 
   const columnas: ColumnsType<Usuario> = [
     {
@@ -126,10 +120,16 @@ export default function Page() {
       sorter: (a, b) => a.grado.localeCompare(b.grado),
     },
     {
-      title: "Área",
-      dataIndex: "area_id",
-      key: "area_id",
-      sorter: (a, b) => a.area_id - b.area_id,
+      title: "Rol",
+      key: "rol",
+      render: (usuario: Usuario) => {
+        let roles = "";
+        usuario.roles.map((usuarioRol) => {
+          console.log("usuarioRol => ", usuarioRol.rol.nombre);
+          roles += `${usuarioRol.rol.nombre}`;
+        });
+        return roles;
+      },
     },
     {
       title: "Estado",
@@ -147,7 +147,7 @@ export default function Page() {
       key: "acciones",
       render: (record: Usuario) => (
         <div className="flex gap-2">
-          <Button icon={<EyeOutlined />} onClick={() => abrirModal(record)} />
+          <Button icon={<EyeOutlined />} onClick={() => showDrawer(record)} />
         </div>
       ),
     },
@@ -158,6 +158,19 @@ export default function Page() {
       .toLowerCase()
       .includes(filtro.toLowerCase())
   );
+
+  const onFinish = async (values: CreateUsuario) => {
+    try {
+      console.log("formulario => ", values);
+      await createUsuario(values);
+      message.success("✅ Usuario registrado correctamente");
+      onClose();
+      fetchUsuarios();
+    } catch (error) {
+      console.error("❌ Error al registrar usuario", error);
+      message.error("No se pudo registrar el usuario");
+    }
+  };
 
   return (
     <div className="p-6 max-w-6xl mx-auto bg-white rounded-xl shadow">
@@ -177,7 +190,7 @@ export default function Page() {
           <Button
             type="primary"
             icon={<PlusOutlined />}
-            onClick={() => abrirModal()}
+            onClick={() => showDrawer()}
           >
             Añadir usuario
           </Button>
@@ -188,148 +201,97 @@ export default function Page() {
         rowKey="id"
         columns={columnas}
         dataSource={usuariosFiltrados}
-        pagination={{ pageSize: 5 }}
+        pagination={{ pageSize: 20 }}
         bordered
       />
-
-      <Modal
-        title={editarUsuario ? "Editar Usuario" : "Añadir Usuario"}
-        open={modalVisible}
-        onCancel={cerrarModal}
-        footer={null}
-        closeIcon={<CloseOutlined />}
+      <Drawer
+        title={usuarioSeleccionado ? "Editar Usuario" : "Registrar Usuario"}
+        placement="right"
+        width={500}
+        onClose={onClose}
+        open={open}
       >
-        <Form
-          layout="vertical"
-          form={form}
-          onFinish={manejarEnvioFormulario}
-          initialValues={{ estado: "A" }}
-        >
-          {editarUsuario && (
-            <Form.Item name="id" hidden>
-              <Input type="hidden" />
-            </Form.Item>
-          )}
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item
-                name="nombre"
-                label="Nombre"
-                rules={[{ required: true }]}
-              >
-                <Input placeholder="Ej. Juan" />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item
-                name="apellidos"
-                label="Apellidos Completos"
-                rules={[{ required: true }]}
-              >
-                <Input placeholder="Ej. Pérez" />
-              </Form.Item>
-            </Col>
-          </Row>
+        <Form form={form} layout="vertical" onFinish={onFinish}>
+          <Form.Item name="nombre" label="Nombre" rules={[{ required: true }]}>
+            <Input placeholder="Ej. Juan" />
+          </Form.Item>
 
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item
-                name="email"
-                label="Email"
-                rules={[{ required: true, type: "email" }]}
-              >
-                <Input placeholder="correo@ejemplo.com" />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item
-                name="genero"
-                label="Género"
-                rules={[{ required: true }]}
-              >
-                <Select placeholder="Seleccione género">
-                  <Option value="masculino">Masculino</Option>
-                  <Option value="femenino">Femenino</Option>
-                </Select>
-              </Form.Item>
-            </Col>
-          </Row>
+          <Form.Item
+            name="apellidos"
+            label="Apellidos"
+            rules={[{ required: true }]}
+          >
+            <Input placeholder="Ej. Pérez" />
+          </Form.Item>
 
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item
-                name="grado"
-                label="Grado"
-                rules={[{ required: true }]}
-              >
-                <Input placeholder="Ej. Manager" />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item
-                name="estado"
-                label="Estado"
-                rules={[{ required: true }]}
-              >
-                <Select placeholder="Seleccione estado">
-                  <Option value="A">Activo</Option>
-                  <Option value="I">Inactivo</Option>
-                </Select>
-              </Form.Item>
-            </Col>
-          </Row>
+          <Form.Item
+            name="email"
+            label="Correo"
+            rules={[{ required: true, type: "email" }]}
+          >
+            <Input placeholder="correo@ejemplo.com" />
+          </Form.Item>
 
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item
-                name="area_id"
-                label="Área"
-                rules={[{ required: true }]}
-              >
-                <Select placeholder="Seleccione área">
-                  {areas.map((area) => (
-                    <Option key={area.id} value={area.id}>
-                      {area.nombre}
-                    </Option>
-                  ))}
-                </Select>
-              </Form.Item>
-            </Col>
+          <Form.Item name="genero" label="Género" rules={[{ required: true }]}>
+            <Select placeholder="Seleccione género">
+              <Select.Option value="masculino">Masculino</Select.Option>
+              <Select.Option value="femenino">Femenino</Select.Option>
+            </Select>
+          </Form.Item>
 
-            <Col span={12}>
-              <Form.Item
-                name="password"
-                label="Contraseña"
-                rules={
-                  editarUsuario
-                    ? []
-                    : [
-                        {
-                          required: true,
-                          message: "La contraseña es obligatoria",
-                        },
-                      ]
-                }
-              >
-                <Input.Password
-                  placeholder={
-                    editarUsuario
-                      ? "Dejar en blanco si no desea cambiar la contraseña"
-                      : "Ingrese contraseña"
-                  }
-                />
-              </Form.Item>
-            </Col>
-          </Row>
+          <Form.Item name="grado" label="Grado" rules={[{ required: true }]}>
+            <Input placeholder="Ej. Manager" />
+          </Form.Item>
 
-          <div className="flex justify-end gap-2 mt-4">
-            <Button onClick={cerrarModal}>Cancelar</Button>
+          <Form.Item name="estado" label="Estado" rules={[{ required: true }]}>
+            <Select placeholder="Seleccione estado">
+              <Select.Option value="A">Activo</Select.Option>
+              <Select.Option value="I">Inactivo</Select.Option>
+            </Select>
+          </Form.Item>
+
+          <Form.Item
+            name="password"
+            label="Contraseña"
+            rules={[{ required: true }]}
+          >
+            <Input.Password placeholder="Ingrese una contraseña" />
+          </Form.Item>
+
+          <Form.Item name="area_id" label="Areas" rules={[{ required: true }]}>
+            <Select placeholder="Seleccione un area" allowClear>
+              {areas.map((area) => (
+                <Select.Option key={area.id} value={area.id}>
+                  {area.nombre}
+                </Select.Option>
+              ))}
+            </Select>
+          </Form.Item>
+
+          <Form.Item name="roles" label="Roles" rules={[{ required: true }]}>
+            <Select
+              mode="multiple"
+              placeholder="Seleccione uno o más roles"
+              allowClear
+            >
+              {roles.map((rol) => (
+                <Select.Option key={rol.id} value={rol.id}>
+                  {rol.nombre}
+                </Select.Option>
+              ))}
+              {/* <Select.Option value={1}>Administrador</Select.Option>
+              <Select.Option value={2}>Soporte</Select.Option>
+              <Select.Option value={3}>Usuario</Select.Option> */}
+            </Select>
+          </Form.Item>
+
+          <div className="flex justify-end">
             <Button type="primary" htmlType="submit">
-              {editarUsuario ? "Actualizar" : "Guardar"}
+              Guardar
             </Button>
           </div>
         </Form>
-      </Modal>
+      </Drawer>
     </div>
   );
 }
