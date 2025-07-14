@@ -1,37 +1,40 @@
 "use client";
 
+import { Categoria, Incidencia } from "@/interface/incidencia";
+import { getIncidencias } from "@/services/incidencias";
 import { Form, Input, Select, Typography, Button } from "antd";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 const { Title } = Typography;
 const { TextArea } = Input;
 
 export default function Page() {
   const [tipo, setTipo] = useState<string | null>(null);
-  const [area, setArea] = useState<string | null>(null);
+  const [incidencias, setIncidencias] = useState<Incidencia[]>([]);
+  const [categorias, setCategorias] = useState<Categoria[]>([]);
 
-  const data = {
-    incidencia: {
-      Redes: ["Internet lento", "Corte de red", "No accede al WiFi"],
-      "Correo institucional": ["No puedo ingresar", "Error al enviar correos"],
-    },
-    requerimiento: {
-      Hardware: ["Solicitar mouse", "Agregar monitor", "Nueva PC"],
-      Software: ["Instalar Office", "Activar antivirus"],
-    },
+  const fetchIncidencias = async (tipoSeleccionado: string) => {
+    try {
+      const data = await getIncidencias(tipoSeleccionado);
+      setIncidencias(data);
+    } catch (error) {
+      console.error("Error al obtener incidencias:", error);
+    }
   };
 
-  const getAreas = () => {
-    if (!tipo) return [];
-    return Object.keys(data[tipo as "incidencia" | "requerimiento"]);
+  const handleTipoChange = (value: string) => {
+    setTipo(value);
+    fetchIncidencias(value);
   };
 
-  const getItems = () => {
-    if (!tipo || !area) return [];
-    return data[tipo as "incidencia" | "requerimiento"][area] || [];
+  const handleIncidenciaChange = (id: number) => {
+    const incidencia = incidencias.find((i) => i.id === id);
+    setCategorias(incidencia?.categorias || []);
   };
 
-  const onFinish = (values: any) => {
+  useEffect(() => {}, []);
+
+  const onFinish = (values: unknown) => {
     console.log("📥 Datos enviados:", values);
   };
 
@@ -46,54 +49,59 @@ export default function Page() {
         <Form.Item
           label="Tipo de solicitud"
           name="tipo"
-          rules={[{ required: true }]}
+          rules={[
+            { required: true, message: "Selecciona el tipo de solicitud" },
+          ]}
         >
-          <Select
-            placeholder="Selecciona tipo"
-            onChange={(value) => {
-              setTipo(value);
-              setArea(null);
-            }}
-          >
+          <Select placeholder="Selecciona tipo" onChange={handleTipoChange}>
             <Select.Option value="incidencia">Incidencia</Select.Option>
             <Select.Option value="requerimiento">Requerimiento</Select.Option>
           </Select>
         </Form.Item>
 
-        {/* Área */}
-        <Form.Item label="Área" name="area" rules={[{ required: true }]}>
+        {/* Incidencia */}
+        <Form.Item
+          label="Problema"
+          name="incidencia_id"
+          rules={[{ required: true, message: "Selecciona un problema" }]}
+        >
           <Select
-            placeholder="Selecciona área"
-            onChange={(value) => setArea(value)}
+            placeholder="Selecciona una incidencia"
             disabled={!tipo}
+            onChange={handleIncidenciaChange}
           >
-            {getAreas().map((area) => (
-              <Select.Option key={area} value={area}>
-                {area}
+            {incidencias.map((incidencia) => (
+              <Select.Option key={incidencia.id} value={incidencia.id}>
+                {incidencia.nombre}
               </Select.Option>
             ))}
           </Select>
         </Form.Item>
 
-        {/* Item */}
-        <Form.Item label="Categoria" name="item" rules={[{ required: true }]}>
-          <Select placeholder="Selecciona el problema" disabled={!area}>
-            {getItems().map((item) => (
-              <Select.Option key={item} value={item}>
-                {item}
+        {/* Categoría */}
+        <Form.Item
+          label="Categoría"
+          name="categoria_id"
+          rules={[{ required: true, message: "Selecciona una categoría" }]}
+        >
+          <Select
+            placeholder="Selecciona una categoría"
+            disabled={categorias.length === 0}
+          >
+            {categorias.map((categoria) => (
+              <Select.Option key={categoria.id} value={categoria.id}>
+                {categoria.nombre}
               </Select.Option>
             ))}
           </Select>
-        </Form.Item>
-
-        <Form.Item className="text-end">
-          <Button type="primary" htmlType="submit">
-            Crear Ticket
-          </Button>
         </Form.Item>
 
         {/* Título */}
-        <Form.Item label="Título" name="titulo" rules={[{ required: true }]}>
+        <Form.Item
+          label="Título"
+          name="titulo"
+          rules={[{ required: true, message: "Ingresa un título" }]}
+        >
           <Input placeholder="Ej. Problema con impresora" />
         </Form.Item>
 
@@ -101,9 +109,15 @@ export default function Page() {
         <Form.Item
           label="Descripción"
           name="descripcion"
-          rules={[{ required: true }]}
+          rules={[{ required: true, message: "Describe el problema" }]}
         >
           <TextArea rows={3} placeholder="Describe el problema..." />
+        </Form.Item>
+
+        <Form.Item className="text-end">
+          <Button type="primary" htmlType="submit">
+            Crear Ticket
+          </Button>
         </Form.Item>
       </Form>
     </div>

@@ -14,7 +14,7 @@ export const getUsuarios = async (): Promise<Usuario[]> => {
   return response.data;
 };
 
-export const updateUsuario = async (id: number, data: UpdateUsuario) => {
+export const updateUsuario = async (id: string, data: UpdateUsuario) => {
   const response = await api.put(`/admin/usuario/${id}`, data);
   return response.data;
 };

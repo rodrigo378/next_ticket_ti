@@ -99,10 +99,14 @@ export default function MainLayout({ children }: { children: ReactNode }) {
       label: "Gestion de tickets",
       children: [
         tienePermiso("2.1")
-          ? { key: "/admin/tickets", label: "Bandeja de tickets" }
+          ? { key: "/admin/ticket", label: "Bandeja de tickets" }
           : null,
         tienePermiso("2.2")
-          ? { key: "/admin/tickets/asignar", label: "Asignar Ticket" }
+          ? { key: "/admin/ticket/asignar", label: "Asignar Ticket" }
+          : null,
+        tienePermiso("2.3") ? { key: "/ticket/", label: "Mis Ticket" } : null,
+        tienePermiso("2.4")
+          ? { key: "/ticket/crear", label: "Crear Ticket" }
           : null,
       ].filter(Boolean),
     },
@@ -112,10 +116,7 @@ export default function MainLayout({ children }: { children: ReactNode }) {
       label: "Incidencias y Categorías",
       children: [
         tienePermiso("3.1")
-          ? { key: "/admin/incidencias", label: "Gestion de incidencias" }
-          : null,
-        tienePermiso("3.2")
-          ? { key: "/admin/categorias", label: "Gestion de categorias" }
+          ? { key: "/admin/incidencia", label: "Gestion de incidencias" }
           : null,
       ].filter(Boolean),
     },
@@ -128,23 +129,23 @@ export default function MainLayout({ children }: { children: ReactNode }) {
           ? { key: "/admin/sla", label: "Configuración SLA" }
           : null,
         tienePermiso("4.2")
-          ? { key: "/admin/prioridades", label: "Gestión de Prioridades" }
+          ? { key: "/admin/prioridad", label: "Gestión de Prioridades" }
           : null,
       ].filter(Boolean),
     },
-    {
-      key: "Reportes y Auditoría",
-      icon: <UserOutlined />,
-      label: "Reportes y Auditoría",
-      children: [
-        tienePermiso("5.1")
-          ? { key: "/admin/reportes", label: "Reportes Generales" }
-          : null,
-        tienePermiso("5.2")
-          ? { key: "/admin/auditoria", label: "Log de Auditoría" }
-          : null,
-      ].filter(Boolean),
-    },
+    // {
+    //   key: "Reportes y Auditoría",
+    //   icon: <UserOutlined />,
+    //   label: "Reportes y Auditoría",
+    //   children: [
+    //     tienePermiso("5.1")
+    //       ? { key: "/admin/reportes", label: "Reportes Generales" }
+    //       : null,
+    //     tienePermiso("5.2")
+    //       ? { key: "/admin/auditoria", label: "Log de Auditoría" }
+    //       : null,
+    //   ].filter(Boolean),
+    // },
   ]
     // ⬇️ Esto asegura que no incluyas menús sin hijos
     .map((item) => (item.children.length ? item : null))

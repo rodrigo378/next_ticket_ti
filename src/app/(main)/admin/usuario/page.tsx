@@ -14,7 +14,7 @@ import {
 } from "antd";
 import { SearchOutlined, PlusOutlined, EyeOutlined } from "@ant-design/icons";
 import { ColumnsType } from "antd/es/table";
-import { createUsuario, getUsuarios } from "@/services/admin";
+import { createUsuario, getUsuarios, updateUsuario } from "@/services/admin";
 import { CreateUsuario, Usuario } from "@/interface/usuario";
 import { getAreas } from "@/services/area";
 import { Area } from "@/interface/area";
@@ -48,6 +48,7 @@ export default function Page() {
         grado: usuario.grado,
         estado: usuario.estado,
         area_id: usuario.area_id,
+        roles: usuario.roles.map((ur) => ur.rol_id),
       });
     } else {
       setUsuarioSeleccionado(null);
@@ -123,14 +124,14 @@ export default function Page() {
       title: "Rol",
       key: "rol",
       render: (usuario: Usuario) => {
-        let roles = "";
-        usuario.roles.map((usuarioRol) => {
-          console.log("usuarioRol => ", usuarioRol.rol.nombre);
-          roles += `${usuarioRol.rol.nombre}`;
-        });
-        return roles;
+        const rolesHTML = usuario.roles
+          .map((usuarioRol) => usuarioRol.rol.nombre)
+          .join("<br/>");
+
+        return <span dangerouslySetInnerHTML={{ __html: rolesHTML }} />;
       },
     },
+
     {
       title: "Estado",
       dataIndex: "estado",
@@ -161,14 +162,21 @@ export default function Page() {
 
   const onFinish = async (values: CreateUsuario) => {
     try {
-      console.log("formulario => ", values);
-      await createUsuario(values);
-      message.success("✅ Usuario registrado correctamente");
+      if (usuarioSeleccionado) {
+        console.log("update => ", values);
+        const res = await updateUsuario(usuarioSeleccionado.id, values);
+        console.log("res => ", res);
+        message.success("✅ Usuario actualizado correctamente");
+      } else {
+        await createUsuario(values);
+        message.success("✅ Usuario registrado correctamente");
+      }
+
       onClose();
       fetchUsuarios();
     } catch (error) {
-      console.error("❌ Error al registrar usuario", error);
-      message.error("No se pudo registrar el usuario");
+      console.error("❌ Error al guardar usuario", error);
+      message.error("No se pudo guardar el usuario");
     }
   };
 
@@ -253,7 +261,11 @@ export default function Page() {
           <Form.Item
             name="password"
             label="Contraseña"
-            rules={[{ required: true }]}
+            rules={[
+              !usuarioSeleccionado
+                ? { required: true, message: "La contraseña es obligatoria" }
+                : {},
+            ]}
           >
             <Input.Password placeholder="Ingrese una contraseña" />
           </Form.Item>
@@ -279,15 +291,12 @@ export default function Page() {
                   {rol.nombre}
                 </Select.Option>
               ))}
-              {/* <Select.Option value={1}>Administrador</Select.Option>
-              <Select.Option value={2}>Soporte</Select.Option>
-              <Select.Option value={3}>Usuario</Select.Option> */}
             </Select>
           </Form.Item>
 
           <div className="flex justify-end">
             <Button type="primary" htmlType="submit">
-              Guardar
+              {usuarioSeleccionado ? "Editar Usuario" : "Crear Usuario"}
             </Button>
           </div>
         </Form>
