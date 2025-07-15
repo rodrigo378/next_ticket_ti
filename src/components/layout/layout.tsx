@@ -99,10 +99,10 @@ export default function MainLayout({ children }: { children: ReactNode }) {
       label: "Gestion de tickets",
       children: [
         tienePermiso("2.1")
-          ? { key: "/admin/ticket", label: "Bandeja de tickets" }
+          ? { key: "/ticket/soporte", label: "Bandeja de tickets" }
           : null,
         tienePermiso("2.2")
-          ? { key: "/admin/ticket/asignar", label: "Asignar Ticket" }
+          ? { key: "/ticket/admin", label: "Asignar Ticket" }
           : null,
         tienePermiso("2.3") ? { key: "/ticket/", label: "Mis Ticket" } : null,
         tienePermiso("2.4")

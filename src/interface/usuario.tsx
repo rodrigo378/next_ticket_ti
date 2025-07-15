@@ -1,4 +1,4 @@
-import { Area } from "./area";
+import { UsuarioArea } from "./area";
 import { Rol } from "./rol";
 
 export interface Usuario {
@@ -13,7 +13,7 @@ export interface Usuario {
   updatedAt: string;
   estado: "A" | "I";
   roles: UsuarioRol[];
-  area: Area;
+  areas: UsuarioArea[];
 }
 
 export interface UsuarioRol {

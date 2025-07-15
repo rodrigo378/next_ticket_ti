@@ -3,60 +3,34 @@
 import { Table, Tag, Typography, Button } from "antd";
 import { EyeOutlined } from "@ant-design/icons";
 import Link from "next/link";
-// import { useEffect, useState } from "react";
-// import { TicketTi } from "@/interface/ticket_ti";
-// import { getTicketsMe } from "@/services/ticket_ti";
+import { useEffect, useState } from "react";
+import { TicketTi } from "@/interface/ticket_ti";
+import { getTicketsMe } from "@/services/ticket_ti";
+import dayjs from "dayjs";
+import relativeTime from "dayjs/plugin/relativeTime";
+import "dayjs/locale/es";
 
+dayjs.extend(relativeTime);
+dayjs.locale("es");
 const { Title } = Typography;
-
-const data = [
-  {
-    key: 1,
-    titulo: "Fallo en el servidor de correo",
-    estado: { nombre: "Cerrado" },
-    prioridad: { nombre: "Alta" },
-    createdAt: "2025-07-01T09:15:00Z",
-    id: 101,
-  },
-  {
-    key: 2,
-    titulo: "Solicitud de acceso a VPN",
-    estado: { nombre: "En progreso" },
-    prioridad: { nombre: "Media" },
-    createdAt: "2025-07-05T14:30:00Z",
-    id: 102,
-  },
-  {
-    key: 3,
-    titulo: "Actualización de software de seguridad",
-    estado: { nombre: "Abierto" },
-    prioridad: { nombre: "Alta" },
-    createdAt: "2025-07-10T08:00:00Z",
-    id: 103,
-  },
-  {
-    key: 4,
-    titulo: "Configuración de nueva impresora",
-    estado: { nombre: "Cerrado" },
-    prioridad: { nombre: "Baja" },
-    createdAt: "2025-06-28T11:45:00Z",
-    id: 104,
-  },
-  {
-    key: 5,
-    titulo: "Problema con conexión a Internet",
-    estado: { nombre: "En progreso" },
-    prioridad: { nombre: "Alta" },
-    createdAt: "2025-07-09T16:20:00Z",
-    id: 105,
-  },
-];
 
 const columns = [
   {
     title: "Título",
     dataIndex: "titulo",
     key: "titulo",
+  },
+  {
+    title: "Incidencia",
+    dataIndex: ["incidencia", "nombre"],
+    key: "incidencia",
+    render: (incidencia: string) => <span>{incidencia}</span>,
+  },
+  {
+    title: "Categoría",
+    dataIndex: ["categoria", "nombre"],
+    key: "categoria",
+    render: (categoria: string) => <span>{categoria}</span>,
   },
   {
     title: "Estado",
@@ -85,17 +59,10 @@ const columns = [
     },
   },
   {
-    title: "Fecha de creación",
+    title: "Creado",
     dataIndex: "createdAt",
     key: "createdAt",
-    render: (createdAt: string) => {
-      const fecha = new Date(createdAt);
-      return fecha.toLocaleDateString("es-PE", {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-      });
-    },
+    render: (createdAt: string) => dayjs(createdAt).fromNow(),
   },
   {
     title: "Acciones",
@@ -111,24 +78,24 @@ const columns = [
 ];
 
 export default function Page() {
-  // const [ticketsTi, serTicketsTi] = useState<TicketTi[]>([]);
+  const [ticket, setTicket] = useState<TicketTi[]>([]);
 
-  // const fetchTicketsTi = async () => {
-  //   try {
-  //     const data = await getTicketsMe();
-  //     serTicketsTi(data);
-  //     console.log("data => ", data);
-  //   } catch (error) {
-  //     console.log("error => ", error);
-  //   }
-  // };
+  const fetchTicketsTi = async () => {
+    try {
+      const data = await getTicketsMe();
+      setTicket(data);
+      console.log("data => ", data);
+    } catch (error) {
+      console.log("error => ", error);
+    }
+  };
 
-  // useEffect(() => {
-  //   const fetch = async () => {
-  //     await fetchTicketsTi();
-  //   };
-  //   fetch();
-  // }, []);
+  useEffect(() => {
+    const fetch = async () => {
+      await fetchTicketsTi();
+    };
+    fetch();
+  }, []);
 
   return (
     <div className="max-w-6xl mx-auto mt-10 p-6 bg-white rounded-xl shadow-sm">
@@ -137,7 +104,7 @@ export default function Page() {
       <Table
         columns={columns}
         // dataSource={dataSource}
-        dataSource={data}
+        dataSource={ticket}
         pagination={{ pageSize: 5 }}
         rowKey="id"
         bordered

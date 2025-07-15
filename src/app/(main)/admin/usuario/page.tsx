@@ -49,6 +49,7 @@ export default function Page() {
         estado: usuario.estado,
         area_id: usuario.area_id,
         roles: usuario.roles.map((ur) => ur.rol_id),
+        areas: usuario.areas.map((ua) => ua.area_id),
       });
     } else {
       setUsuarioSeleccionado(null);
@@ -66,6 +67,7 @@ export default function Page() {
     try {
       const data = await getUsuarios();
       setUsuarios(data);
+      console.log("data => ", data);
     } catch (error) {
       console.log("error => ", error);
     }
@@ -124,14 +126,26 @@ export default function Page() {
       title: "Rol",
       key: "rol",
       render: (usuario: Usuario) => {
-        const rolesHTML = usuario.roles
-          .map((usuarioRol) => usuarioRol.rol.nombre)
-          .join("<br/>");
+        const roles = usuario.roles?.map((usuarioRol) => usuarioRol.rol.nombre);
+        const rolesHTML = roles?.length
+          ? roles.join("<br/>")
+          : "Sin rol asignado";
 
         return <span dangerouslySetInnerHTML={{ __html: rolesHTML }} />;
       },
     },
+    {
+      title: "Área",
+      key: "area_id",
+      render: (usuario: Usuario) => {
+        const areas = usuario.areas?.map((area) => area.area.nombre);
+        const areasHTML = areas?.length
+          ? areas.join("<br/>")
+          : "Sin área asignada";
 
+        return <span dangerouslySetInnerHTML={{ __html: areasHTML }} />;
+      },
+    },
     {
       title: "Estado",
       dataIndex: "estado",
@@ -270,8 +284,8 @@ export default function Page() {
             <Input.Password placeholder="Ingrese una contraseña" />
           </Form.Item>
 
-          <Form.Item name="area_id" label="Areas" rules={[{ required: true }]}>
-            <Select placeholder="Seleccione un area" allowClear>
+          <Form.Item name="areas" label="Areas" rules={[{ required: true }]}>
+            <Select mode="multiple" placeholder="Seleccione un area" allowClear>
               {areas.map((area) => (
                 <Select.Option key={area.id} value={area.id}>
                   {area.nombre}

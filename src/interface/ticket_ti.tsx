@@ -1,5 +1,5 @@
 import { Estado } from "./estado";
-import { Incidencia } from "./incidencia";
+import { Categoria, Incidencia } from "./incidencia";
 import { Prioridad } from "./prioridad";
 import { Usuario } from "./usuario";
 
@@ -10,6 +10,9 @@ export interface TicketTi {
 
   incidencia_id: number;
   incidencia: Incidencia;
+
+  categoria_id: number;
+  categoria: Categoria;
 
   prioridad_id?: number;
   prioridad?: Prioridad;
