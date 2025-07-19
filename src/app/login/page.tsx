@@ -1,5 +1,6 @@
 "use client";
 
+import { useUsuario } from "@/context/UserContext";
 import { signin } from "@/services/auth";
 import { Form, Input, Button, Typography, Card, message } from "antd";
 import { AxiosError } from "axios";
@@ -8,15 +9,16 @@ import { useRouter } from "next/navigation";
 const { Title } = Typography;
 
 export default function LoginPage() {
+  const { setUsuario } = useUsuario();
+
   const router = useRouter();
 
   const onFinish = async (values: { email: string; password: string }) => {
     try {
       const response = await signin(values);
-      const { token } = response.data;
-
+      const { token, usuario } = response;
       localStorage.setItem("token", token);
-
+      setUsuario(usuario);
       message.success("Inicio de sesión exitoso");
       router.push("/");
     } catch (error: unknown) {
@@ -43,7 +45,14 @@ export default function LoginPage() {
           <p className="text-gray-500 text-sm">Inicia sesión con tu cuenta</p>
         </div>
 
-        <Form layout="vertical" onFinish={onFinish} requiredMark={false}>
+        <Form
+          layout="vertical"
+          onFinish={onFinish}
+          requiredMark={false}
+          initialValues={{
+            email: "adminti@uma.edu.pe",
+          }}
+        >
           <Form.Item
             label="Correo institucional"
             name="email"

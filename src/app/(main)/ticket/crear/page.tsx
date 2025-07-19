@@ -1,7 +1,6 @@
 "use client";
 
 import { Categoria, Incidencia } from "@/interface/incidencia";
-import { TicketTi } from "@/interface/ticket_ti";
 import { getIncidencias } from "@/services/incidencias";
 import { createTicketTi } from "@/services/ticket_ti";
 import {
@@ -18,6 +17,7 @@ import {
 import { UploadOutlined } from "@ant-design/icons";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import type { UploadFile } from "antd/es/upload/interface"; // 👈 Importa el tipo correcto
 
 const { Title } = Typography;
 const { TextArea } = Input;
@@ -28,7 +28,7 @@ export default function Page() {
   const [tipo, setTipo] = useState<string | null>(null);
   const [incidencias, setIncidencias] = useState<Incidencia[]>([]);
   const [categorias, setCategorias] = useState<Categoria[]>([]);
-  const [fileList, setFileList] = useState<unknown[]>([]);
+  const [fileList, setFileList] = useState<UploadFile[]>([]); // ✅ Tipado correcto
 
   const fetchIncidencias = async (tipoSeleccionado: string) => {
     try {
@@ -59,16 +59,32 @@ export default function Page() {
     });
   };
 
-  const onFinish = async (values: Partial<TicketTi>) => {
+  const onFinish = async () => {
+    const values = form.getFieldsValue(); // ✅ los valores sí llegan correctamente
+
+    console.log("✅ values =>", values);
+
+    const formData = new FormData();
+    formData.append("titulo", values.titulo);
+    formData.append("descripcion", values.descripcion);
+    formData.append("incidencia_id", values.incidencia_id.toString());
+    formData.append("categoria_id", values.categoria_id.toString());
+
+    fileList.forEach((file) => {
+      if (file.originFileObj) {
+        formData.append("archivos", file.originFileObj); // 👈 Repetir la key "archivos"
+      }
+    });
+
     try {
-      console.log("📥 Datos enviados:", values);
-      // Aquí puedes enviar `fileList` como FormData si deseas subir los archivos
-      const response = await createTicketTi(values);
+      console.log("form => ", formData);
+      const response = await createTicketTi(formData); // ✅ pasas formData correctamente
       console.log("response => ", response);
+
       message.success("Ticket creado exitosamente");
       router.push("/ticket");
     } catch (error) {
-      console.log("error => ", error);
+      console.error("❌ Error:", error);
       message.error("Error al crear el ticket");
     }
   };
@@ -159,7 +175,6 @@ export default function Page() {
           />
         </Form.Item>
 
-        {/* Subir Archivos */}
         <Form.Item label="Adjuntar archivos (opcional)">
           <Upload
             fileList={fileList}

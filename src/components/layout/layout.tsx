@@ -12,6 +12,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { ReactNode } from "react";
 import { getPermisosMe } from "@/services/admin";
 import { PermisoLayout } from "@/interface/permisos";
+import { useUsuario } from "@/context/UserContext";
 
 const { Header, Sider, Content } = Layout;
 
@@ -20,6 +21,7 @@ export default function MainLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
   const [permisos, setPermisos] = useState<PermisoLayout[]>([]);
+  const { usuario } = useUsuario();
 
   const fetchPermisos = async () => {
     try {
@@ -43,10 +45,12 @@ export default function MainLayout({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const fetch = async () => {
+      console.log("usuario => ", usuario);
+
       await fetchPermisos();
     };
     fetch();
-  }, []);
+  }, [usuario]);
 
   const handleMenuClick = ({ key }: { key: string }) => {
     router.push(key);
@@ -175,7 +179,7 @@ export default function MainLayout({ children }: { children: ReactNode }) {
             icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
           />
           <Dropdown menu={userMenu} placement="bottomRight" trigger={["click"]}>
-            <Button shape="circle" icon={<UserOutlined />} />
+            <Button>👋 {usuario?.nombre || "Usuario 123"}</Button>
           </Dropdown>
         </Header>
 

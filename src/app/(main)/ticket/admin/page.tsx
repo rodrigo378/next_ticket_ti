@@ -1,13 +1,28 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Table, Button, message, Tag, Select, Drawer } from "antd";
+import {
+  Table,
+  Button,
+  message,
+  Tag,
+  Select,
+  Drawer,
+  Divider,
+  Descriptions,
+} from "antd";
 import { EyeOutlined } from "@ant-design/icons";
 import { TicketTi } from "@/interface/ticket_ti";
 import { getUsuarios } from "@/services/admin";
 import { Usuario } from "@/interface/usuario";
-import { asignarSoporte, getTickets } from "@/services/ticket_ti";
+import { getTicket, getTickets, updateTicket } from "@/services/ticket_ti";
 import { Prioridad } from "@/interface/prioridad";
+import dayjs from "dayjs";
+import relativeTime from "dayjs/plugin/relativeTime";
+import "dayjs/locale/es";
+
+dayjs.extend(relativeTime);
+dayjs.locale("es");
 
 const { Option } = Select;
 
@@ -22,11 +37,17 @@ export default function Page() {
   const [asignadoId, setAsignadoId] = useState<number | undefined>();
   const [prioridadId, setPrioridadId] = useState<number | undefined>();
 
-  const abrirDrawer = (ticket: TicketTi) => {
-    setTicketSeleccionado(ticket);
-    setAsignadoId(ticket.asignado_id ?? undefined); // Convertimos null a undefined
-    setPrioridadId(ticket.prioridad_id ?? undefined); // Igual aquí por si acaso
-    setDrawerVisible(true);
+  const abrirDrawer = async (ticket: TicketTi) => {
+    try {
+      const data = await getTicket(ticket.id!);
+      setTicketSeleccionado(data);
+      setAsignadoId(data.asignado_id ?? undefined);
+      setPrioridadId(data.prioridad_id ?? undefined);
+      setDrawerVisible(true);
+    } catch (error) {
+      console.error("Error al obtener detalle del ticket", error);
+      message.error("❌ Error al cargar detalle del ticket");
+    }
   };
 
   const fetchTicketsTi = async () => {
@@ -51,19 +72,24 @@ export default function Page() {
     }
   };
 
-  const handleAsignar = async (ticketId: number, asignado_id: number) => {
+  const handleActualizar = async () => {
+    if (!ticketSeleccionado || !asignadoId || !prioridadId) {
+      message.warning("Debes seleccionar soporte y prioridad");
+      return;
+    }
+
     try {
-      // await updateTicketTi(ticket_id, data);
-
-      // console.log("Asignando ticket =>", ticketId, data);
-      const response = await asignarSoporte(ticketId, asignado_id);
-      console.log("response => ", response);
-
-      message.success("Ticket actualizado correctamente");
+      await updateTicket(Number(ticketSeleccionado.id), {
+        asignado_id: asignadoId,
+        prioridad_id: prioridadId,
+        estado_id: 2,
+      });
+      message.success("✅ Ticket actualizado correctamente");
       fetchTicketsTi();
+      setDrawerVisible(false);
     } catch (error) {
-      console.error("error => ", error);
-      message.error("Error al asignar ticket");
+      console.error("error =>", error);
+      message.error("❌ Error al actualizar el ticket");
     }
   };
 
@@ -71,6 +97,11 @@ export default function Page() {
     fetchTicketsTi();
     fetchUsuarios();
   }, []);
+
+  const slaActual = ticketSeleccionado?.incidencia.SLA.find(
+    (sla) => sla.prioridad_id === prioridadId
+  );
+  console.log("slaActual => ", slaActual);
 
   const columns = [
     {
@@ -101,14 +132,7 @@ export default function Page() {
       title: "Fecha de creación",
       dataIndex: "createdAt",
       key: "createdAt",
-      render: (createdAt: string) => {
-        const fecha = new Date(createdAt);
-        return fecha.toLocaleDateString("es-PE", {
-          year: "numeric",
-          month: "long",
-          day: "numeric",
-        });
-      },
+      render: (createdAt: string) => dayjs(createdAt).fromNow(),
     },
     {
       title: "Creado por",
@@ -133,7 +157,16 @@ export default function Page() {
       title: "Prioridad",
       dataIndex: "prioridad",
       key: "prioridad_id",
-      render: (prioridad: Prioridad) => <span>{prioridad?.nombre}</span>,
+      render: (prioridad: Prioridad) => {
+        const color =
+          prioridad?.nombre === "Alta"
+            ? "red"
+            : prioridad?.nombre === "Media"
+            ? "orange"
+            : "green";
+
+        return <Tag color={color}>{prioridad?.nombre}</Tag>;
+      },
     },
     {
       title: "Acciones",
@@ -152,7 +185,7 @@ export default function Page() {
 
   return (
     <div>
-      <h1 style={{ marginBottom: 20 }}>Listado de Tickets TI</h1>
+      <h1 style={{ marginBottom: 20 }}>Asignar Tickets 1</h1>
       <Table
         rowKey="id"
         columns={columns}
@@ -163,33 +196,88 @@ export default function Page() {
       <Drawer
         title={`Detalle del ticket: ${ticketSeleccionado?.titulo}`}
         placement="right"
-        width={450}
+        width={500}
         onClose={() => setDrawerVisible(false)}
         open={drawerVisible}
       >
         {ticketSeleccionado && (
           <div className="flex flex-col gap-4">
-            <p>
-              <strong>Descripción:</strong> {ticketSeleccionado.descripcion}
-            </p>
-            <p>
-              <strong>Área:</strong>{" "}
-              {ticketSeleccionado.incidencia?.area?.nombre}
-            </p>
-            <p>
-              <strong>Estado:</strong> {ticketSeleccionado.estado?.nombre}
-            </p>
-            <p>
-              <strong>Creado por:</strong> {ticketSeleccionado.creado?.nombre}{" "}
-              {ticketSeleccionado.creado?.apellidos}
-            </p>
-            <p>
-              <strong>Incidencia:</strong>{" "}
-              {ticketSeleccionado.incidencia?.nombre}
-            </p>
-            <p>
-              <strong>Categoría:</strong> {ticketSeleccionado.categoria?.nombre}
-            </p>
+            <Descriptions bordered column={1} size="small">
+              <Descriptions.Item label="Descripción">
+                {ticketSeleccionado.descripcion}
+              </Descriptions.Item>
+              <Descriptions.Item label="Área">
+                {ticketSeleccionado.incidencia?.area?.nombre}
+              </Descriptions.Item>
+              <Descriptions.Item label="Estado">
+                {ticketSeleccionado.estado?.nombre}
+              </Descriptions.Item>
+              <Descriptions.Item label="Creado por">
+                {ticketSeleccionado.creado?.nombre}{" "}
+                {ticketSeleccionado.creado?.apellidos}
+              </Descriptions.Item>
+              <Descriptions.Item label="Incidencia">
+                {ticketSeleccionado.incidencia?.nombre}
+              </Descriptions.Item>
+              <Descriptions.Item label="Categoría">
+                {ticketSeleccionado.categoria?.nombre}
+              </Descriptions.Item>
+            </Descriptions>
+
+            {slaActual && ticketSeleccionado && (
+              <Descriptions
+                bordered
+                column={1}
+                size="small"
+                title="⏱ SLA del Ticket"
+              >
+                <Descriptions.Item label="Tiempo de Respuesta">
+                  {slaActual.tiempo_respuesta} minutos
+                </Descriptions.Item>
+                <Descriptions.Item label="Tiempo de Resolución">
+                  {slaActual.tiempo_resolucion} minutos
+                </Descriptions.Item>
+                <Descriptions.Item label="⏱ Estimado de Respuesta">
+                  {dayjs(ticketSeleccionado.createdAt)
+                    .add(slaActual.tiempo_respuesta, "minute")
+                    .format("DD/MM/YYYY HH:mm")}
+                </Descriptions.Item>
+                <Descriptions.Item label="📅 Estimado de Resolución">
+                  {dayjs(ticketSeleccionado.createdAt)
+                    .add(slaActual.tiempo_resolucion, "minute")
+                    .format("DD/MM/YYYY HH:mm")}
+                </Descriptions.Item>
+              </Descriptions>
+            )}
+
+            {ticketSeleccionado.documentos &&
+              ticketSeleccionado.documentos.length > 0 && (
+                <>
+                  <Divider>📎 Archivos adjuntos</Divider>
+                  <ul className="list-disc pl-4">
+                    {ticketSeleccionado.documentos.map((archivo, index) => {
+                      const fileUrl = `http://localhost:4000${archivo.url.replace(
+                        /\\/g,
+                        "/"
+                      )}`;
+                      return (
+                        <li key={index}>
+                          <a
+                            href={fileUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:underline"
+                          >
+                            📎 {archivo.nombre}
+                          </a>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </>
+              )}
+
+            <Divider>Asignar soporte y prioridad</Divider>
 
             <div>
               <p>
@@ -219,9 +307,15 @@ export default function Page() {
                 onChange={(value) => setPrioridadId(Number(value))}
                 placeholder="Seleccionar prioridad"
               >
-                <Option value="1">Baja</Option>
-                <Option value="2">Media</Option>
-                <Option value="3">Alta</Option>
+                <Option value="1">
+                  <Tag color="green">Baja</Tag>
+                </Option>
+                <Option value="2">
+                  <Tag color="orange">Media</Tag>
+                </Option>
+                <Option value="3">
+                  <Tag color="red">Alta</Tag>
+                </Option>
               </Select>
             </div>
 
@@ -229,12 +323,7 @@ export default function Page() {
               type="primary"
               block
               className="mt-4"
-              onClick={() => {
-                if (ticketSeleccionado) {
-                  handleAsignar(ticketSeleccionado.id!, asignadoId!);
-                  setDrawerVisible(false);
-                }
-              }}
+              onClick={handleActualizar}
             >
               Guardar Cambios
             </Button>

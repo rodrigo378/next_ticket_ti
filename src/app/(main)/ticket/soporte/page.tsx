@@ -10,21 +10,32 @@ import { useEffect, useState } from "react";
 import { TicketTi } from "@/interface/ticket_ti";
 import Link from "next/link";
 import { getTickets } from "@/services/ticket_ti";
+import { useUsuario } from "@/context/UserContext";
+import { Estado } from "@/interface/estado";
+import { Prioridad } from "@/interface/prioridad";
+import { getEstados } from "@/services/estado";
+import { getPrioridades } from "@/services/prioridad";
 
 const { Title } = Typography;
 const { Option } = Select;
 
-// Simulación de user_id (puedes quitar esto si ya lo manejas desde tu auth)
-const userIdSimulado = 999;
-
 export default function Page() {
   const [ticketsTi, setTicketsTi] = useState<TicketTi[]>([]);
   const [loading, setLoading] = useState(false);
+  const [estados, setEstados] = useState<Estado[]>([]);
+  const [prioridades, setPrioridades] = useState<Prioridad[]>([]);
+  const { usuario } = useUsuario();
+  const [tiempoActual, setTiempoActual] = useState(Date.now());
+
+  const [filtros, setFiltros] = useState<{
+    estado_id?: number;
+    prioridad_id?: number;
+  }>({});
 
   const fetchTickets = async () => {
     try {
       setLoading(true);
-      const data = await getTickets(); // El backend ya filtra por áreas del usuario
+      const data = await getTickets();
       setTicketsTi(data);
     } catch (error) {
       console.error("error => ", error);
@@ -34,10 +45,27 @@ export default function Page() {
     }
   };
 
+  const fetchEstados = async () => {
+    try {
+      const data = await getEstados();
+      setEstados(data);
+    } catch (error) {
+      console.log("error => ", error);
+    }
+  };
+
+  const fetchPrioridades = async () => {
+    try {
+      const data = await getPrioridades();
+      setPrioridades(data);
+    } catch (error) {
+      console.error("Error al cargar prioridades", error);
+    }
+  };
+
   const handleEstadoChange = async (ticketId: number, estadoId: number) => {
     try {
       console.log(ticketId, estadoId);
-
       // await updateEstadoTicket(ticketId, estadoId);
       message.success("Estado actualizado correctamente");
       fetchTickets();
@@ -48,8 +76,22 @@ export default function Page() {
   };
 
   useEffect(() => {
+    fetchEstados();
+    fetchPrioridades();
     fetchTickets();
+    const intervalo = setInterval(() => {
+      setTiempoActual(Date.now());
+    }, 1000);
+    return () => clearInterval(intervalo);
   }, []);
+
+  const ticketsFiltrados = ticketsTi.filter((ticket) => {
+    const coincideEstado =
+      !filtros.estado_id || ticket.estado?.id === filtros.estado_id;
+    const coincidePrioridad =
+      !filtros.prioridad_id || ticket.prioridad?.id === filtros.prioridad_id;
+    return coincideEstado && coincidePrioridad;
+  });
 
   const columns = [
     {
@@ -91,9 +133,11 @@ export default function Page() {
           onChange={(value) => handleEstadoChange(record.id!, value)}
           style={{ width: 150 }}
         >
-          <Option value={1}>Abierto</Option>
-          <Option value={2}>En Proceso</Option>
-          <Option value={3}>Resuelto</Option>
+          {estados.map((estado) => (
+            <Option key={estado.id} value={estado.id}>
+              {estado.nombre}
+            </Option>
+          ))}
         </Select>
       ),
     },
@@ -101,7 +145,7 @@ export default function Page() {
       title: "Asignado a mí",
       key: "asignado_a_mi",
       render: (record: TicketTi) =>
-        record.asignado_id === userIdSimulado ? (
+        record.asignado_id === usuario?.id ? (
           <CheckCircleTwoTone twoToneColor="#52c41a" />
         ) : (
           <CloseCircleTwoTone twoToneColor="#ff4d4f" />
@@ -112,7 +156,7 @@ export default function Page() {
       key: "acciones",
       render: (record: TicketTi) => (
         <Space>
-          <Link href={`/ticket_ti/soporte/${record.id}`}>
+          <Link href={`/ticket/soporte/${record.id}`}>
             <Button
               type="link"
               icon={<EyeOutlined />}
@@ -124,16 +168,89 @@ export default function Page() {
         </Space>
       ),
     },
+    {
+      title: "SLA",
+      key: "sla",
+      render: (record: TicketTi) => {
+        const sla = record.slaTicket;
+
+        if (!sla) {
+          return <Tag color="default">No definido</Tag>;
+        }
+
+        const ahora = tiempoActual;
+        const limite = new Date(sla.tiempo_estimado_respuesta).getTime();
+        const tiempoRestante = limite - ahora;
+
+        const horas = Math.floor(tiempoRestante / (1000 * 60 * 60));
+        const minutos = Math.floor(
+          (tiempoRestante % (1000 * 60 * 60)) / (1000 * 60)
+        );
+        const segundos = Math.floor((tiempoRestante % (1000 * 60)) / 1000);
+
+        let color = "green";
+        if (tiempoRestante <= 0) {
+          color = "red";
+        } else if (tiempoRestante <= 2 * 60 * 60 * 1000) {
+          color = "orange";
+        }
+
+        return (
+          <Tag color={color}>
+            {tiempoRestante <= 0
+              ? "Vencido"
+              : `Restan ${horas}h ${minutos}min ${segundos}s`}
+          </Tag>
+        );
+      },
+    },
   ];
 
   return (
     <div className="p-6 bg-white min-h-screen">
       <Title level={3}>🎧 Tickets Asignados a Soporte</Title>
 
-      <div className="mt-4 bg-white rounded-lg shadow p-4">
+      <Space className="mb-4">
+        <Select
+          allowClear
+          placeholder="Filtrar por estado"
+          style={{ width: 200 }}
+          value={filtros.estado_id ?? undefined}
+          onChange={(value) =>
+            setFiltros((prev) => ({ ...prev, estado_id: value ?? undefined }))
+          }
+        >
+          {estados.map((estado) => (
+            <Option key={estado.id} value={estado.id}>
+              {estado.nombre}
+            </Option>
+          ))}
+        </Select>
+
+        <Select
+          allowClear
+          placeholder="Filtrar por prioridad"
+          style={{ width: 200 }}
+          value={filtros.prioridad_id ?? undefined}
+          onChange={(value) =>
+            setFiltros((prev) => ({
+              ...prev,
+              prioridad_id: value ?? undefined,
+            }))
+          }
+        >
+          {prioridades.map((prioridad) => (
+            <Option key={prioridad.id} value={prioridad.id}>
+              {prioridad.nombre}
+            </Option>
+          ))}
+        </Select>
+      </Space>
+
+      <div className="bg-white rounded-lg shadow p-4">
         <Table
           columns={columns}
-          dataSource={ticketsTi}
+          dataSource={ticketsFiltrados}
           rowKey="id"
           loading={loading}
           pagination={{ pageSize: 5 }}
