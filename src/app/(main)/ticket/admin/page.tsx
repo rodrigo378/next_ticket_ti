@@ -13,13 +13,13 @@ import {
 } from "antd";
 import { EyeOutlined } from "@ant-design/icons";
 import { TicketTi } from "@/interface/ticket_ti";
-import { getUsuarios } from "@/services/admin";
 import { Usuario } from "@/interface/usuario";
 import { getTicket, getTickets, updateTicket } from "@/services/ticket_ti";
 import { Prioridad } from "@/interface/prioridad";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import "dayjs/locale/es";
+import { getUsuarios } from "@/services/usuario";
 
 dayjs.extend(relativeTime);
 dayjs.locale("es");
@@ -54,6 +54,8 @@ export default function Page() {
     try {
       setLoading(true);
       const data = await getTickets();
+      console.log("tickets => ", data);
+
       setTickets(data);
     } catch (error) {
       console.error("error => ", error);
@@ -65,7 +67,7 @@ export default function Page() {
 
   const fetchUsuarios = async () => {
     try {
-      const data = await getUsuarios();
+      const data = await getUsuarios("true");
       setUsuarios(data);
     } catch (error) {
       console.error("error => ", error);

@@ -1,7 +1,12 @@
 "use client";
 
 import { Card, Descriptions, Tag, Typography, List, Input, Button } from "antd";
-import { PaperClipOutlined } from "@ant-design/icons";
+import {
+  PaperClipOutlined,
+  FilePdfOutlined,
+  FileImageOutlined,
+  FileWordOutlined,
+} from "@ant-design/icons";
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { TicketTi } from "@/interface/ticket_ti";
@@ -20,6 +25,7 @@ export default function Page() {
   const id = params.id as string;
   const [ticketTi, setTicketTi] = useState<TicketTi | null>(null);
   const [nuevoMensaje, setNuevoMensaje] = useState("");
+  const [loadingMensaje, setLoadingMensaje] = useState(false);
 
   const fetchTicketTi = async (id: string) => {
     try {
@@ -32,22 +38,31 @@ export default function Page() {
   };
 
   const handleEnviarMensaje = async () => {
-    console.log("Se enviará el mensaje =>", {
-      contenido: nuevoMensaje,
-      ticket_id: id,
-    });
-
+    if (!nuevoMensaje.trim()) return;
+    setLoadingMensaje(true);
     try {
-      const response = await createMensaje({
+      await createMensaje({
         ticket_id: Number(id),
         contenido: nuevoMensaje,
       });
-      console.log("response => ", response);
+      setNuevoMensaje("");
       const res = await getTicket(Number(id));
       setTicketTi(res);
     } catch (error) {
       console.log("error => ", error);
+    } finally {
+      setLoadingMensaje(false);
     }
+  };
+
+  const getFileIcon = (filename: string) => {
+    if (filename.endsWith(".pdf"))
+      return <FilePdfOutlined style={{ color: "red" }} />;
+    if (filename.endsWith(".doc") || filename.endsWith(".docx"))
+      return <FileWordOutlined style={{ color: "blue" }} />;
+    if (filename.endsWith(".png") || filename.endsWith(".jpg"))
+      return <FileImageOutlined style={{ color: "green" }} />;
+    return <PaperClipOutlined />;
   };
 
   useEffect(() => {
@@ -61,18 +76,28 @@ export default function Page() {
       {/* Información general */}
       <Card className="mb-6">
         <Descriptions column={1} size="middle" bordered>
-          <Descriptions.Item label="Título">
-            {ticketTi?.titulo}
+          <Descriptions.Item label="Codigo">
+            {ticketTi?.codigo}
           </Descriptions.Item>
           <Descriptions.Item label="Descripción">
             {ticketTi?.descripcion}
           </Descriptions.Item>
           <Descriptions.Item label="Estado">
-            <Tag color="orange">{ticketTi?.estado.nombre}</Tag>
+            <Tag
+              color={
+                ticketTi?.estado?.nombre === "Cerrado"
+                  ? "green"
+                  : ticketTi?.estado?.nombre === "En progreso"
+                  ? "orange"
+                  : "red"
+              }
+            >
+              {ticketTi?.estado?.nombre}
+            </Tag>
           </Descriptions.Item>
-          <Descriptions.Item label="Prioridad">
+          {/* <Descriptions.Item label="Prioridad">
             <Tag color="red">{ticketTi?.prioridad?.nombre}</Tag>
-          </Descriptions.Item>
+          </Descriptions.Item> */}
           <Descriptions.Item label="Fecha de creación">
             {dayjs(ticketTi?.createdAt).fromNow()}
           </Descriptions.Item>
@@ -91,8 +116,9 @@ export default function Page() {
               )}`;
               return (
                 <List.Item>
+                  {getFileIcon(doc.nombre)}{" "}
                   <a href={fileUrl} target="_blank" rel="noopener noreferrer">
-                    <PaperClipOutlined /> {doc.nombre}
+                    {doc.nombre}
                   </a>
                 </List.Item>
               );
@@ -107,9 +133,13 @@ export default function Page() {
       <Card title="💬 Conversación">
         <div className="mb-4 max-h-96 overflow-y-auto pr-2">
           {ticketTi?.mensajes.map((mensaje) => (
-            <div key={mensaje.id} className="mb-4">
-              <Text strong>{mensaje.emisor.nombre}</Text>
-              <div className="text-gray-500 text-sm">{mensaje.createdAt}</div>
+            <div key={mensaje.id} className={`mb-4 p-3 rounded-lg max-w-sm `}>
+              <div className="flex items-center gap-2 mb-1">
+                <Text strong>{mensaje.emisor.nombre}</Text>
+              </div>
+              <div className="text-gray-500 text-xs">
+                {dayjs(mensaje.createdAt).fromNow()}
+              </div>
               <div className="mt-1">{mensaje.contenido}</div>
             </div>
           ))}
@@ -124,7 +154,8 @@ export default function Page() {
           <Button
             type="primary"
             className="mt-2"
-            onClick={() => handleEnviarMensaje()}
+            onClick={handleEnviarMensaje}
+            loading={loadingMensaje}
           >
             Enviar
           </Button>

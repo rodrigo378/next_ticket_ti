@@ -1,5 +1,10 @@
-import { UsuarioArea } from "./area";
+import { Subarea, UsuarioArea } from "./area";
 import { Rol } from "./rol";
+
+export enum Genero {
+  MASCULINO = "masculino",
+  FEMENINO = "femenino",
+}
 
 export interface Usuario {
   id: string;
@@ -12,14 +17,9 @@ export interface Usuario {
   createdAt: string;
   updatedAt: string;
   estado: "A" | "I";
-  roles: UsuarioRol[];
-  areas: UsuarioArea[];
-}
-
-export interface UsuarioRol {
-  usuario_id: number;
-  rol_id: number;
+  subarea: Subarea;
   rol: Rol;
+  UsuarioArea: UsuarioArea[];
 }
 
 export interface SignIn {
@@ -31,11 +31,12 @@ export interface CreateUsuario {
   email: string;
   password: string;
   nombre: string;
-  estado: "A" | "I";
-  area_id: number;
   apellidos: string;
   grado: string;
-  genero: string;
+  genero: Genero;
+  estado: string;
+  rol_id: number;
+  subarea_id?: number;
 }
 
 export interface UpdateUsuario {
@@ -43,7 +44,9 @@ export interface UpdateUsuario {
   nombre?: string;
   apellidos?: string;
   grado?: string;
-  genero?: string;
+  genero?: "masculino" | "femenino";
   estado?: string;
-  area_id?: number;
+  rol_id?: number;
+  subarea_id?: number;
+  areas?: number[];
 }

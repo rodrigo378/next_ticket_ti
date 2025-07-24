@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 
 import { useEffect, useState } from "react";
@@ -15,9 +16,9 @@ import {
 import { SearchOutlined, PlusOutlined, EyeOutlined } from "@ant-design/icons";
 import { ColumnsType } from "antd/es/table";
 import { createUsuario, getUsuarios, updateUsuario } from "@/services/admin";
-import { CreateUsuario, Usuario } from "@/interface/usuario";
+import { CreateUsuario, UpdateUsuario, Usuario } from "@/interface/usuario";
 import { getAreas } from "@/services/area";
-import { Area } from "@/interface/area";
+import { Area, Subarea } from "@/interface/area";
 import { Rol } from "@/interface/rol";
 import { getRoles } from "@/services/rol";
 
@@ -30,15 +31,15 @@ export default function Page() {
   const [usuarioSeleccionado, setUsuarioSeleccionado] =
     useState<Usuario | null>(null);
 
+  const [rolSeleccionado, setRolSeleccionado] = useState<number | null>(null);
+  const [subareas, setSubareas] = useState<Subarea[]>([]);
+
   const [filtro, setFiltro] = useState("");
   const [open, setOpen] = useState(false);
   const [form] = Form.useForm();
 
   const showDrawer = (usuario?: Usuario) => {
-    console.log("se abrio el drawer");
-
     if (usuario) {
-      console.log("se abrio para editar", usuario);
       setUsuarioSeleccionado(usuario);
       form.setFieldsValue({
         nombre: usuario.nombre,
@@ -47,13 +48,22 @@ export default function Page() {
         genero: usuario.genero,
         grado: usuario.grado,
         estado: usuario.estado,
-        area_id: usuario.area_id,
-        roles: usuario.roles.map((ur) => ur.rol_id),
-        areas: usuario.areas.map((ua) => ua.area_id),
+        area_id: usuario.subarea?.area_id,
+        rol_id: usuario.rol.id,
+        subarea_id: usuario.subarea?.id,
       });
+      setRolSeleccionado(usuario.rol.nivel);
+
+      // Cargar subáreas de su área
+      if (usuario.subarea?.area_id) {
+        const area = areas.find((a) => a.id === usuario.subarea?.area_id);
+        setSubareas(area?.Subarea || []);
+      }
     } else {
       setUsuarioSeleccionado(null);
       form.resetFields();
+      setRolSeleccionado(null);
+      setSubareas([]);
     }
     setOpen(true);
   };
@@ -61,13 +71,13 @@ export default function Page() {
   const onClose = () => {
     setOpen(false);
     form.resetFields();
+    setSubareas([]);
   };
 
   const fetchUsuarios = async () => {
     try {
       const data = await getUsuarios();
       setUsuarios(data);
-      console.log("data => ", data);
     } catch (error) {
       console.log("error => ", error);
     }
@@ -79,7 +89,7 @@ export default function Page() {
       setAreas(data);
     } catch (error) {
       console.log("error => ", error);
-      message.error("");
+      message.error("Error al cargar áreas");
     }
   };
 
@@ -89,8 +99,25 @@ export default function Page() {
       setRoles(data);
     } catch (error) {
       console.log("error => ", error);
-      message.error("");
+      message.error("Error al cargar roles");
     }
+  };
+
+  const onRolChange = (rolId: number) => {
+    const rol = roles.find((r) => r.id === rolId);
+    setRolSeleccionado(rol?.nivel || null);
+    form.setFieldsValue({
+      areas: undefined,
+      subarea_id: undefined,
+      area_id: undefined,
+    });
+    setSubareas([]);
+  };
+
+  const onAreaChange = (areaId: number) => {
+    const area = areas.find((a) => a.id === areaId);
+    setSubareas(area?.Subarea || []);
+    form.setFieldsValue({ subarea_id: undefined });
   };
 
   useEffect(() => {
@@ -124,27 +151,44 @@ export default function Page() {
     },
     {
       title: "Rol",
+      dataIndex: ["rol", "nombre"],
       key: "rol",
-      render: (usuario: Usuario) => {
-        const roles = usuario.roles?.map((usuarioRol) => usuarioRol.rol.nombre);
-        const rolesHTML = roles?.length
-          ? roles.join("<br/>")
-          : "Sin rol asignado";
-
-        return <span dangerouslySetInnerHTML={{ __html: rolesHTML }} />;
-      },
     },
     {
       title: "Área",
-      key: "area_id",
-      render: (usuario: Usuario) => {
-        const areas = usuario.areas?.map((area) => area.area.nombre);
-        const areasHTML = areas?.length
-          ? areas.join("<br/>")
-          : "Sin área asignada";
-
-        return <span dangerouslySetInnerHTML={{ __html: areasHTML }} />;
+      key: "area",
+      render: (record: Usuario) => {
+        return record.subarea?.area?.nombre || "—";
       },
+    },
+    {
+      title: "Áreas Administradas",
+      key: "areas_admin",
+      render: (record: Usuario) => {
+        if (record.rol.nivel === 5) {
+          return <Tag color="geekblue">Todas las áreas</Tag>;
+        }
+        if (record.rol.nivel === 4) {
+          return (
+            <div className="flex flex-wrap gap-1">
+              {record.UsuarioArea?.length
+                ? record.UsuarioArea.map((ua) => (
+                    <Tag key={ua.area.id} color="blue">
+                      {ua.area.nombre}
+                    </Tag>
+                  ))
+                : "—"}
+            </div>
+          );
+        }
+        return "—";
+      },
+    },
+
+    {
+      title: "Subarea",
+      dataIndex: ["subarea", "nombre"],
+      key: "subarea",
     },
     {
       title: "Estado",
@@ -177,10 +221,21 @@ export default function Page() {
   const onFinish = async (values: CreateUsuario) => {
     try {
       if (usuarioSeleccionado) {
-        console.log("update => ", values);
-        const res = await updateUsuario(usuarioSeleccionado.id, values);
-        console.log("res => ", res);
+        // Construir el objeto `data` solo con los campos válidos
+        const data: UpdateUsuario = {
+          nombre: values.nombre,
+          apellidos: values.apellidos,
+          password: values.password,
+          grado: values.grado,
+          genero: values.genero,
+          estado: values.estado,
+          rol_id: values.rol_id,
+          subarea_id: values.subarea_id,
+        };
+
+        const response = await updateUsuario(usuarioSeleccionado.id, data);
         message.success("✅ Usuario actualizado correctamente");
+        console.log("Usuario actualizado => ", response);
       } else {
         await createUsuario(values);
         message.success("✅ Usuario registrado correctamente");
@@ -237,7 +292,6 @@ export default function Page() {
           <Form.Item name="nombre" label="Nombre" rules={[{ required: true }]}>
             <Input placeholder="Ej. Juan" />
           </Form.Item>
-
           <Form.Item
             name="apellidos"
             label="Apellidos"
@@ -245,7 +299,6 @@ export default function Page() {
           >
             <Input placeholder="Ej. Pérez" />
           </Form.Item>
-
           <Form.Item
             name="email"
             label="Correo"
@@ -253,25 +306,21 @@ export default function Page() {
           >
             <Input placeholder="correo@ejemplo.com" />
           </Form.Item>
-
           <Form.Item name="genero" label="Género" rules={[{ required: true }]}>
             <Select placeholder="Seleccione género">
               <Select.Option value="masculino">Masculino</Select.Option>
               <Select.Option value="femenino">Femenino</Select.Option>
             </Select>
           </Form.Item>
-
           <Form.Item name="grado" label="Grado" rules={[{ required: true }]}>
             <Input placeholder="Ej. Manager" />
           </Form.Item>
-
           <Form.Item name="estado" label="Estado" rules={[{ required: true }]}>
             <Select placeholder="Seleccione estado">
               <Select.Option value="A">Activo</Select.Option>
               <Select.Option value="I">Inactivo</Select.Option>
             </Select>
           </Form.Item>
-
           <Form.Item
             name="password"
             label="Contraseña"
@@ -284,22 +333,9 @@ export default function Page() {
             <Input.Password placeholder="Ingrese una contraseña" />
           </Form.Item>
 
-          <Form.Item name="areas" label="Areas" rules={[{ required: true }]}>
-            <Select mode="multiple" placeholder="Seleccione un area" allowClear>
-              {areas.map((area) => (
-                <Select.Option key={area.id} value={area.id}>
-                  {area.nombre}
-                </Select.Option>
-              ))}
-            </Select>
-          </Form.Item>
-
-          <Form.Item name="roles" label="Roles" rules={[{ required: true }]}>
-            <Select
-              mode="multiple"
-              placeholder="Seleccione uno o más roles"
-              allowClear
-            >
+          {/* Rol */}
+          <Form.Item name="rol_id" label="Rol" rules={[{ required: true }]}>
+            <Select placeholder="Seleccione un rol" onChange={onRolChange}>
               {roles.map((rol) => (
                 <Select.Option key={rol.id} value={rol.id}>
                   {rol.nombre}
@@ -307,6 +343,135 @@ export default function Page() {
               ))}
             </Select>
           </Form.Item>
+
+          {/* Nivel 5 */}
+          {rolSeleccionado === 5 && (
+            <>
+              <div className="mb-2">
+                <Tag color="geekblue">Administra todas las áreas</Tag>
+              </div>
+              <Form.Item name="area_id" label="Área">
+                <Select
+                  placeholder="Seleccione un área"
+                  allowClear
+                  onChange={onAreaChange}
+                >
+                  {areas.map((area) => (
+                    <Select.Option key={area.id} value={area.id}>
+                      {area.nombre}
+                    </Select.Option>
+                  ))}
+                </Select>
+              </Form.Item>
+              <Form.Item name="subarea_id" label="Subárea">
+                <Select placeholder="Seleccione subárea">
+                  {subareas.map((sub) => (
+                    <Select.Option key={sub.id} value={sub.id}>
+                      {sub.nombre}
+                    </Select.Option>
+                  ))}
+                </Select>
+              </Form.Item>
+            </>
+          )}
+
+          {/* Nivel 4 */}
+          {rolSeleccionado === 4 && (
+            <>
+              {/* Áreas administradas */}
+              <Form.Item
+                name="areas_id"
+                label="Áreas administradas"
+                rules={[{ required: true }]}
+              >
+                <Select
+                  mode="multiple"
+                  placeholder="Seleccione áreas"
+                  onChange={(ids) => {
+                    // Si la subárea actual no pertenece a las áreas seleccionadas, resetearla
+                    const subarea = subareas.find(
+                      (s) => s.id === form.getFieldValue("subarea_id")
+                    );
+                    const areaIds = areas
+                      .filter((a) => ids.includes(a.id))
+                      .flatMap((a) => a.Subarea.map((s) => s.id));
+                    if (subarea && !areaIds.includes(subarea.id)) {
+                      form.setFieldsValue({ subarea_id: undefined });
+                    }
+                  }}
+                >
+                  {areas.map((area) => (
+                    <Select.Option key={area.id} value={area.id}>
+                      {area.nombre}
+                    </Select.Option>
+                  ))}
+                </Select>
+              </Form.Item>
+
+              {/* Área y subárea asignada */}
+              <Form.Item
+                name="area_id"
+                label="Área principal"
+                rules={[{ required: true }]}
+              >
+                <Select
+                  placeholder="Seleccione un área"
+                  onChange={onAreaChange}
+                >
+                  {areas.map((area) => (
+                    <Select.Option key={area.id} value={area.id}>
+                      {area.nombre}
+                    </Select.Option>
+                  ))}
+                </Select>
+              </Form.Item>
+              <Form.Item
+                name="subarea_id"
+                label="Subárea principal"
+                rules={[{ required: true }]}
+              >
+                <Select placeholder="Seleccione subárea">
+                  {subareas.map((sub) => (
+                    <Select.Option key={sub.id} value={sub.id}>
+                      {sub.nombre}
+                    </Select.Option>
+                  ))}
+                </Select>
+              </Form.Item>
+            </>
+          )}
+
+          {/* Niveles 1-3 */}
+          {rolSeleccionado !== null && rolSeleccionado < 4 && (
+            <>
+              <Form.Item
+                name="area_id"
+                label="Área"
+                rules={[{ required: true }]}
+              >
+                <Select placeholder="Seleccione área" onChange={onAreaChange}>
+                  {areas.map((area) => (
+                    <Select.Option key={area.id} value={area.id}>
+                      {area.nombre}
+                    </Select.Option>
+                  ))}
+                </Select>
+              </Form.Item>
+              <Form.Item
+                name="subarea_id"
+                label="Subárea"
+                rules={[{ required: true }]}
+              >
+                <Select placeholder="Seleccione subárea">
+                  {subareas.map((sub) => (
+                    <Select.Option key={sub.id} value={sub.id}>
+                      {sub.nombre}
+                    </Select.Option>
+                  ))}
+                </Select>
+              </Form.Item>
+            </>
+          )}
 
           <div className="flex justify-end">
             <Button type="primary" htmlType="submit">

@@ -3,17 +3,6 @@ import { api } from "./api";
 import { AxiosResponse } from "axios";
 
 export const createTicketTi = async (formData: FormData): Promise<unknown> => {
-  console.log("================================");
-  console.log("✅ FormData contenido:");
-  formData.forEach((value, key) => {
-    if (value instanceof File) {
-      console.log(`📎 ${key}: File =>`, value.name);
-    } else {
-      console.log(`📌 ${key}:`, value);
-    }
-  });
-  console.log("================================");
-
   const token = localStorage.getItem("token");
 
   const response = await api.post("/ticket", formData, {

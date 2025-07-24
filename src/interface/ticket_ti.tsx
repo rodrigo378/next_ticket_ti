@@ -23,7 +23,8 @@ export interface SlaTicket {
 
 export interface TicketTi {
   id?: number;
-  titulo: string;
+
+  codigo: string;
   descripcion: string;
 
   incidencia_id: number;

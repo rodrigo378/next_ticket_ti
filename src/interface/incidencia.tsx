@@ -1,4 +1,4 @@
-import { Area } from "./area";
+import { Area, Subarea } from "./area";
 import { Sla } from "./sla";
 
 export interface Categoria {
@@ -15,4 +15,6 @@ export interface Incidencia {
   area: Area;
   categorias: Categoria[];
   SLA: Sla[];
+  subarea_id: number;
+  subarea: Subarea;
 }

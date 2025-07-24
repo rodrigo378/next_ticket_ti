@@ -19,13 +19,22 @@ import { getPrioridades } from "@/services/prioridad";
 const { Title } = Typography;
 const { Option } = Select;
 
+export const transiciones: Record<number, number[]> = {
+  1: [2], // Abierto → Asignado
+  2: [3], // Asignado → En Proceso
+  3: [4, 5], // En Proceso → Pendiente Usuario o Resuelto
+  4: [3, 5], // Pendiente Usuario → En Proceso o Resuelto
+  5: [6], // Resuelto → Cerrado
+  7: [3], // Reabierto → En Proceso
+};
+
 export default function Page() {
   const [ticketsTi, setTicketsTi] = useState<TicketTi[]>([]);
   const [loading, setLoading] = useState(false);
   const [estados, setEstados] = useState<Estado[]>([]);
   const [prioridades, setPrioridades] = useState<Prioridad[]>([]);
   const { usuario } = useUsuario();
-  const [tiempoActual, setTiempoActual] = useState(Date.now());
+  // const [tiempoActual, setTiempoActual] = useState(Date.now());
 
   const [filtros, setFiltros] = useState<{
     estado_id?: number;
@@ -79,10 +88,10 @@ export default function Page() {
     fetchEstados();
     fetchPrioridades();
     fetchTickets();
-    const intervalo = setInterval(() => {
-      setTiempoActual(Date.now());
-    }, 1000);
-    return () => clearInterval(intervalo);
+    // const intervalo = setInterval(() => {
+    //   setTiempoActual(Date.now());
+    // }, 1000);
+    // return () => clearInterval(intervalo);
   }, []);
 
   const ticketsFiltrados = ticketsTi.filter((ticket) => {
@@ -127,19 +136,31 @@ export default function Page() {
     {
       title: "Estado",
       key: "estado",
-      render: (record: TicketTi) => (
-        <Select
-          value={record.estado?.id}
-          onChange={(value) => handleEstadoChange(record.id!, value)}
-          style={{ width: 150 }}
-        >
-          {estados.map((estado) => (
-            <Option key={estado.id} value={estado.id}>
-              {estado.nombre}
-            </Option>
-          ))}
-        </Select>
-      ),
+      render: (record: TicketTi) => {
+        const estadoActualId = record.estado?.id;
+        const transicionesValidas = transiciones[estadoActualId!] || [];
+
+        const opcionesFiltradas = estados.filter(
+          (estado) =>
+            estado.id === estadoActualId ||
+            transicionesValidas.includes(estado.id)
+        );
+
+        return (
+          <Select
+            value={estadoActualId}
+            onChange={(value) => handleEstadoChange(record.id!, value)}
+            style={{ width: 150 }}
+            disabled={opcionesFiltradas.length <= 1} // desactiva si no hay transiciones posibles
+          >
+            {opcionesFiltradas.map((estado) => (
+              <Option key={estado.id} value={estado.id}>
+                {estado.nombre}
+              </Option>
+            ))}
+          </Select>
+        );
+      },
     },
     {
       title: "Asignado a mí",
@@ -168,42 +189,42 @@ export default function Page() {
         </Space>
       ),
     },
-    {
-      title: "SLA",
-      key: "sla",
-      render: (record: TicketTi) => {
-        const sla = record.slaTicket;
+    // {
+    //   title: "SLA",
+    //   key: "sla",
+    //   render: (record: TicketTi) => {
+    //     const sla = record.slaTicket;
 
-        if (!sla) {
-          return <Tag color="default">No definido</Tag>;
-        }
+    //     if (!sla) {
+    //       return <Tag color="default">No definido</Tag>;
+    //     }
 
-        const ahora = tiempoActual;
-        const limite = new Date(sla.tiempo_estimado_respuesta).getTime();
-        const tiempoRestante = limite - ahora;
+    //     const ahora = tiempoActual;
+    //     const limite = new Date(sla.tiempo_estimado_respuesta).getTime();
+    //     const tiempoRestante = limite - ahora;
 
-        const horas = Math.floor(tiempoRestante / (1000 * 60 * 60));
-        const minutos = Math.floor(
-          (tiempoRestante % (1000 * 60 * 60)) / (1000 * 60)
-        );
-        const segundos = Math.floor((tiempoRestante % (1000 * 60)) / 1000);
+    //     const horas = Math.floor(tiempoRestante / (1000 * 60 * 60));
+    //     const minutos = Math.floor(
+    //       (tiempoRestante % (1000 * 60 * 60)) / (1000 * 60)
+    //     );
+    //     const segundos = Math.floor((tiempoRestante % (1000 * 60)) / 1000);
 
-        let color = "green";
-        if (tiempoRestante <= 0) {
-          color = "red";
-        } else if (tiempoRestante <= 2 * 60 * 60 * 1000) {
-          color = "orange";
-        }
+    //     let color = "green";
+    //     if (tiempoRestante <= 0) {
+    //       color = "red";
+    //     } else if (tiempoRestante <= 2 * 60 * 60 * 1000) {
+    //       color = "orange";
+    //     }
 
-        return (
-          <Tag color={color}>
-            {tiempoRestante <= 0
-              ? "Vencido"
-              : `Restan ${horas}h ${minutos}min ${segundos}s`}
-          </Tag>
-        );
-      },
-    },
+    //     return (
+    //       <Tag color={color}>
+    //         {tiempoRestante <= 0
+    //           ? "Vencido"
+    //           : `Restan ${horas}h ${minutos}min ${segundos}s`}
+    //       </Tag>
+    //     );
+    //   },
+    // },
   ];
 
   return (
