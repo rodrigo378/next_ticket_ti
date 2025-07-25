@@ -39,6 +39,8 @@ export default function Page() {
   const [form] = Form.useForm();
 
   const showDrawer = (usuario?: Usuario) => {
+    console.log("usuario => ", usuario);
+
     if (usuario) {
       setUsuarioSeleccionado(usuario);
       form.setFieldsValue({
@@ -51,6 +53,10 @@ export default function Page() {
         area_id: usuario.subarea?.area_id,
         rol_id: usuario.rol.id,
         subarea_id: usuario.subarea?.id,
+        areas_id:
+          usuario.rol.nivel === 4
+            ? usuario.UsuarioArea.map((ua) => ua.area_id)
+            : undefined,
       });
       setRolSeleccionado(usuario.rol.nivel);
 
@@ -106,11 +112,6 @@ export default function Page() {
   const onRolChange = (rolId: number) => {
     const rol = roles.find((r) => r.id === rolId);
     setRolSeleccionado(rol?.nivel || null);
-    form.setFieldsValue({
-      areas: undefined,
-      subarea_id: undefined,
-      area_id: undefined,
-    });
     setSubareas([]);
   };
 
@@ -231,6 +232,7 @@ export default function Page() {
           estado: values.estado,
           rol_id: values.rol_id,
           subarea_id: values.subarea_id,
+          areas_id: values.areas_id,
         };
 
         const response = await updateUsuario(usuarioSeleccionado.id, data);
@@ -289,9 +291,12 @@ export default function Page() {
         open={open}
       >
         <Form form={form} layout="vertical" onFinish={onFinish}>
+          {/* Input Nombre */}
           <Form.Item name="nombre" label="Nombre" rules={[{ required: true }]}>
             <Input placeholder="Ej. Juan" />
           </Form.Item>
+
+          {/* Input Apellido */}
           <Form.Item
             name="apellidos"
             label="Apellidos"
@@ -299,6 +304,8 @@ export default function Page() {
           >
             <Input placeholder="Ej. Pérez" />
           </Form.Item>
+
+          {/* Input Email */}
           <Form.Item
             name="email"
             label="Correo"
@@ -306,21 +313,29 @@ export default function Page() {
           >
             <Input placeholder="correo@ejemplo.com" />
           </Form.Item>
+
+          {/* Select Genero */}
           <Form.Item name="genero" label="Género" rules={[{ required: true }]}>
             <Select placeholder="Seleccione género">
               <Select.Option value="masculino">Masculino</Select.Option>
               <Select.Option value="femenino">Femenino</Select.Option>
             </Select>
           </Form.Item>
+
+          {/* Input Grado */}
           <Form.Item name="grado" label="Grado" rules={[{ required: true }]}>
             <Input placeholder="Ej. Manager" />
           </Form.Item>
+
+          {/* Select Estado */}
           <Form.Item name="estado" label="Estado" rules={[{ required: true }]}>
             <Select placeholder="Seleccione estado">
               <Select.Option value="A">Activo</Select.Option>
               <Select.Option value="I">Inactivo</Select.Option>
             </Select>
           </Form.Item>
+
+          {/*Input Contraseña */}
           <Form.Item
             name="password"
             label="Contraseña"
@@ -396,7 +411,7 @@ export default function Page() {
                       .filter((a) => ids.includes(a.id))
                       .flatMap((a) => a.Subarea.map((s) => s.id));
                     if (subarea && !areaIds.includes(subarea.id)) {
-                      form.setFieldsValue({ subarea_id: undefined });
+                      // form.setFieldsValue({ subarea_id: undefined });
                     }
                   }}
                 >

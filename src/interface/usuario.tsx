@@ -13,12 +13,16 @@ export interface Usuario {
   grado: string;
   genero: string;
   email: string;
-  area_id: number;
   createdAt: string;
   updatedAt: string;
   estado: "A" | "I";
+
+  subarea_id: number;
   subarea: Subarea;
+
+  rol_id: number;
   rol: Rol;
+
   UsuarioArea: UsuarioArea[];
 }
 
@@ -37,6 +41,7 @@ export interface CreateUsuario {
   estado: string;
   rol_id: number;
   subarea_id?: number;
+  areas_id?: number[];
 }
 
 export interface UpdateUsuario {
@@ -48,5 +53,5 @@ export interface UpdateUsuario {
   estado?: string;
   rol_id?: number;
   subarea_id?: number;
-  areas?: number[];
+  areas_id?: number[];
 }
