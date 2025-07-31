@@ -39,16 +39,15 @@ export default function Page() {
       render: (codigo: string) => <Tag color="blue">{codigo}</Tag>,
     },
     {
+      title: "Area",
+      dataIndex: ["incidencia", "subarea", "area", "nombre"],
+      key: "area",
+    },
+    {
       title: "Incidencia",
       dataIndex: ["incidencia", "nombre"],
       key: "incidencia",
       render: (incidencia: string) => incidencia || "—",
-    },
-    {
-      title: "Categoría",
-      dataIndex: ["categoria", "nombre"],
-      key: "categoria",
-      render: (categoria: string) => categoria || "—",
     },
     {
       title: "Estado",

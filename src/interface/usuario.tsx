@@ -1,29 +1,32 @@
 import { Subarea, UsuarioArea } from "./area";
 import { Rol } from "./rol";
 
-export enum Genero {
+export enum Generos {
   MASCULINO = "masculino",
   FEMENINO = "femenino",
 }
 
 export interface Usuario {
-  id: string;
+  id: number;
   nombre: string;
   apellidos: string;
   grado: string;
-  genero: string;
+  genero: Generos;
   email: string;
-  createdAt: string;
-  updatedAt: string;
-  estado: "A" | "I";
-
-  subarea_id: number;
-  subarea: Subarea;
-
+  password: string;
+  estado: string;
   rol_id: number;
-  rol: Rol;
-
-  UsuarioArea: UsuarioArea[];
+  rol?: Rol;
+  subarea_id?: number;
+  subarea?: Subarea;
+  createdAt?: string;
+  updatedAt?: string;
+  permisos?: Permiso[];
+  ticketsCreados?: Ticket[];
+  ticketsAsignados?: Ticket[];
+  mensajesEmitidos?: MensajeTicket[];
+  logs?: LogAuditoria[];
+  UsuarioArea?: UsuarioArea[];
 }
 
 export interface SignIn {

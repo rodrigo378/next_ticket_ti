@@ -29,6 +29,8 @@ export default function Page() {
   const fetchSlas = async () => {
     try {
       const data = await getSla();
+      console.log("data => ", data);
+
       setSlas(data);
     } catch (error) {
       console.error(error);
@@ -113,7 +115,7 @@ export default function Page() {
   ];
 
   const slasFiltradas = slas.filter((sla) =>
-    sla.incidencia.nombre.toLowerCase().includes(filtro.toLowerCase())
+    sla.categoria.nombre.toLowerCase().includes(filtro.toLowerCase())
   );
 
   return (
@@ -143,7 +145,7 @@ export default function Page() {
       />
 
       <Drawer
-        title={`Editar SLA - ${slaSeleccionado?.incidencia.nombre} (${slaSeleccionado?.prioridad.nombre})`}
+        title={`Editar SLA - ${slaSeleccionado?.categoria.nombre} (${slaSeleccionado?.prioridad.nombre})`}
         open={openDrawer}
         onClose={() => {
           setOpenDrawer(false);

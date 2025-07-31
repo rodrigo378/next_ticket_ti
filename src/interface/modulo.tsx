@@ -5,6 +5,5 @@ export interface Modulo {
   nombre: string;
   codigo: string;
   estado: string;
-
-  items: Item[];
+  items?: Item[];
 }

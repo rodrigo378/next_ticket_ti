@@ -112,17 +112,17 @@ export default function Page() {
         </Tag>
       ),
     },
-    {
-      title: "Categorías",
-      key: "categorias",
-      render: (_, incidencia) => (
-        <div className="mb-2 flex flex-wrap gap-1">
-          {incidencia.categorias.map((cat) => (
-            <Tag key={cat.id}>{cat.nombre}</Tag>
-          ))}
-        </div>
-      ),
-    },
+    // {
+    //   title: "Categorías",
+    //   key: "categorias",
+    //   render: (_, incidencia) => (
+    //     <div className="mb-2 flex flex-wrap gap-1">
+    //       {incidencia.categorias.map((cat) => (
+    //         <Tag key={cat.id}>{cat.nombre}</Tag>
+    //       ))}
+    //     </div>
+    //   ),
+    // },
     {
       title: "Acciones",
       key: "acciones",
@@ -147,26 +147,26 @@ export default function Page() {
   };
 
   // Guardar nueva categoría
-  const guardarCategoria = (values: any) => {
-    if (!incidenciaSeleccionada) return;
-    const nuevaCategoria = {
-      id: Date.now(), // temporal
-      nombre: values.nombre,
-      incidencia_id: incidenciaSeleccionada.id,
-    };
-    const nuevasIncidencias = incidencias.map((i) =>
-      i.id === incidenciaSeleccionada.id
-        ? { ...i, categorias: [...i.categorias, nuevaCategoria] }
-        : i
-    );
-    setIncidencias(nuevasIncidencias);
-    setIncidenciaSeleccionada({
-      ...incidenciaSeleccionada,
-      categorias: [...incidenciaSeleccionada.categorias, nuevaCategoria],
-    });
-    formCategoria.resetFields();
-    message.success("✅ Categoría registrada");
-  };
+  // const guardarCategoria = (values: any) => {
+  //   if (!incidenciaSeleccionada) return;
+  //   const nuevaCategoria = {
+  //     id: Date.now(), // temporal
+  //     nombre: values.nombre,
+  //     incidencia_id: incidenciaSeleccionada.id,
+  //   };
+  //   // const nuevasIncidencias = incidencias.map((i) =>
+  //   //   i.id === incidenciaSeleccionada.id
+  //   //     ? { ...i, categorias: [...i.categorias, nuevaCategoria] }
+  //   //     : i
+  //   // );
+  //   // setIncidencias(nuevasIncidencias);
+  //   // setIncidenciaSeleccionada({
+  //   //   ...incidenciaSeleccionada,
+  //   //   categorias: [...incidenciaSeleccionada.categorias, nuevaCategoria],
+  //   // });
+  //   formCategoria.resetFields();
+  //   message.success("✅ Categoría registrada");
+  // };
 
   // Filtrar incidencias
   const incidenciasFiltradas = incidencias.filter((i) => {
@@ -284,18 +284,18 @@ export default function Page() {
         }}
         open={modalCategoriaVisible}
       >
-        <div className="mb-4">
+        {/* <div className="mb-4">
           {incidenciaSeleccionada?.categorias.map((cat) => (
             <Tag key={cat.id} className="mb-2 mr-1">
               {cat.nombre}
             </Tag>
           ))}
-        </div>
+        </div> */}
 
         <Form
           form={formCategoria}
           layout="vertical"
-          onFinish={guardarCategoria}
+          // onFinish={guardarCategoria}
         >
           <Form.Item
             name="nombre"

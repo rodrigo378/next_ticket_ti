@@ -79,6 +79,12 @@ export default function Page() {
           <Descriptions.Item label="Codigo">
             {ticketTi?.codigo}
           </Descriptions.Item>
+          <Descriptions.Item label="Area">
+            {ticketTi?.incidencia.subarea.area.nombre}
+          </Descriptions.Item>
+          <Descriptions.Item label="Codigo">
+            {ticketTi?.codigo}
+          </Descriptions.Item>
           <Descriptions.Item label="Descripción">
             {ticketTi?.descripcion}
           </Descriptions.Item>

@@ -1,14 +1,14 @@
-import { Incidencia } from "./incidencia";
-import { Prioridad } from "./prioridad";
+import { Categoria } from "./incidencia";
+import { PrioridadTicket } from "./prioridad";
 
 export interface Sla {
   id: number;
 
-  incidencia_id: number;
-  incidencia: Incidencia;
+  categoria_id: number;
+  categoria: Categoria;
 
   prioridad_id: number;
-  prioridad: Prioridad;
+  prioridad: PrioridadTicket;
 
   tiempo_respuesta: number;
   tiempo_resolucion: number;
