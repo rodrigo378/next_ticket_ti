@@ -1,7 +1,8 @@
 import { EstadoTicket } from "./estado";
-import { Incidencia } from "./incidencia";
-import { MensajeTicket, SLATicket } from "./interfaces";
+import { Categoria } from "./incidencia";
+import { MensajeTicket } from "./mensaje";
 import { PrioridadTicket } from "./prioridad";
+import { SLATicket } from "./sla";
 import { Usuario } from "./usuario";
 
 export interface DocumentoTicket {
@@ -34,8 +35,8 @@ export interface Ticket {
   creado?: Usuario;
   asignado_id?: number;
   asignado?: Usuario;
-  incidencia_id: number;
-  incidencia?: Incidencia;
+  categoria_id: number;
+  categoria?: Categoria;
   createdAt?: string;
   updatedAt?: string;
   documentos?: DocumentoTicket[];

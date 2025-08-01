@@ -1,20 +1,29 @@
 "use client";
 
-import { Table, Tag, Button, Typography, Space, message, Select } from "antd";
+import {
+  Table,
+  Tag,
+  Button,
+  Typography,
+  Space,
+  message,
+  Select,
+  Tabs,
+} from "antd";
 import {
   EyeOutlined,
   CheckCircleTwoTone,
   CloseCircleTwoTone,
 } from "@ant-design/icons";
 import { useEffect, useState } from "react";
-import { TicketTi } from "@/interface/ticket_ti";
 import Link from "next/link";
 import { getTickets } from "@/services/ticket_ti";
 import { useUsuario } from "@/context/UserContext";
-import { Estado } from "@/interface/estado";
-import { Prioridad } from "@/interface/prioridad";
 import { getEstados } from "@/services/estado";
 import { getPrioridades } from "@/services/prioridad";
+import { Ticket } from "@/interface/ticket_ti";
+import { EstadoTicket } from "@/interface/estado";
+import { PrioridadTicket } from "@/interface/prioridad";
 
 const { Title } = Typography;
 const { Option } = Select;
@@ -27,24 +36,42 @@ export const transiciones: Record<number, number[]> = {
   5: [6], // Resuelto → Cerrado
   7: [3], // Reabierto → En Proceso
 };
+const items = [
+  {
+    key: "mis_tickets",
+    label: "🎧 Asignados a mí",
+  },
+  {
+    key: "grupo",
+    label: "👥 Del grupo",
+  },
+  {
+    key: "finalizados",
+    label: "✅ Finalizados",
+  },
+];
 
 export default function Page() {
-  const [ticketsTi, setTicketsTi] = useState<TicketTi[]>([]);
+  const [ticketsTi, setTicketsTi] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(false);
-  const [estados, setEstados] = useState<Estado[]>([]);
-  const [prioridades, setPrioridades] = useState<Prioridad[]>([]);
+  const [estados, setEstados] = useState<EstadoTicket[]>([]);
+  const [prioridades, setPrioridades] = useState<PrioridadTicket[]>([]);
   const { usuario } = useUsuario();
-  // const [tiempoActual, setTiempoActual] = useState(Date.now());
+  const [tabKey, setTabKey] = useState("mis_tickets");
 
   const [filtros, setFiltros] = useState<{
     estado_id?: number;
     prioridad_id?: number;
   }>({});
 
-  const fetchTickets = async () => {
+  const fetchTickets = async (me?: string, estados_id?: string[]) => {
     try {
+      const filtros = { me, estados_id };
+
       setLoading(true);
-      const data = await getTickets();
+      const data = await getTickets(filtros);
+      console.log("data => ", data);
+
       setTicketsTi(data);
     } catch (error) {
       console.error("error => ", error);
@@ -84,10 +111,27 @@ export default function Page() {
     }
   };
 
+  const onChange = (key: string) => {
+    console.log(key);
+    setTabKey(key);
+
+    switch (key) {
+      case "mis_tickets":
+        fetchTickets("true");
+        break;
+      case "grupo":
+        fetchTickets(undefined, ["1", "2", "3", "7"]);
+        break;
+      case "finalizados":
+        fetchTickets(undefined, ["5"]);
+        break;
+    }
+  };
+
   useEffect(() => {
     fetchEstados();
     fetchPrioridades();
-    fetchTickets();
+    fetchTickets("true", ["1", "2", "3", "7"]);
     // const intervalo = setInterval(() => {
     //   setTiempoActual(Date.now());
     // }, 1000);
@@ -99,6 +143,7 @@ export default function Page() {
       !filtros.estado_id || ticket.estado?.id === filtros.estado_id;
     const coincidePrioridad =
       !filtros.prioridad_id || ticket.prioridad?.id === filtros.prioridad_id;
+
     return coincideEstado && coincidePrioridad;
   });
 
@@ -136,7 +181,7 @@ export default function Page() {
     {
       title: "Estado",
       key: "estado",
-      render: (record: TicketTi) => {
+      render: (record: Ticket) => {
         const estadoActualId = record.estado?.id;
         const transicionesValidas = transiciones[estadoActualId!] || [];
 
@@ -165,7 +210,7 @@ export default function Page() {
     {
       title: "Asignado a mí",
       key: "asignado_a_mi",
-      render: (record: TicketTi) =>
+      render: (record: Ticket) =>
         record.asignado_id === usuario?.id ? (
           <CheckCircleTwoTone twoToneColor="#52c41a" />
         ) : (
@@ -175,7 +220,7 @@ export default function Page() {
     {
       title: "Acciones",
       key: "acciones",
-      render: (record: TicketTi) => (
+      render: (record: Ticket) => (
         <Space>
           <Link href={`/ticket/soporte/${record.id}`}>
             <Button
@@ -230,6 +275,13 @@ export default function Page() {
   return (
     <div className="p-6 bg-white min-h-screen">
       <Title level={3}>🎧 Tickets Asignados a Soporte</Title>
+
+      <Tabs
+        activeKey={tabKey}
+        onChange={onChange}
+        items={items}
+        className="mb-4"
+      />
 
       <Space className="mb-4">
         <Select

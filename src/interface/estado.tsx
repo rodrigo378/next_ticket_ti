@@ -1,4 +1,4 @@
-import { Ticket } from "./interfaces";
+import { Ticket } from "./log";
 
 export interface EstadoTicket {
   id: number;

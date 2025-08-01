@@ -4,11 +4,11 @@ import { Table, Typography, Tag, Button } from "antd";
 import { EyeOutlined } from "@ant-design/icons";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { TicketTi } from "@/interface/ticket_ti";
 import { getTicketsMe } from "@/services/ticket_ti";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import "dayjs/locale/es";
+import { Ticket } from "@/interface/ticket_ti";
 
 dayjs.extend(relativeTime);
 dayjs.locale("es");
@@ -16,7 +16,7 @@ dayjs.locale("es");
 const { Title } = Typography;
 
 export default function Page() {
-  const [tickets, setTickets] = useState<TicketTi[]>([]);
+  const [tickets, setTickets] = useState<Ticket[]>([]);
 
   const fetchTickets = async () => {
     try {
@@ -40,14 +40,28 @@ export default function Page() {
     },
     {
       title: "Area",
-      dataIndex: ["incidencia", "subarea", "area", "nombre"],
+      dataIndex: ["categoria", "incidencia", "subarea", "area", "nombre"],
       key: "area",
     },
     {
-      title: "Incidencia",
-      dataIndex: ["incidencia", "nombre"],
-      key: "incidencia",
-      render: (incidencia: string) => incidencia || "—",
+      title: "Servicio",
+      key: "servicio",
+      render: (ticket: Ticket) => {
+        const subarea = ticket.categoria?.incidencia?.subarea?.nombre || "—";
+        const incidencia = ticket.categoria?.incidencia?.nombre || "—";
+        const categoria = ticket.categoria?.nombre || "—";
+
+        return (
+          <span>
+            {subarea} / {incidencia} / {categoria}
+          </span>
+        );
+      },
+    },
+    {
+      title: "Tipo",
+      dataIndex: ["categoria", "incidencia", "tipo"],
+      key: "tipo",
     },
     {
       title: "Estado",
@@ -60,6 +74,12 @@ export default function Page() {
         else if (estado === "Abierto") color = "red";
         return <Tag color={color}>{estado}</Tag>;
       },
+    },
+    {
+      title: "Responsable",
+      dataIndex: ["asignado", "nombre"],
+      key: "responsable",
+      render: (nombre?: string) => nombre || "—",
     },
     {
       title: "Creado",

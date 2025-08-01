@@ -12,14 +12,14 @@ import {
   Descriptions,
 } from "antd";
 import { EyeOutlined } from "@ant-design/icons";
-import { TicketTi } from "@/interface/ticket_ti";
 import { Usuario } from "@/interface/usuario";
 import { getTicket, getTickets, updateTicket } from "@/services/ticket_ti";
-import { Prioridad } from "@/interface/prioridad";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import "dayjs/locale/es";
 import { getUsuarios } from "@/services/usuario";
+import { Ticket } from "@/interface/ticket_ti";
+import { PrioridadTicket } from "@/interface/prioridad";
 
 dayjs.extend(relativeTime);
 dayjs.locale("es");
@@ -27,17 +27,17 @@ dayjs.locale("es");
 const { Option } = Select;
 
 export default function Page() {
-  const [tickets, setTickets] = useState<TicketTi[]>([]);
+  const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(false);
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [drawerVisible, setDrawerVisible] = useState(false);
-  const [ticketSeleccionado, setTicketSeleccionado] = useState<TicketTi | null>(
+  const [ticketSeleccionado, setTicketSeleccionado] = useState<Ticket | null>(
     null
   );
   const [asignadoId, setAsignadoId] = useState<number | undefined>();
   const [prioridadId, setPrioridadId] = useState<number | undefined>();
 
-  const abrirDrawer = async (ticket: TicketTi) => {
+  const abrirDrawer = async (ticket: Ticket) => {
     try {
       const data = await getTicket(ticket.id!);
       setTicketSeleccionado(data);
@@ -100,21 +100,41 @@ export default function Page() {
     fetchUsuarios();
   }, []);
 
-  const slaActual = ticketSeleccionado?.incidencia.SLA.find(
-    (sla) => sla.prioridad_id === prioridadId
-  );
-  console.log("slaActual => ", slaActual);
+  // const slaActual = ticketSeleccionado?.categoria?.SLA?.find(
+  //   (sla) => sla.prioridad_id === prioridadId
+  // );
+  // console.log("slaActual => ", slaActual);
 
   const columns = [
     {
-      title: "Título",
-      dataIndex: "titulo",
-      key: "titulo",
+      title: "Codigo",
+      dataIndex: "codigo",
+      key: "codigo",
     },
     {
       title: "Área",
-      dataIndex: ["incidencia", "area", "nombre"],
+      dataIndex: ["categoria", "incidencia", "subarea", "area", "nombre"],
       key: "area",
+    },
+    {
+      title: "tipo",
+      dataIndex: ["categoria", "incidencia", "tipo"],
+      key: "tipo",
+    },
+    {
+      title: "Prioridad",
+      dataIndex: "prioridad",
+      key: "prioridad_id",
+      render: (prioridad: PrioridadTicket) => {
+        const color =
+          prioridad?.nombre === "Alta"
+            ? "red"
+            : prioridad?.nombre === "Media"
+            ? "orange"
+            : "green";
+
+        return <Tag color={color}>{prioridad?.nombre}</Tag>;
+      },
     },
     {
       title: "Estado",
@@ -139,7 +159,7 @@ export default function Page() {
     {
       title: "Creado por",
       key: "creado_id",
-      render: (record: TicketTi) =>
+      render: (record: Ticket) =>
         `${record.creado?.nombre || ""} ${record.creado?.apellidos || ""}`,
     },
     {
@@ -155,25 +175,11 @@ export default function Page() {
           <Tag color="default">No asignado</Tag>
         ),
     },
-    {
-      title: "Prioridad",
-      dataIndex: "prioridad",
-      key: "prioridad_id",
-      render: (prioridad: Prioridad) => {
-        const color =
-          prioridad?.nombre === "Alta"
-            ? "red"
-            : prioridad?.nombre === "Media"
-            ? "orange"
-            : "green";
 
-        return <Tag color={color}>{prioridad?.nombre}</Tag>;
-      },
-    },
     {
       title: "Acciones",
       key: "acciones",
-      render: (record: TicketTi) => (
+      render: (record: Ticket) => (
         <Button
           type="link"
           icon={<EyeOutlined />}
@@ -196,7 +202,7 @@ export default function Page() {
         pagination={{ pageSize: 10 }}
       />
       <Drawer
-        title={`Detalle del ticket: ${ticketSeleccionado?.titulo}`}
+        title={`Detalle del ticket: ${ticketSeleccionado?.codigo}`}
         placement="right"
         width={500}
         onClose={() => setDrawerVisible(false)}
@@ -209,7 +215,10 @@ export default function Page() {
                 {ticketSeleccionado.descripcion}
               </Descriptions.Item>
               <Descriptions.Item label="Área">
-                {ticketSeleccionado.incidencia?.area?.nombre}
+                {
+                  ticketSeleccionado.categoria?.incidencia?.subarea?.area
+                    ?.nombre
+                }
               </Descriptions.Item>
               <Descriptions.Item label="Estado">
                 {ticketSeleccionado.estado?.nombre}
@@ -219,38 +228,38 @@ export default function Page() {
                 {ticketSeleccionado.creado?.apellidos}
               </Descriptions.Item>
               <Descriptions.Item label="Incidencia">
-                {ticketSeleccionado.incidencia?.nombre}
+                {ticketSeleccionado.categoria?.nombre}
               </Descriptions.Item>
               <Descriptions.Item label="Categoría">
                 {ticketSeleccionado.categoria?.nombre}
               </Descriptions.Item>
             </Descriptions>
 
-            {slaActual && ticketSeleccionado && (
-              <Descriptions
-                bordered
-                column={1}
-                size="small"
-                title="⏱ SLA del Ticket"
-              >
-                <Descriptions.Item label="Tiempo de Respuesta">
-                  {slaActual.tiempo_respuesta} minutos
-                </Descriptions.Item>
-                <Descriptions.Item label="Tiempo de Resolución">
-                  {slaActual.tiempo_resolucion} minutos
-                </Descriptions.Item>
-                <Descriptions.Item label="⏱ Estimado de Respuesta">
-                  {dayjs(ticketSeleccionado.createdAt)
-                    .add(slaActual.tiempo_respuesta, "minute")
-                    .format("DD/MM/YYYY HH:mm")}
-                </Descriptions.Item>
-                <Descriptions.Item label="📅 Estimado de Resolución">
-                  {dayjs(ticketSeleccionado.createdAt)
-                    .add(slaActual.tiempo_resolucion, "minute")
-                    .format("DD/MM/YYYY HH:mm")}
-                </Descriptions.Item>
-              </Descriptions>
-            )}
+            {/* {slaActual && ticketSeleccionado && ( */}
+            <Descriptions
+              bordered
+              column={1}
+              size="small"
+              title="⏱ SLA del Ticket"
+            >
+              <Descriptions.Item label="Tiempo de Respuesta">
+                {ticketSeleccionado.slaTicket?.sla?.tiempo_respuesta} minutos
+              </Descriptions.Item>
+              <Descriptions.Item label="Tiempo de Resolución">
+                {ticketSeleccionado.slaTicket?.sla?.tiempo_resolucion} minutos
+              </Descriptions.Item>
+              <Descriptions.Item label="⏱ Estimado de Respuesta">
+                {dayjs(
+                  ticketSeleccionado.slaTicket?.tiempo_estimado_respuesta
+                ).format("DD/MM/YYYY HH:mm")}
+              </Descriptions.Item>
+              <Descriptions.Item label="📅 Estimado de Resolución">
+                {dayjs(
+                  ticketSeleccionado.slaTicket?.tiempo_estimado_resolucion
+                ).format("DD/MM/YYYY HH:mm")}
+              </Descriptions.Item>
+            </Descriptions>
+            {/* )} */}
 
             {ticketSeleccionado.documentos &&
               ticketSeleccionado.documentos.length > 0 && (

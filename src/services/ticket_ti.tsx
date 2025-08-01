@@ -1,4 +1,4 @@
-import { TicketTi } from "@/interface/ticket_ti";
+import { Ticket } from "@/interface/ticket_ti";
 import { api } from "./api";
 import { AxiosResponse } from "axios";
 
@@ -16,18 +16,29 @@ export const createTicketTi = async (formData: FormData): Promise<unknown> => {
   return response.data;
 };
 
-export const getTickets = async (): Promise<TicketTi[]> => {
+export const getTickets = async (filtros?: {
+  me?: string;
+  estados_id?: string[];
+}): Promise<Ticket[]> => {
   const token = localStorage.getItem("token");
+  // const params = new URLSearchParams();
 
-  const response: AxiosResponse<TicketTi[]> = await api.get("/ticket", {
+  // if (filtros.me) params.append("me", filtros.me);
+  // if (filtros.estado_id) params.append("estado_id", filtros.estado_id);
+
+  const response: AxiosResponse<Ticket[]> = await api.get(`/ticket`, {
     headers: {
       Authorization: `Bearer ${token}`,
+    },
+    params: filtros,
+    paramsSerializer: {
+      indexes: null, // <- IMPORTANTE para que Axios genere estados_id=1&estados_id=2
     },
   });
   return response.data;
 };
 
-export const getTicketsMe = async (): Promise<TicketTi[]> => {
+export const getTicketsMe = async (): Promise<Ticket[]> => {
   const token = localStorage.getItem("token");
 
   const response = await api.get("/ticket/me", {
@@ -39,17 +50,15 @@ export const getTicketsMe = async (): Promise<TicketTi[]> => {
   return response.data;
 };
 
-export const getTicket = async (ticket_id: number): Promise<TicketTi> => {
-  const response: AxiosResponse<TicketTi> = await api.get(
-    `/ticket/${ticket_id}`
-  );
+export const getTicket = async (ticket_id: number): Promise<Ticket> => {
+  const response: AxiosResponse<Ticket> = await api.get(`/ticket/${ticket_id}`);
 
   return response.data;
 };
 
 export const updateTicket = async (
   ticket_id: number,
-  data: Partial<TicketTi>
+  data: Partial<Ticket>
 ) => {
   const response = await api.put(`/ticket/${ticket_id}`, data);
   return response.data;
@@ -104,7 +113,7 @@ export const createMensaje = async (data: {
 //   return response.data;
 // };
 
-// export const getTicketMe = async (ticketId: string): Promise<TicketTi> => {
+// export const getTicketMe = async (ticketId: string): Promise<Ticket> => {
 //   const token = localStorage.getItem("token");
 
 //   const response = await api.get(`/ticket_ti/me/${ticketId}`, {
@@ -116,7 +125,7 @@ export const createMensaje = async (data: {
 //   return response.data;
 // };
 
-// export const getTicketsTi = async (): Promise<TicketTi[]> => {
+// export const getTicketsTi = async (): Promise<Ticket[]> => {
 //   const response = await api.get("/ticket_ti/tickets");
 //   return response.data;
 // };
@@ -129,7 +138,7 @@ export const createMensaje = async (data: {
 //   return response;
 // };
 
-// export const getTicketSoporte = async (): Promise<TicketTi[]> => {
+// export const getTicketSoporte = async (): Promise<Ticket[]> => {
 //   const token = localStorage.getItem("token");
 
 //   const response = await api.get(`/ticket_ti/soporte`, {

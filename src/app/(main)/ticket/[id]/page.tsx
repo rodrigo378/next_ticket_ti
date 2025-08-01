@@ -9,11 +9,11 @@ import {
 } from "@ant-design/icons";
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { TicketTi } from "@/interface/ticket_ti";
 import { createMensaje, getTicket } from "@/services/ticket_ti";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import "dayjs/locale/es";
+import { Ticket } from "@/interface/ticket_ti";
 dayjs.extend(relativeTime);
 dayjs.locale("es");
 
@@ -23,7 +23,7 @@ const { TextArea } = Input;
 export default function Page() {
   const params = useParams();
   const id = params.id as string;
-  const [ticketTi, setTicketTi] = useState<TicketTi | null>(null);
+  const [ticketTi, setTicketTi] = useState<Ticket | null>(null);
   const [nuevoMensaje, setNuevoMensaje] = useState("");
   const [loadingMensaje, setLoadingMensaje] = useState(false);
 

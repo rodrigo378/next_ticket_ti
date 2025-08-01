@@ -44,13 +44,11 @@ export default function MainLayout({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    const fetch = async () => {
-      console.log("usuario => ", usuario);
+    console.log("➡️ useEffect ejecutado - usuario:", usuario);
+    if (!usuario) return;
 
-      await fetchPermisos();
-    };
-    fetch();
-  }, [usuario]);
+    fetchPermisos();
+  }, [usuario]); // ✅ solo depende de usuario
 
   const handleMenuClick = ({ key }: { key: string }) => {
     router.push(key);

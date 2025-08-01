@@ -1,6 +1,6 @@
 import { Subarea } from "./area";
 import { CatalogoServicio } from "./catalogo";
-import { SLA } from "./interfaces";
+import { SLA } from "./sla";
 import { Ticket } from "./ticket_ti";
 export enum TipoIncidenciaRequerimiento {
   incidencia = "incidencia",

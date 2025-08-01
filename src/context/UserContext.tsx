@@ -2,12 +2,13 @@
 
 import { Usuario } from "@/interface/usuario";
 import { getMe } from "@/services/auth";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import {
   createContext,
   ReactNode,
   useContext,
   useEffect,
+  useMemo,
   useState,
 } from "react";
 
@@ -21,31 +22,42 @@ const UserContext = createContext<UserContextType | undefined>(undefined);
 export const UserProvider = ({ children }: { children: ReactNode }) => {
   const [usuario, setUsuario] = useState<Usuario | null>(null);
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
+    // ⚠️ Evita redirigir si ya estás en /login
+    if (pathname === "/login") return;
+
     const token = localStorage.getItem("token");
+
     if (token) {
       getMe()
-        .then((usuario) => setUsuario(usuario))
-        .catch(() => {
+        .then((usuario) => {
+          console.log("✅ Usuario obtenido:", usuario);
+          setUsuario(usuario);
+        })
+        .catch((error) => {
+          console.warn("⚠️ Error al obtener usuario:", error);
           localStorage.removeItem("token");
           setUsuario(null);
           router.push("/login");
         });
     } else {
+      console.log("⛔ No hay token, redirigiendo a login");
       router.push("/login");
     }
-  }, [router]);
+  }, [router, pathname]);
 
-  return (
-    <UserContext.Provider value={{ usuario, setUsuario }}>
-      {children}
-    </UserContext.Provider>
-  );
+  const value = useMemo(() => {
+    return { usuario, setUsuario };
+  }, [usuario]);
+
+  return <UserContext.Provider value={value}>{children}</UserContext.Provider>;
 };
 
 export const useUsuario = () => {
   const context = useContext(UserContext);
-  if (!context) throw new Error("useUsuario debe usarse dentro del provider");
+  if (!context)
+    throw new Error("useUsuario debe usarse dentro del UserProvider");
   return context;
 };
