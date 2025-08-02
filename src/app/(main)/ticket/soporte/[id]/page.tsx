@@ -13,15 +13,15 @@ import {
 import { PaperClipOutlined } from "@ant-design/icons";
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { TicketTi } from "@/interface/ticket_ti";
 import { createMensaje, getTicket, updateTicket } from "@/services/ticket_ti";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import "dayjs/locale/es";
 import { Area } from "@/interface/area";
 import { getAreas } from "@/services/area";
-import { Estado } from "@/interface/estado";
 import { getEstados } from "@/services/estado";
+import { Ticket } from "@/interface/ticket_ti";
+import { EstadoTicket } from "@/interface/estado";
 
 dayjs.extend(relativeTime);
 dayjs.locale("es");
@@ -42,15 +42,15 @@ const { Option } = Select;
 export default function Page() {
   const params = useParams();
   const id = params.id as string;
-  const [ticketTi, setTicketTi] = useState<TicketTi | null>(null);
+  const [Ticket, setTicket] = useState<Ticket | null>(null);
   const [nuevoMensaje, setNuevoMensaje] = useState("");
   const [areas, setAreas] = useState<Area[]>([]);
-  const [estados, setEstados] = useState<Estado[]>([]);
+  const [estados, setEstados] = useState<EstadoTicket[]>([]);
 
-  const fetchTicketTi = async (id: string) => {
+  const fetchTicket = async (id: string) => {
     try {
       const data = await getTicket(Number(id));
-      setTicketTi(data);
+      setTicket(data);
       console.log("ticket => ", data);
     } catch (error) {
       console.error("Error al obtener ticket:", error);
@@ -83,7 +83,7 @@ export default function Page() {
         contenido: nuevoMensaje,
       });
       const res = await getTicket(Number(id));
-      setTicketTi(res);
+      setTicket(res);
       setNuevoMensaje("");
     } catch (error) {
       console.error("Error al enviar mensaje:", error);
@@ -98,7 +98,7 @@ export default function Page() {
       const response = await updateTicket(Number(id), {
         estado_id: Number(values),
       });
-      fetchTicketTi(id);
+      fetchTicket(id);
       console.log("response => ", response);
     } catch (error) {
       console.log("error => ", error);
@@ -108,7 +108,7 @@ export default function Page() {
   useEffect(() => {
     fetchAreas();
     fechEstados();
-    fetchTicketTi(id);
+    fetchTicket(id);
   }, [id]);
 
   return (
@@ -121,17 +121,17 @@ export default function Page() {
           <div className="flex flex-col">
             <Text strong>Estado</Text>
 
-            {ticketTi && (
+            {Ticket && (
               <Select
                 className="min-w-[180px]"
-                value={ticketTi.estado_id}
+                value={Ticket.estado_id}
                 onChange={cambiarEstado}
               >
                 {estados
                   .filter(
                     (estado) =>
-                      estado.id === ticketTi.estado_id || // mantener el actual
-                      transiciones[ticketTi.estado_id!]?.includes(estado.id)
+                      estado.id === Ticket.estado_id || // mantener el actual
+                      transiciones[Ticket.estado_id!]?.includes(estado.id)
                   )
                   .map((estado) => (
                     <Option key={estado.id} value={estado.id}>
@@ -167,29 +167,42 @@ export default function Page() {
       <Title level={3}>🎟️ Detalle del Ticket</Title>
       <Card className="mb-6">
         <Descriptions column={1} size="middle" bordered>
-          <Descriptions.Item label="Título">
-            {ticketTi?.titulo}
+          <Descriptions.Item label="Codigo">{Ticket?.codigo}</Descriptions.Item>
+          <Descriptions.Item label="Tipo">
+            {Ticket?.categoria?.incidencia?.tipo}
           </Descriptions.Item>
+
+          <Descriptions.Item label={Ticket?.categoria?.incidencia?.tipo}>
+            {Ticket?.categoria?.incidencia?.nombre}
+          </Descriptions.Item>
+
+          <Descriptions.Item label="Categoria">
+            {Ticket?.categoria?.nombre}
+          </Descriptions.Item>
+
           <Descriptions.Item label="Descripción">
-            {ticketTi?.descripcion}
+            {Ticket?.descripcion}
           </Descriptions.Item>
+
           <Descriptions.Item label="Estado">
-            <Tag color="orange">{ticketTi?.estado.nombre}</Tag>
+            <Tag color="blue">{Ticket?.estado?.nombre}</Tag>
           </Descriptions.Item>
+
           <Descriptions.Item label="Prioridad">
-            <Tag color="red">{ticketTi?.prioridad?.nombre}</Tag>
+            <Tag color="red">{Ticket?.prioridad?.nombre}</Tag>
           </Descriptions.Item>
+
           <Descriptions.Item label="Fecha de creación">
-            {dayjs(ticketTi?.createdAt).fromNow()}
+            {dayjs(Ticket?.createdAt).fromNow()}
           </Descriptions.Item>
         </Descriptions>
       </Card>
 
       {/* Archivos adjuntos */}
       <Card title="📎 Archivos Adjuntos" className="mb-6">
-        {ticketTi?.documentos?.length ? (
+        {Ticket?.documentos?.length ? (
           <List
-            dataSource={ticketTi.documentos}
+            dataSource={Ticket.documentos}
             renderItem={(doc) => {
               const fileUrl = `http://localhost:4000${doc.url.replace(
                 /\\/g,
@@ -212,13 +225,13 @@ export default function Page() {
       {/* Conversación */}
       <Card title="💬 Conversación">
         <div className="mb-4 max-h-96 overflow-y-auto pr-2">
-          {ticketTi?.mensajes.map((mensaje) => (
+          {Ticket?.mensajes?.map((mensaje) => (
             <div key={mensaje.id} className="mb-4">
-              <Text strong>{mensaje.emisor.nombre}</Text>
+              <Text strong>{mensaje?.emisor?.nombre}</Text>
               <div className="text-gray-500 text-sm">
-                {dayjs(ticketTi.createdAt).fromNow()}
+                {dayjs(Ticket.createdAt).fromNow()}
               </div>
-              {/* {dayjs(ticketTi?.createdAt).fromNow()} */}
+              {/* {dayjs(Ticket?.createdAt).fromNow()} */}
               <div className="mt-1">{mensaje.contenido}</div>
             </div>
           ))}

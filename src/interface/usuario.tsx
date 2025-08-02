@@ -1,5 +1,9 @@
 import { Subarea, UsuarioArea } from "./area";
+import { LogAuditoria } from "./log";
+import { MensajeTicket } from "./mensaje";
+import { Permiso } from "./permisos";
 import { Rol } from "./rol";
+import { Ticket } from "./ticket_ti";
 
 export enum Generos {
   MASCULINO = "masculino",
@@ -40,7 +44,7 @@ export interface CreateUsuario {
   nombre: string;
   apellidos: string;
   grado: string;
-  genero: Genero;
+  genero: Generos;
   estado: string;
   rol_id: number;
   subarea_id?: number;

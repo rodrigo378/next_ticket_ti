@@ -7,9 +7,12 @@ export interface MensajeTicket {
   tipo?: string;
   nombre?: string;
   url?: string;
+
   ticket_id: number;
   ticket?: Ticket;
+
   emisor_id: number;
   emisor?: Usuario;
+
   createdAt?: string;
 }

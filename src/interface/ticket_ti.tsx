@@ -3,23 +3,17 @@ import { Categoria } from "./incidencia";
 import { MensajeTicket } from "./mensaje";
 import { PrioridadTicket } from "./prioridad";
 import { SLATicket } from "./sla";
+
 import { Usuario } from "./usuario";
 
 export interface DocumentoTicket {
   id: number;
-  ticket_id: number;
-  ticket?: Ticket;
   nombre: string;
   url: string;
   createdAt?: string;
-}
-export interface SlaTicket {
-  id: number;
+
   ticket_id: number;
-  sla_id: number;
-  tiempo_estimado_respuesta: Date;
-  tiempo_estimado_resolucion: Date;
-  cumplido: boolean;
+  ticket?: Ticket;
 }
 
 export interface Ticket {

@@ -1,4 +1,5 @@
-import { SLA, Ticket } from "./log";
+import { SLA } from "./sla";
+import { Ticket } from "./ticket_ti";
 
 export interface PrioridadTicket {
   id: number;

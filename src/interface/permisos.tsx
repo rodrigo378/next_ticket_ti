@@ -3,10 +3,12 @@ import { Usuario } from "./usuario";
 
 export interface Permiso {
   id: number;
-  usuario_id: number;
-  item_id: number;
   estado: string;
+
+  usuario_id: number;
   usuario?: Usuario;
+
+  item_id: number;
   item?: Item;
 }
 

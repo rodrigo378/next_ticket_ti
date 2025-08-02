@@ -51,14 +51,12 @@ export default function Page() {
         grado: usuario.grado,
         estado: usuario.estado,
         area_id: usuario.subarea?.area_id,
-        rol_id: usuario.rol.id,
+        rol_id: usuario.rol?.id,
         subarea_id: usuario.subarea?.id,
-        areas_id:
-          usuario.rol.nivel === 4
-            ? usuario.UsuarioArea.map((ua) => ua.area_id)
-            : undefined,
       });
-      setRolSeleccionado(usuario.rol.nivel);
+      console.log("=> ", usuario.rol);
+      console.log("=> ", usuario.rol?.nivel || 0);
+      setRolSeleccionado(usuario.rol?.nivel || 0);
 
       // Cargar subáreas de su área
       if (usuario.subarea?.area_id) {
@@ -166,16 +164,16 @@ export default function Page() {
       title: "Áreas Administradas",
       key: "areas_admin",
       render: (record: Usuario) => {
-        if (record.rol.nivel === 5) {
+        if (record.rol?.nivel === 5) {
           return <Tag color="geekblue">Todas las áreas</Tag>;
         }
-        if (record.rol.nivel === 4) {
+        if (record.rol?.nivel === 4) {
           return (
             <div className="flex flex-wrap gap-1">
               {record.UsuarioArea?.length
                 ? record.UsuarioArea.map((ua) => (
-                    <Tag key={ua.area.id} color="blue">
-                      {ua.area.nombre}
+                    <Tag key={ua.area?.id} color="blue">
+                      {ua.area?.nombre}
                     </Tag>
                   ))
                 : "—"}
@@ -235,7 +233,11 @@ export default function Page() {
           areas_id: values.areas_id,
         };
 
-        const response = await updateUsuario(usuarioSeleccionado.id, data);
+        // const response = await updateUsuario(usuarioSeleccionado.id, data);
+        const response = await updateUsuario(
+          String(usuarioSeleccionado.id),
+          data
+        );
         message.success("✅ Usuario actualizado correctamente");
         console.log("Usuario actualizado => ", response);
       } else {
@@ -359,6 +361,8 @@ export default function Page() {
             </Select>
           </Form.Item>
 
+          {/* Estudiante */}
+
           {/* Nivel 5 */}
           {rolSeleccionado === 5 && (
             <>
@@ -409,7 +413,7 @@ export default function Page() {
                     );
                     const areaIds = areas
                       .filter((a) => ids.includes(a.id))
-                      .flatMap((a) => a.Subarea.map((s) => s.id));
+                      .flatMap((a) => a.Subarea?.map((s) => s.id));
                     if (subarea && !areaIds.includes(subarea.id)) {
                       // form.setFieldsValue({ subarea_id: undefined });
                     }
@@ -472,6 +476,7 @@ export default function Page() {
                   ))}
                 </Select>
               </Form.Item>
+
               <Form.Item
                 name="subarea_id"
                 label="Subárea"

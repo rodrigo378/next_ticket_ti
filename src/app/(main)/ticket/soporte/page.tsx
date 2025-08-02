@@ -9,6 +9,7 @@ import {
   message,
   Select,
   Tabs,
+  Tooltip,
 } from "antd";
 import {
   EyeOutlined,
@@ -29,26 +30,18 @@ const { Title } = Typography;
 const { Option } = Select;
 
 export const transiciones: Record<number, number[]> = {
-  1: [2], // Abierto → Asignado
-  2: [3], // Asignado → En Proceso
-  3: [4, 5], // En Proceso → Pendiente Usuario o Resuelto
-  4: [3, 5], // Pendiente Usuario → En Proceso o Resuelto
-  5: [6], // Resuelto → Cerrado
-  7: [3], // Reabierto → En Proceso
+  1: [2],
+  2: [3],
+  3: [4, 5],
+  4: [3, 5],
+  5: [6],
+  7: [3],
 };
+
 const items = [
-  {
-    key: "mis_tickets",
-    label: "🎧 Asignados a mí",
-  },
-  {
-    key: "grupo",
-    label: "👥 Del grupo",
-  },
-  {
-    key: "finalizados",
-    label: "✅ Finalizados",
-  },
+  { key: "mis_tickets", label: "🎧 Asignados a mí" },
+  { key: "grupo", label: "👥 Del grupo" },
+  { key: "finalizados", label: "✅ Finalizados" },
 ];
 
 export default function Page() {
@@ -58,7 +51,6 @@ export default function Page() {
   const [prioridades, setPrioridades] = useState<PrioridadTicket[]>([]);
   const { usuario } = useUsuario();
   const [tabKey, setTabKey] = useState("mis_tickets");
-
   const [filtros, setFiltros] = useState<{
     estado_id?: number;
     prioridad_id?: number;
@@ -66,12 +58,8 @@ export default function Page() {
 
   const fetchTickets = async (me?: string, estados_id?: string[]) => {
     try {
-      const filtros = { me, estados_id };
-
       setLoading(true);
-      const data = await getTickets(filtros);
-      console.log("data => ", data);
-
+      const data = await getTickets({ me, estados_id });
       setTicketsTi(data);
     } catch (error) {
       console.error("error => ", error);
@@ -99,43 +87,17 @@ export default function Page() {
     }
   };
 
-  const handleEstadoChange = async (ticketId: number, estadoId: number) => {
-    try {
-      console.log(ticketId, estadoId);
-      // await updateEstadoTicket(ticketId, estadoId);
-      message.success("Estado actualizado correctamente");
-      fetchTickets();
-    } catch (error) {
-      console.error("error => ", error);
-      message.error("Error al actualizar estado");
-    }
-  };
-
   const onChange = (key: string) => {
-    console.log(key);
     setTabKey(key);
-
-    switch (key) {
-      case "mis_tickets":
-        fetchTickets("true");
-        break;
-      case "grupo":
-        fetchTickets(undefined, ["1", "2", "3", "7"]);
-        break;
-      case "finalizados":
-        fetchTickets(undefined, ["5"]);
-        break;
-    }
+    if (key === "mis_tickets") fetchTickets("true");
+    else if (key === "grupo") fetchTickets(undefined, ["1", "2", "3", "7"]);
+    else if (key === "finalizados") fetchTickets(undefined, ["5"]);
   };
 
   useEffect(() => {
     fetchEstados();
     fetchPrioridades();
     fetchTickets("true", ["1", "2", "3", "7"]);
-    // const intervalo = setInterval(() => {
-    //   setTiempoActual(Date.now());
-    // }, 1000);
-    // return () => clearInterval(intervalo);
   }, []);
 
   const ticketsFiltrados = ticketsTi.filter((ticket) => {
@@ -143,26 +105,39 @@ export default function Page() {
       !filtros.estado_id || ticket.estado?.id === filtros.estado_id;
     const coincidePrioridad =
       !filtros.prioridad_id || ticket.prioridad?.id === filtros.prioridad_id;
-
     return coincideEstado && coincidePrioridad;
   });
 
   const columns = [
     {
-      title: "ID",
-      dataIndex: "id",
-      key: "id",
+      title: "Código",
+      dataIndex: "codigo",
+      key: "codigo",
     },
     {
-      title: "Asunto",
-      dataIndex: "titulo",
-      key: "titulo",
+      title: "Tipo",
+      key: "tipo",
+      render: (record: Ticket) => {
+        const tipo = record.categoria?.incidencia?.tipo;
+        const icon = tipo === "requerimiento" ? "📌" : "⚠️";
+        return (
+          <span>
+            {icon} {tipo}
+          </span>
+        );
+      },
     },
     {
-      title: "Incidencia",
-      dataIndex: ["incidencia", "nombre"],
-      key: "incidencia",
-      render: (nombre: string) => <Tag color="blue">{nombre}</Tag>,
+      title: "Clasificación",
+      key: "clasificacion",
+      render: (record: Ticket) => {
+        return (
+          <span>
+            {record.categoria?.incidencia?.nombre} /{" "}
+            <b>{record.categoria?.nombre}</b>
+          </span>
+        );
+      },
     },
     {
       title: "Prioridad",
@@ -179,97 +154,52 @@ export default function Page() {
       },
     },
     {
-      title: "Estado",
+      title: "Estado / Asignado",
       key: "estado",
       render: (record: Ticket) => {
-        const estadoActualId = record.estado?.id;
-        const transicionesValidas = transiciones[estadoActualId!] || [];
-
-        const opcionesFiltradas = estados.filter(
-          (estado) =>
-            estado.id === estadoActualId ||
-            transicionesValidas.includes(estado.id)
-        );
-
+        const asignado = record.asignado_id === usuario?.id;
         return (
-          <Select
-            value={estadoActualId}
-            onChange={(value) => handleEstadoChange(record.id!, value)}
-            style={{ width: 150 }}
-            disabled={opcionesFiltradas.length <= 1} // desactiva si no hay transiciones posibles
-          >
-            {opcionesFiltradas.map((estado) => (
-              <Option key={estado.id} value={estado.id}>
-                {estado.nombre}
-              </Option>
-            ))}
-          </Select>
+          <Space>
+            {asignado ? (
+              <CheckCircleTwoTone twoToneColor="#52c41a" />
+            ) : (
+              <CloseCircleTwoTone twoToneColor="#ff4d4f" />
+            )}
+            <Tag color="blue">{record.estado?.nombre || "Sin estado"}</Tag>
+          </Space>
         );
       },
     },
     {
-      title: "Asignado a mí",
-      key: "asignado_a_mi",
-      render: (record: Ticket) =>
-        record.asignado_id === usuario?.id ? (
-          <CheckCircleTwoTone twoToneColor="#52c41a" />
-        ) : (
-          <CloseCircleTwoTone twoToneColor="#ff4d4f" />
-        ),
+      title: "Asunto",
+      key: "asunto",
+      render: (record: Ticket) => (
+        <Tooltip title={record.descripcion}>
+          <span
+            style={{
+              maxWidth: 200,
+              display: "inline-block",
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+            }}
+          >
+            {record.descripcion}
+          </span>
+        </Tooltip>
+      ),
     },
     {
       title: "Acciones",
       key: "acciones",
       render: (record: Ticket) => (
-        <Space>
-          <Link href={`/ticket/soporte/${record.id}`}>
-            <Button
-              type="link"
-              icon={<EyeOutlined />}
-              className="text-blue-600"
-            >
-              Ver
-            </Button>
-          </Link>
-        </Space>
+        <Link href={`/ticket/soporte/${record.id}`}>
+          <Button type="link" icon={<EyeOutlined />} className="text-blue-600">
+            Ver
+          </Button>
+        </Link>
       ),
     },
-    // {
-    //   title: "SLA",
-    //   key: "sla",
-    //   render: (record: TicketTi) => {
-    //     const sla = record.slaTicket;
-
-    //     if (!sla) {
-    //       return <Tag color="default">No definido</Tag>;
-    //     }
-
-    //     const ahora = tiempoActual;
-    //     const limite = new Date(sla.tiempo_estimado_respuesta).getTime();
-    //     const tiempoRestante = limite - ahora;
-
-    //     const horas = Math.floor(tiempoRestante / (1000 * 60 * 60));
-    //     const minutos = Math.floor(
-    //       (tiempoRestante % (1000 * 60 * 60)) / (1000 * 60)
-    //     );
-    //     const segundos = Math.floor((tiempoRestante % (1000 * 60)) / 1000);
-
-    //     let color = "green";
-    //     if (tiempoRestante <= 0) {
-    //       color = "red";
-    //     } else if (tiempoRestante <= 2 * 60 * 60 * 1000) {
-    //       color = "orange";
-    //     }
-
-    //     return (
-    //       <Tag color={color}>
-    //         {tiempoRestante <= 0
-    //           ? "Vencido"
-    //           : `Restan ${horas}h ${minutos}min ${segundos}s`}
-    //       </Tag>
-    //     );
-    //   },
-    // },
   ];
 
   return (
@@ -327,6 +257,13 @@ export default function Page() {
           rowKey="id"
           loading={loading}
           pagination={{ pageSize: 5 }}
+          scroll={{ x: 1000 }}
+          rowClassName={(record) => {
+            const prioridad = record.prioridad?.nombre;
+            if (prioridad === "Alta") return "bg-red-100 text-black";
+            if (prioridad === "Media") return "bg-yellow-100 text-black";
+            return "";
+          }}
         />
       </div>
     </div>

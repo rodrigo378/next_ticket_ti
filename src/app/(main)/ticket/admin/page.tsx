@@ -67,7 +67,7 @@ export default function Page() {
 
   const fetchUsuarios = async () => {
     try {
-      const data = await getUsuarios("true");
+      const data = await getUsuarios();
       setUsuarios(data);
     } catch (error) {
       console.error("error => ", error);
