@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Form,
   Input,
@@ -21,13 +21,13 @@ import type { UploadFile } from "antd/es/upload/interface";
 
 import { Area } from "@/interface/area";
 import { Incidencia } from "@/interface/incidencia";
-import { Catalogo } from "@/interface/catalogo";
 import { getAreas } from "@/services/area";
 import { getCatalogo } from "@/services/catalogo";
 import { createTicketTi } from "@/services/ticket_ti";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { getIncidencias } from "@/services/incidencias";
+import { CatalogoServicio } from "@/interface/catalogo";
 
 const { Title } = Typography;
 const { TextArea } = Input;
@@ -44,7 +44,7 @@ export default function Page() {
 
   const [current, setCurrent] = useState(0);
   const [areas, setAreas] = useState<Area[]>([]);
-  const [catalogo, setCatalogo] = useState<Catalogo[]>([]);
+  const [catalogo, setCatalogo] = useState<CatalogoServicio[]>([]);
   const [incidencias, setIncidencias] = useState<Incidencia[]>([]);
   const [fileList, setFileList] = useState<UploadFile[]>([]);
   const [tipo, setTipo] = useState<string | null>(null);
@@ -152,50 +152,60 @@ export default function Page() {
       ? "Requerimiento"
       : "Detalle";
 
-  const resumen = useMemo(() => {
-    const v = form.getFieldsValue(true);
-    const area = areas.find((a) => a.id === v.area_id)?.nombre ?? "-";
-    const incidencia =
-      incidencias.find((i) => i.id === v.incidencia_id)?.nombre ?? "-";
-    const categoria =
-      incidencias
-        .find((i) => i.id === v.incidencia_id)
-        ?.categoria?.find((c) => c.id === v.categoria_id)?.nombre ?? "-";
+  // const resumen = useMemo(() => {
+  //   const v = form.getFieldsValue(true);
+  //   console.log("V => ", v);
 
-    return (
-      <Descriptions bordered column={1} size="middle">
-        <Descriptions.Item label="Área">{area}</Descriptions.Item>
-        <Descriptions.Item label="Tipo de solicitud">
-          {v.tipo || "-"}
-        </Descriptions.Item>
-        <Descriptions.Item label={labelIncidenciaRequerimiento}>
-          {incidencia}
-        </Descriptions.Item>
-        <Descriptions.Item label="Categoría">{categoria}</Descriptions.Item>
-        <Descriptions.Item label="Descripción">
-          {v.descripcion || "-"}
-        </Descriptions.Item>
-        <Descriptions.Item label="Archivos adjuntos">
-          {fileList.length > 0 ? (
-            <ul style={{ paddingLeft: "1rem" }}>
-              {fileList.map((file) => (
-                <li key={file.uid}>
-                  <Link
-                    href={URL.createObjectURL(file.originFileObj!)}
-                    target="_blank"
-                  >
-                    {file.name}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            "— (ninguno)"
-          )}
-        </Descriptions.Item>
-      </Descriptions>
-    );
-  }, [areas, incidencias, fileList, form, labelIncidenciaRequerimiento]);
+  //   const area = areas.find((a) => a.id === v.area_id)?.nombre ?? "-";
+  //   const incidencia =
+  //     incidencias.find((i) => i.id === v.incidencia_id)?.nombre ?? "-";
+  //   const categoria =
+  //     incidencias
+  //       .find((i) => i.id === v.incidencia_id)
+  //       ?.categoria?.find((c) => c.id === v.categoria_id)?.nombre ?? "-";
+
+  //   return (
+  //     <Descriptions bordered column={1} size="middle">
+  //       <Descriptions.Item label="Área">{area}</Descriptions.Item>
+  //       <Descriptions.Item label="Tipo de solicitud">
+  //         {v.tipo || "-"}
+  //       </Descriptions.Item>
+  //       <Descriptions.Item label={labelIncidenciaRequerimiento}>
+  //         {incidencia}
+  //       </Descriptions.Item>
+  //       <Descriptions.Item label="Categoría">{categoria}</Descriptions.Item>
+  //       <Descriptions.Item label="Descripción">
+  //         {v.descripcion || "-"}
+  //       </Descriptions.Item>
+  //       <Descriptions.Item label="Archivos adjuntos">
+  //         {fileList.length > 0 ? (
+  //           <ul style={{ paddingLeft: "1rem" }}>
+  //             {fileList.map((file) => (
+  //               <li key={file.uid}>
+  //                 <Link
+  //                   href={URL.createObjectURL(file.originFileObj!)}
+  //                   target="_blank"
+  //                 >
+  //                   {file.name}
+  //                 </Link>
+  //               </li>
+  //             ))}
+  //           </ul>
+  //         ) : (
+  //           "— (ninguno)"
+  //         )}
+  //       </Descriptions.Item>
+  //     </Descriptions>
+  //   );
+  // }, [
+  //   areas,
+  //   incidencias,
+  //   fileList,
+  //   form.getFieldsValue(true), // 👈 fuerza actualización al cambiar campos
+  //   ,
+  //   form,
+  //   labelIncidenciaRequerimiento,
+  // ]);
 
   const renderStepContent = () => {
     switch (current) {
@@ -355,10 +365,52 @@ export default function Page() {
         );
 
       case 2:
+        const values = form.getFieldsValue(true);
+        const area = areas.find((a) => a.id === values.area_id)?.nombre ?? "-";
+        const incidencia =
+          incidencias.find((i) => i.id === values.incidencia_id)?.nombre ?? "-";
+        const categoria =
+          incidencias
+            .find((i) => i.id === values.incidencia_id)
+            ?.categoria?.find((c) => c.id === values.categoria_id)?.nombre ??
+          "-";
+
         return (
           <>
             <Title level={4}>✅ Confirma tu ticket</Title>
-            {resumen}
+            <Descriptions bordered column={1} size="middle">
+              <Descriptions.Item label="Área">{area}</Descriptions.Item>
+              <Descriptions.Item label="Tipo de solicitud">
+                {values.tipo || "-"}
+              </Descriptions.Item>
+              <Descriptions.Item label={labelIncidenciaRequerimiento}>
+                {incidencia}
+              </Descriptions.Item>
+              <Descriptions.Item label="Categoría">
+                {categoria}
+              </Descriptions.Item>
+              <Descriptions.Item label="Descripción">
+                {values.descripcion || "-"}
+              </Descriptions.Item>
+              <Descriptions.Item label="Archivos adjuntos">
+                {fileList.length > 0 ? (
+                  <ul style={{ paddingLeft: "1rem" }}>
+                    {fileList.map((file) => (
+                      <li key={file.uid}>
+                        <Link
+                          href={URL.createObjectURL(file.originFileObj!)}
+                          target="_blank"
+                        >
+                          {file.name}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  "— (ninguno)"
+                )}
+              </Descriptions.Item>
+            </Descriptions>
           </>
         );
     }

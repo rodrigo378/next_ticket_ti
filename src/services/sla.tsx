@@ -1,9 +1,9 @@
 import { api } from "./api";
 import { AxiosResponse } from "axios";
-import { Sla, UpdateSla } from "@/interface/sla";
+import { SLA, UpdateSla } from "@/interface/sla";
 
-export const getSla = async (): Promise<Sla[]> => {
-  const response: AxiosResponse<Sla[]> = await api.get("/sla");
+export const getSla = async (): Promise<SLA[]> => {
+  const response: AxiosResponse<SLA[]> = await api.get("/sla");
   return response.data;
 };
 

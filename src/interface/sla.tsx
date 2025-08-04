@@ -30,6 +30,6 @@ export interface SLA {
 }
 
 export interface UpdateSla {
-  tiempo_respuesta: number;
-  tiempo_resolucion: number;
+  tiempo_respuesta?: number;
+  tiempo_resolucion?: number;
 }

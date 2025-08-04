@@ -40,14 +40,14 @@ export default function Page() {
     },
     {
       title: "Area",
-      dataIndex: ["categoria", "incidencia", "subarea", "area", "nombre"],
+      dataIndex: ["categoria", "subarea", "area", "nombre"],
       key: "area",
     },
     {
       title: "Servicio",
       key: "servicio",
       render: (ticket: Ticket) => {
-        const subarea = ticket.categoria?.incidencia?.subarea?.nombre || "—";
+        const subarea = ticket.categoria?.subarea?.nombre || "—";
         const incidencia = ticket.categoria?.incidencia?.nombre || "—";
         const categoria = ticket.categoria?.nombre || "—";
 
