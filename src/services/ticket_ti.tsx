@@ -77,75 +77,27 @@ export const createMensaje = async (data: {
   return response.data;
 };
 
-// export const createMensaje = async (data: {
-//   ticket_id: number;
-//   contenido?: string;
-//   archivo?: File;
-// }) => {
-//   const token = localStorage.getItem("token");
-//   const formData = new FormData();
+export const derivarTicket = async (
+  ticket_id: number,
+  data: { a_area_id: number; nueva_categoria_id: number; motivo: string }
+) => {
+  const token = localStorage.getItem("token");
+  const response = await api.post(`/ticket/derivar/${ticket_id}`, data, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
 
-//   formData.append("ticket_id", data.ticket_id.toString());
+  return response.data;
+};
 
-//   if (data.contenido) {
-//     formData.append("contenido", data.contenido);
-//   }
-
-//   if (data.archivo) {
-//     formData.append("archivo", data.archivo);
-//   }
-
-//   const response = await api.post("/ticket/mensaje", formData, {
-//     headers: {
-//       Authorization: `Bearer ${token}`,
-//       "Content-Type": "multipart/form-data",
-//     },
-//   });
-
-//   return response.data;
-// };
-
-// export const asignarSoporte = async (
-//   ticket_id: number,
-//   asignado_id: number
-// ) => {
-//   const response = await api.put("/ticket", { ticket_id, asignado_id });
-//   return response.data;
-// };
-
-// export const getTicketMe = async (ticketId: string): Promise<Ticket> => {
-//   const token = localStorage.getItem("token");
-
-//   const response = await api.get(`/ticket_ti/me/${ticketId}`, {
-//     headers: {
-//       Authorization: `Bearer ${token}`,
-//     },
-//   });
-
-//   return response.data;
-// };
-
-// export const getTicketsTi = async (): Promise<Ticket[]> => {
-//   const response = await api.get("/ticket_ti/tickets");
-//   return response.data;
-// };
-
-// export const updateTicketTi = async (
-//   ticketTi_id: number,
-//   data: { asignado_id?: number; prioridad_id?: number }
-// ) => {
-//   const response = await api.patch(`/ticket_ti/${ticketTi_id}`, data);
-//   return response;
-// };
-
-// export const getTicketSoporte = async (): Promise<Ticket[]> => {
-//   const token = localStorage.getItem("token");
-
-//   const response = await api.get(`/ticket_ti/soporte`, {
-//     headers: {
-//       Authorization: `Bearer ${token}`,
-//     },
-//   });
-
-//   return response.data;
-// };
+// @UseGuards(AuthGuard('jwt'))
+// @Post('/derivar/:ticket_id')
+// derivarTicket(
+//   @Body() dto: DerivarTicketDto,
+//   @Req() req: AuthenticatedRequest,
+//   @Param('ticket_id') ticket_id: string,
+// ) {
+//   const user_id = req.user.id;
+//   return this.ticketService.derivarTicket(Number(ticket_id), dto, user_id);
+// }

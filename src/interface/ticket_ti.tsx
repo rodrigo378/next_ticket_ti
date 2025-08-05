@@ -1,3 +1,4 @@
+import { DerivacionTicket } from "./derivacionTicket";
 import { EstadoTicket } from "./estado";
 import { Categoria } from "./incidencia";
 import { MensajeTicket } from "./mensaje";
@@ -21,19 +22,27 @@ export interface Ticket {
   codigo: string;
   descripcion: string;
   correo_id?: string;
+
   prioridad_id: number;
   prioridad?: PrioridadTicket;
+
   estado_id: number;
   estado?: EstadoTicket;
+
   creado_id: number;
   creado?: Usuario;
+
   asignado_id?: number;
   asignado?: Usuario;
+
   categoria_id: number;
   categoria?: Categoria;
+
   createdAt?: string;
   updatedAt?: string;
+
   documentos?: DocumentoTicket[];
   mensajes?: MensajeTicket[];
   slaTicket?: SLATicket;
+  DerivacionTicket: DerivacionTicket[];
 }

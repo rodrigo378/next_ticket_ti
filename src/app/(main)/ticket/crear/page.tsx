@@ -127,6 +127,7 @@ export default function Page() {
       const formData = new FormData();
       formData.append("descripcion", values.descripcion);
       formData.append("incidencia_id", values.incidencia_id);
+      formData.append("area_id", values.area_id);
       if (values.categoria_id)
         formData.append("categoria_id", values.categoria_id);
       fileList.forEach((file) => {

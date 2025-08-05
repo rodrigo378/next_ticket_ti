@@ -1,5 +1,6 @@
 import { Subarea } from "./area";
 import { CatalogoServicio } from "./catalogo";
+import { DerivacionTicket } from "./derivacionTicket";
 import { SLA } from "./sla";
 import { Ticket } from "./ticket_ti";
 
@@ -19,6 +20,9 @@ export interface Categoria {
   subarea?: Subarea;
 
   SLA?: SLA[];
+  Ticket: Ticket[];
+  DerivadoDesde: DerivacionTicket[];
+  DerivadoHacia: DerivacionTicket[];
 }
 export interface Incidencia {
   id: number;
@@ -29,6 +33,5 @@ export interface Incidencia {
   catalogo_servicio_id: number;
   catalogo_servicio?: CatalogoServicio;
 
-  tickets?: Ticket[];
   categoria?: Categoria[];
 }

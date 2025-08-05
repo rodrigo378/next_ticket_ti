@@ -14,17 +14,17 @@ import {
 } from "antd";
 import { ColumnsType } from "antd/es/table";
 import { EditOutlined, SearchOutlined } from "@ant-design/icons";
-import { Sla } from "@/interface/sla";
 import { getSla, updateSla } from "@/services/sla";
+import { SLA } from "@/interface/sla";
 
 const { Title, Paragraph } = Typography;
 
 export default function Page() {
-  const [slas, setSlas] = useState<Sla[]>([]);
+  const [slas, setSlas] = useState<SLA[]>([]);
   const [filtro, setFiltro] = useState("");
   const [openDrawer, setOpenDrawer] = useState(false);
   const [form] = Form.useForm();
-  const [slaSeleccionado, setSlaSeleccionado] = useState<Sla | null>(null);
+  const [slaSeleccionado, setSlaSeleccionado] = useState<SLA | null>(null);
 
   const fetchSlas = async () => {
     try {
@@ -48,7 +48,7 @@ export default function Page() {
     return `${horas}h ${min}m`;
   };
 
-  const abrirDrawerEditar = (sla: Sla) => {
+  const abrirDrawerEditar = (sla: SLA) => {
     setSlaSeleccionado(sla);
     form.setFieldsValue({
       tiempo_respuesta: sla.tiempo_respuesta,
@@ -72,11 +72,11 @@ export default function Page() {
     }
   };
 
-  const columnas: ColumnsType<Sla> = [
+  const columnas: ColumnsType<SLA> = [
     {
-      title: "Incidencia",
-      dataIndex: ["incidencia", "nombre"],
-      key: "incidencia",
+      title: "Categoria",
+      dataIndex: ["categoria", "nombre"],
+      key: "categoria",
     },
     {
       title: "Prioridad",
@@ -115,7 +115,7 @@ export default function Page() {
   ];
 
   const slasFiltradas = slas.filter((sla) =>
-    sla.categoria.nombre.toLowerCase().includes(filtro.toLowerCase())
+    sla.categoria?.nombre.toLowerCase().includes(filtro.toLowerCase())
   );
 
   return (
@@ -145,7 +145,7 @@ export default function Page() {
       />
 
       <Drawer
-        title={`Editar SLA - ${slaSeleccionado?.categoria.nombre} (${slaSeleccionado?.prioridad.nombre})`}
+        title={`Editar SLA - ${slaSeleccionado?.categoria?.nombre} (${slaSeleccionado?.prioridad?.nombre})`}
         open={openDrawer}
         onClose={() => {
           setOpenDrawer(false);

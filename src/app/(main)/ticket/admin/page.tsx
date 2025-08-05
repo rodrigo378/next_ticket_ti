@@ -10,6 +10,7 @@ import {
   Drawer,
   Divider,
   Descriptions,
+  Tabs,
 } from "antd";
 import { EyeOutlined } from "@ant-design/icons";
 import { Usuario } from "@/interface/usuario";
@@ -25,6 +26,10 @@ dayjs.extend(relativeTime);
 dayjs.locale("es");
 
 const { Option } = Select;
+const items = [
+  { key: "sin_asignar", label: "Sin asignar" },
+  { key: "asignados", label: "Asignados" },
+];
 
 export default function Page() {
   const [tickets, setTickets] = useState<Ticket[]>([]);
@@ -36,7 +41,7 @@ export default function Page() {
   );
   const [asignadoId, setAsignadoId] = useState<number | undefined>();
   const [prioridadId, setPrioridadId] = useState<number | undefined>();
-
+  const [tabKey, setTabKey] = useState("sin_asignar");
   const abrirDrawer = async (ticket: Ticket) => {
     try {
       const data = await getTicket(ticket.id!);
@@ -50,10 +55,10 @@ export default function Page() {
     }
   };
 
-  const fetchTicketsTi = async () => {
+  const fetchTicketsTi = async (estados_id?: string[]) => {
     try {
       setLoading(true);
-      const data = await getTickets();
+      const data = await getTickets({ me: undefined, estados_id });
       console.log("tickets => ", data);
 
       setTickets(data);
@@ -87,7 +92,7 @@ export default function Page() {
         estado_id: 2,
       });
       message.success("✅ Ticket actualizado correctamente");
-      fetchTicketsTi();
+      fetchTicketsTi(["1"]);
       setDrawerVisible(false);
     } catch (error) {
       console.error("error =>", error);
@@ -96,14 +101,9 @@ export default function Page() {
   };
 
   useEffect(() => {
-    fetchTicketsTi();
+    fetchTicketsTi(["1"]);
     fetchUsuarios();
   }, []);
-
-  // const slaActual = ticketSeleccionado?.categoria?.SLA?.find(
-  //   (sla) => sla.prioridad_id === prioridadId
-  // );
-  // console.log("slaActual => ", slaActual);
 
   const columns = [
     {
@@ -113,13 +113,21 @@ export default function Page() {
     },
     {
       title: "Área",
-      dataIndex: ["categoria", "incidencia", "subarea", "area", "nombre"],
+      dataIndex: ["categoria", "subarea", "area", "nombre"],
       key: "area",
     },
     {
-      title: "tipo",
-      dataIndex: ["categoria", "incidencia", "tipo"],
+      title: "Tipo",
       key: "tipo",
+      render: (record: Ticket) => {
+        const tipo = record.categoria?.incidencia?.tipo;
+        const icon = tipo === "requerimiento" ? "📌" : "⚠️";
+        return (
+          <span>
+            {icon} {tipo}
+          </span>
+        );
+      },
     },
     {
       title: "Prioridad",
@@ -191,9 +199,25 @@ export default function Page() {
     },
   ];
 
+  const onChange = (key: string) => {
+    setTabKey(key);
+    console.log("key => ", key);
+
+    if (key === "sin_asignar") fetchTicketsTi(["1"]);
+    else if (key === "asignados") fetchTicketsTi(["2", "3", "4"]);
+  };
+
   return (
     <div>
-      <h1 style={{ marginBottom: 20 }}>Asignar Tickets 1</h1>
+      <h1 style={{ marginBottom: 20 }}>Asignar Soporte</h1>
+
+      <Tabs
+        activeKey={tabKey}
+        onChange={onChange}
+        items={items}
+        className="mb-4"
+      />
+
       <Table
         rowKey="id"
         columns={columns}
@@ -201,47 +225,45 @@ export default function Page() {
         loading={loading}
         pagination={{ pageSize: 10 }}
       />
+
       <Drawer
-        title={`Detalle del ticket: ${ticketSeleccionado?.codigo}`}
+        title={
+          <span className="text-lg font-semibold">
+            🎫 Detalle del Ticket: {ticketSeleccionado?.codigo}
+          </span>
+        }
         placement="right"
-        width={500}
+        width={520}
         onClose={() => setDrawerVisible(false)}
         open={drawerVisible}
       >
         {ticketSeleccionado && (
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-6">
+            <Divider orientation="left">📄 Información General</Divider>
             <Descriptions bordered column={1} size="small">
               <Descriptions.Item label="Descripción">
                 {ticketSeleccionado.descripcion}
               </Descriptions.Item>
               <Descriptions.Item label="Área">
-                {
-                  ticketSeleccionado.categoria?.incidencia?.subarea?.area
-                    ?.nombre
-                }
+                {ticketSeleccionado.categoria?.subarea?.area?.nombre}
               </Descriptions.Item>
               <Descriptions.Item label="Estado">
-                {ticketSeleccionado.estado?.nombre}
+                <Tag color="blue">{ticketSeleccionado.estado?.nombre}</Tag>
               </Descriptions.Item>
               <Descriptions.Item label="Creado por">
                 {ticketSeleccionado.creado?.nombre}{" "}
                 {ticketSeleccionado.creado?.apellidos}
               </Descriptions.Item>
               <Descriptions.Item label="Incidencia">
-                {ticketSeleccionado.categoria?.nombre}
+                {ticketSeleccionado.categoria?.incidencia?.nombre}
               </Descriptions.Item>
               <Descriptions.Item label="Categoría">
                 {ticketSeleccionado.categoria?.nombre}
               </Descriptions.Item>
             </Descriptions>
 
-            {/* {slaActual && ticketSeleccionado && ( */}
-            <Descriptions
-              bordered
-              column={1}
-              size="small"
-              title="⏱ SLA del Ticket"
-            >
+            <Divider orientation="left">⏱ SLA del Ticket</Divider>
+            <Descriptions bordered column={1} size="small">
               <Descriptions.Item label="Tiempo de Respuesta">
                 {ticketSeleccionado.slaTicket?.sla?.tiempo_respuesta} minutos
               </Descriptions.Item>
@@ -259,13 +281,12 @@ export default function Page() {
                 ).format("DD/MM/YYYY HH:mm")}
               </Descriptions.Item>
             </Descriptions>
-            {/* )} */}
 
             {ticketSeleccionado.documentos &&
-              ticketSeleccionado.documentos.length > 0 && (
+              ticketSeleccionado.documentos?.length > 0 && (
                 <>
-                  <Divider>📎 Archivos adjuntos</Divider>
-                  <ul className="list-disc pl-4">
+                  <Divider orientation="left">📎 Archivos Adjuntos</Divider>
+                  <ul className="list-disc pl-5 space-y-1">
                     {ticketSeleccionado.documentos.map((archivo, index) => {
                       const fileUrl = `http://localhost:4000${archivo.url.replace(
                         /\\/g,
@@ -279,7 +300,7 @@ export default function Page() {
                             rel="noopener noreferrer"
                             className="text-blue-600 hover:underline"
                           >
-                            📎 {archivo.nombre}
+                            📄 {archivo.nombre}
                           </a>
                         </li>
                       );
@@ -288,56 +309,55 @@ export default function Page() {
                 </>
               )}
 
-            <Divider>Asignar soporte y prioridad</Divider>
+            <Divider orientation="left">👨‍🔧 Asignación y Prioridad</Divider>
 
-            <div>
-              <p>
-                <strong>Asignar soporte:</strong>
-              </p>
-              <Select
-                style={{ width: "100%" }}
-                value={asignadoId}
-                onChange={(value) => setAsignadoId(value)}
-                placeholder="Seleccionar soporte"
-              >
-                {usuarios.map((usuario) => (
-                  <Option key={usuario.id} value={usuario.id}>
-                    {usuario.nombre} {usuario.apellidos}
+            <div className="flex flex-col gap-4">
+              <div>
+                <p className="font-medium">Asignar Soporte:</p>
+                <Select
+                  style={{ width: "100%" }}
+                  value={asignadoId}
+                  onChange={(value) => setAsignadoId(value)}
+                  placeholder="Seleccionar soporte"
+                >
+                  {usuarios.map((usuario) => (
+                    <Option key={usuario.id} value={usuario.id}>
+                      {usuario.nombre} {usuario.apellidos}
+                    </Option>
+                  ))}
+                </Select>
+              </div>
+
+              <div>
+                <p className="font-medium">Prioridad:</p>
+                <Select
+                  style={{ width: "100%" }}
+                  value={prioridadId?.toString()}
+                  onChange={(value) => setPrioridadId(Number(value))}
+                  placeholder="Seleccionar prioridad"
+                >
+                  <Option value="1">
+                    <Tag color="green">Baja</Tag>
                   </Option>
-                ))}
-              </Select>
-            </div>
+                  <Option value="2">
+                    <Tag color="orange">Media</Tag>
+                  </Option>
+                  <Option value="3">
+                    <Tag color="red">Alta</Tag>
+                  </Option>
+                </Select>
+              </div>
 
-            <div>
-              <p>
-                <strong>Prioridad:</strong>
-              </p>
-              <Select
-                style={{ width: "100%" }}
-                value={prioridadId?.toString()}
-                onChange={(value) => setPrioridadId(Number(value))}
-                placeholder="Seleccionar prioridad"
+              <Button
+                type="primary"
+                block
+                className="mt-2"
+                icon={<EyeOutlined />}
+                onClick={handleActualizar}
               >
-                <Option value="1">
-                  <Tag color="green">Baja</Tag>
-                </Option>
-                <Option value="2">
-                  <Tag color="orange">Media</Tag>
-                </Option>
-                <Option value="3">
-                  <Tag color="red">Alta</Tag>
-                </Option>
-              </Select>
+                Guardar Cambios
+              </Button>
             </div>
-
-            <Button
-              type="primary"
-              block
-              className="mt-4"
-              onClick={handleActualizar}
-            >
-              Guardar Cambios
-            </Button>
           </div>
         )}
       </Drawer>

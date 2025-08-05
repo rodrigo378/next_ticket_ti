@@ -9,6 +9,8 @@ import {
   Input,
   Button,
   Select,
+  Modal,
+  Form,
 } from "antd";
 import { PaperClipOutlined } from "@ant-design/icons";
 import { useEffect, useState } from "react";
@@ -26,13 +28,20 @@ import { EstadoTicket } from "@/interface/estado";
 dayjs.extend(relativeTime);
 dayjs.locale("es");
 
+// { id: 1, nombre: 'Abierto/Creado' },
+// { id: 2, nombre: 'Asignado' },
+// { id: 3, nombre: 'En Proceso' },
+// { id: 4, nombre: 'Resuelto' },
+// { id: 5, nombre: 'Reabierto/Observado' },
+// { id: 6, nombre: 'Cancelado' },
+
 const transiciones: Record<number, number[]> = {
   1: [2], // Abierto → Asignado
-  2: [3], // Asignado → En Proceso
-  3: [4, 5], // En Proceso → Pendiente Usuario o Resuelto
-  4: [3, 5], // Pendiente Usuario → En Proceso o Resuelto
-  5: [6], // Resuelto → Cerrado
-  7: [3], // Reabierto → En Proceso
+  2: [3, 6], // Asignado → En Proceso, Cancelado
+  3: [4, 5], // En Proceso → Resuelto o Cancelado
+  4: [5], // Resuelto → Reabierto/Observado
+  // 5: [6], // Resuelto → Cerrado
+  // 7: [3], // Reabierto → En Proceso
 };
 
 const { Title, Text } = Typography;
@@ -46,6 +55,8 @@ export default function Page() {
   const [nuevoMensaje, setNuevoMensaje] = useState("");
   const [areas, setAreas] = useState<Area[]>([]);
   const [estados, setEstados] = useState<EstadoTicket[]>([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [form] = Form.useForm();
 
   const fetchTicket = async (id: string) => {
     try {
@@ -66,6 +77,9 @@ export default function Page() {
     }
   };
 
+  const showModal = () => {
+    setIsModalOpen(true);
+  };
   const fechEstados = async () => {
     try {
       const data = await getEstados();
@@ -90,19 +104,34 @@ export default function Page() {
     }
   };
 
-  const cambiarEstado = async (values: number) => {
-    console.log("aca value => ", values);
-    console.log("id => ", id);
+  const handleFinish = (values) => {
+    console.log("Datos del formulario:", values);
+    message.success("Usuario registrado correctamente");
+    form.resetFields();
+  };
 
-    try {
-      const response = await updateTicket(Number(id), {
-        estado_id: Number(values),
-      });
-      fetchTicket(id);
-      console.log("response => ", response);
-    } catch (error) {
-      console.log("error => ", error);
-    }
+  const handleReset = () => {
+    form.resetFields();
+  };
+
+  const cambiarEstado = async (values: number) => {
+    Modal.confirm({
+      title: "Esta seguro que quiere cambiar el estado del ticket",
+      content: "Esto actualizara el estado del ticket en el sistema",
+      okText: "Si, cambiar",
+      cancelText: "No, cancelar",
+      onOk: async () => {
+        try {
+          const response = await updateTicket(Number(id), {
+            estado_id: Number(values),
+          });
+          fetchTicket(id);
+          console.log("response => ", response);
+        } catch (error) {
+          console.log("error => ", error);
+        }
+      },
+    });
   };
 
   useEffect(() => {
@@ -145,7 +174,10 @@ export default function Page() {
           {/* Derivar a área */}
           <div className="flex flex-col">
             <Text strong>Derivar a área</Text>
-            <Select
+            <Button type="primary" onClick={showModal}>
+              Open Modal
+            </Button>
+            {/* <Select
               placeholder="Seleccionar área"
               className="min-w-[220px]"
               onChange={(value) => {
@@ -158,7 +190,7 @@ export default function Page() {
                   {area.nombre}
                 </Option>
               ))}
-            </Select>
+            </Select> */}
           </div>
         </div>
       </div>
@@ -248,6 +280,32 @@ export default function Page() {
           </Button>
         </div>
       </Card>
+      <Modal
+        title="Basic Modal"
+        closable={{ "aria-label": "Custom Close Button" }}
+        open={isModalOpen}
+        // onOk={handleOk}
+        // onCancel={handleCancel}
+      >
+        <Form
+          layout="vertical"
+          form={form}
+          onFinish={handleFinish}
+          autoComplete="off"
+        >
+          <Form.Item
+            label="Area"
+            name="area"
+            rules={[{ required: true, message: "Seleccione un area" }]}
+          >
+            {/* <Select placeholder="Seleccione un area">
+              {areas.map(area => (
+                Option
+              )}
+            </Select> */}
+          </Form.Item>
+        </Form>
+      </Modal>
     </div>
   );
 }

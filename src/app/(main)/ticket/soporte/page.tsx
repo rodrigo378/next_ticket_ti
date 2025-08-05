@@ -89,6 +89,8 @@ export default function Page() {
 
   const onChange = (key: string) => {
     setTabKey(key);
+    console.log("key => ", key);
+
     if (key === "mis_tickets") fetchTickets("true");
     else if (key === "grupo") fetchTickets(undefined, ["1", "2", "3", "7"]);
     else if (key === "finalizados") fetchTickets(undefined, ["5"]);
@@ -97,7 +99,7 @@ export default function Page() {
   useEffect(() => {
     fetchEstados();
     fetchPrioridades();
-    fetchTickets("true", ["1", "2", "3", "7"]);
+    fetchTickets("true", ["1", "2", "3", "5"]);
   }, []);
 
   const ticketsFiltrados = ticketsTi.filter((ticket) => {
@@ -192,13 +194,32 @@ export default function Page() {
     {
       title: "Acciones",
       key: "acciones",
-      render: (record: Ticket) => (
-        <Link href={`/ticket/soporte/${record.id}`}>
-          <Button type="link" icon={<EyeOutlined />} className="text-blue-600">
-            Ver
-          </Button>
-        </Link>
-      ),
+      render: (record: Ticket) => {
+        const estaAsignado = record.asignado_id === usuario?.id;
+
+        return estaAsignado ? (
+          <Link href={`/ticket/soporte/${record.id}`}>
+            <Button
+              type="link"
+              icon={<EyeOutlined />}
+              className="text-blue-600"
+            >
+              Ver
+            </Button>
+          </Link>
+        ) : (
+          <Tooltip title="Solo el técnico asignado puede ver este ticket">
+            <Button
+              type="link"
+              icon={<EyeOutlined />}
+              className="text-gray-400"
+              disabled
+            >
+              Ver
+            </Button>
+          </Tooltip>
+        );
+      },
     },
   ];
 

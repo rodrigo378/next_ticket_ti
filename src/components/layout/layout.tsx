@@ -60,7 +60,8 @@ export default function MainLayout({ children }: { children: ReactNode }) {
         key: "logout",
         label: "Cerrar sesión",
         onClick: () => {
-          console.log("Cerrar sesión");
+          localStorage.removeItem("token");
+          router.push("/login");
         },
       },
     ],
@@ -87,12 +88,12 @@ export default function MainLayout({ children }: { children: ReactNode }) {
         tienePermiso("1.2")
           ? { key: "/admin/permisos", label: "Permisos" }
           : null,
-        tienePermiso("1.3")
-          ? { key: "/admin/roles", label: "Gestión de Roles" }
-          : null,
-        tienePermiso("1.4")
-          ? { key: "/admin/areas", label: "Gestión de Áreas" }
-          : null,
+        // tienePermiso("1.3")
+        //   ? { key: "/admin/roles", label: "Gestión de Roles" }
+        //   : null,
+        // tienePermiso("1.4")
+        //   ? { key: "/admin/areas", label: "Gestión de Áreas" }
+        //   : null,
       ].filter(Boolean),
     },
     {

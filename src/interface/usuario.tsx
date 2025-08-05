@@ -19,12 +19,16 @@ export interface Usuario {
   email: string;
   password: string;
   estado: string;
+
   rol_id: number;
   rol?: Rol;
+
   subarea_id?: number;
   subarea?: Subarea;
+
   createdAt?: string;
   updatedAt?: string;
+
   permisos?: Permiso[];
   ticketsCreados?: Ticket[];
   ticketsAsignados?: Ticket[];

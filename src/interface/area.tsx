@@ -1,5 +1,7 @@
 import { CatalogoServicio } from "./catalogo";
+import { DerivacionTicket } from "./derivacionTicket";
 import { Incidencia } from "./incidencia";
+import { Ticket } from "./ticket_ti";
 import { Usuario } from "./usuario";
 
 export interface Area {
@@ -9,6 +11,9 @@ export interface Area {
   Subarea?: Subarea[];
   UsuarioArea?: UsuarioArea[];
   CatalogoServicio?: CatalogoServicio[];
+  DerivadoDesde: DerivacionTicket[];
+  DerivadoHacia: DerivacionTicket[];
+  Ticket: Ticket[];
 }
 
 export interface Subarea {
