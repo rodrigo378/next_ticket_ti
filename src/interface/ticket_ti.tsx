@@ -1,3 +1,4 @@
+import { Area } from "./area";
 import { DerivacionTicket } from "./derivacionTicket";
 import { EstadoTicket } from "./estado";
 import { Categoria } from "./incidencia";
@@ -34,6 +35,9 @@ export interface Ticket {
 
   asignado_id?: number;
   asignado?: Usuario;
+
+  area_id?: number;
+  area?: Area;
 
   categoria_id: number;
   categoria?: Categoria;

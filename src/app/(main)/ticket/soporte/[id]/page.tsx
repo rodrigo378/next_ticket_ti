@@ -10,81 +10,67 @@ import {
   Button,
   Select,
   Modal,
-  Form,
+  Row,
+  Col,
+  Space,
 } from "antd";
 import { PaperClipOutlined } from "@ant-design/icons";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import { createMensaje, getTicket, updateTicket } from "@/services/ticket_ti";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import "dayjs/locale/es";
-import { Area } from "@/interface/area";
-import { getAreas } from "@/services/area";
 import { getEstados } from "@/services/estado";
 import { Ticket } from "@/interface/ticket_ti";
 import { EstadoTicket } from "@/interface/estado";
-
-dayjs.extend(relativeTime);
-dayjs.locale("es");
-
-// { id: 1, nombre: 'Abierto/Creado' },
-// { id: 2, nombre: 'Asignado' },
-// { id: 3, nombre: 'En Proceso' },
-// { id: 4, nombre: 'Resuelto' },
-// { id: 5, nombre: 'Reabierto/Observado' },
-// { id: 6, nombre: 'Cancelado' },
-
-const transiciones: Record<number, number[]> = {
-  1: [2], // Abierto → Asignado
-  2: [3, 6], // Asignado → En Proceso, Cancelado
-  3: [4, 5], // En Proceso → Resuelto o Cancelado
-  4: [5], // Resuelto → Reabierto/Observado
-  // 5: [6], // Resuelto → Cerrado
-  // 7: [3], // Reabierto → En Proceso
-};
-
+import ComponenteModal from "@/components/ticket/modal";
+import { CardOpcionesRapidas } from "@/components/ticket/card";
 const { Title, Text } = Typography;
 const { TextArea } = Input;
 const { Option } = Select;
 
+dayjs.extend(relativeTime);
+dayjs.locale("es");
+
+const transiciones: Record<number, number[]> = {
+  1: [2],
+  2: [3, 6],
+  3: [4, 5],
+  4: [5],
+};
+interface ModalHandle {
+  openModal: () => void;
+}
+
 export default function Page() {
   const params = useParams();
+
+  const modalRef = useRef<ModalHandle>(null);
+  const abrirModal = () => {
+    console.log("click");
+
+    modalRef.current?.openModal();
+  };
+
   const id = params.id as string;
   const [Ticket, setTicket] = useState<Ticket | null>(null);
   const [nuevoMensaje, setNuevoMensaje] = useState("");
-  const [areas, setAreas] = useState<Area[]>([]);
   const [estados, setEstados] = useState<EstadoTicket[]>([]);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [form] = Form.useForm();
 
   const fetchTicket = async (id: string) => {
     try {
       const data = await getTicket(Number(id));
       setTicket(data);
-      console.log("ticket => ", data);
     } catch (error) {
       console.error("Error al obtener ticket:", error);
     }
   };
 
-  const fetchAreas = async () => {
-    try {
-      const data = await getAreas();
-      setAreas(data);
-    } catch (error) {
-      console.error("Error al obtener áreas:", error);
-    }
-  };
-
-  const showModal = () => {
-    setIsModalOpen(true);
-  };
   const fechEstados = async () => {
     try {
       const data = await getEstados();
       setEstados(data);
-      console.log("data => ", data);
     } catch (error) {
       console.log("error => ", error);
     }
@@ -104,29 +90,16 @@ export default function Page() {
     }
   };
 
-  const handleFinish = (values) => {
-    console.log("Datos del formulario:", values);
-    message.success("Usuario registrado correctamente");
-    form.resetFields();
-  };
-
-  const handleReset = () => {
-    form.resetFields();
-  };
-
   const cambiarEstado = async (values: number) => {
     Modal.confirm({
-      title: "Esta seguro que quiere cambiar el estado del ticket",
-      content: "Esto actualizara el estado del ticket en el sistema",
-      okText: "Si, cambiar",
+      title: "¿Está seguro de cambiar el estado del ticket?",
+      content: "Esto actualizará el estado del ticket en el sistema.",
+      okText: "Sí, cambiar",
       cancelText: "No, cancelar",
       onOk: async () => {
         try {
-          const response = await updateTicket(Number(id), {
-            estado_id: Number(values),
-          });
+          await updateTicket(Number(id), { estado_id: Number(values) });
           fetchTicket(id);
-          console.log("response => ", response);
         } catch (error) {
           console.log("error => ", error);
         }
@@ -135,7 +108,6 @@ export default function Page() {
   };
 
   useEffect(() => {
-    fetchAreas();
     fechEstados();
     fetchTicket(id);
   }, [id]);
@@ -143,87 +115,80 @@ export default function Page() {
   return (
     <div className="max-w-5xl mx-auto mt-10 p-4 bg-white rounded-xl shadow-sm">
       {/* Opciones rápidas */}
-      <div className="sticky- top-0 z-10 bg-white border border-gray-200 rounded-md p-4 mb-6 shadow-sm">
+      {/* <Card
+        className="mb-6"
+        style={{
+          position: "sticky",
+          top: 0,
+          zIndex: 10,
+          background: "#fff",
+        }}
+      >
         <Title level={4}>⚙️ Opciones Rápidas</Title>
-        <div className="flex flex-wrap items-center gap-6">
-          {/* Cambiar estado */}
-          <div className="flex flex-col">
-            <Text strong>Estado</Text>
+        <Row gutter={[24, 16]}>
+          <Col xs={24} sm={12} md={8}>
+            <Space direction="vertical" size="small" style={{ width: "100%" }}>
+              <Text strong>Estado</Text>
+              {Ticket && (
+                <Select
+                  style={{ width: "100%" }}
+                  value={Ticket.estado_id}
+                  onChange={cambiarEstado}
+                >
+                  {estados
+                    .filter(
+                      (estado) =>
+                        estado.id === Ticket.estado_id ||
+                        transiciones[Ticket.estado_id!]?.includes(estado.id)
+                    )
+                    .map((estado) => (
+                      <Option key={estado.id} value={estado.id}>
+                        {estado.nombre}
+                      </Option>
+                    ))}
+                </Select>
+              )}
+            </Space>
+          </Col>
 
-            {Ticket && (
-              <Select
-                className="min-w-[180px]"
-                value={Ticket.estado_id}
-                onChange={cambiarEstado}
-              >
-                {estados
-                  .filter(
-                    (estado) =>
-                      estado.id === Ticket.estado_id || // mantener el actual
-                      transiciones[Ticket.estado_id!]?.includes(estado.id)
-                  )
-                  .map((estado) => (
-                    <Option key={estado.id} value={estado.id}>
-                      {estado.nombre}
-                    </Option>
-                  ))}
-              </Select>
-            )}
-          </div>
-
-          {/* Derivar a área */}
-          <div className="flex flex-col">
-            <Text strong>Derivar a área</Text>
-            <Button type="primary" onClick={showModal}>
-              Open Modal
-            </Button>
-            {/* <Select
-              placeholder="Seleccionar área"
-              className="min-w-[220px]"
-              onChange={(value) => {
-                console.log("Área seleccionada:", value);
-                // Aquí lógica para derivar el ticket
-              }}
-            >
-              {areas.map((area) => (
-                <Option key={area.id.toString()} value={area.id.toString()}>
-                  {area.nombre}
-                </Option>
-              ))}
-            </Select> */}
-          </div>
-        </div>
-      </div>
+          <Col xs={24} sm={12} md={8}>
+            <Space direction="vertical" size="small" style={{ width: "100%" }}>
+              <Text strong>Derivar a área</Text>
+              <Button type="primary" block onClick={abrirModal}>
+                Derivar
+              </Button>
+            </Space>
+          </Col>
+        </Row>
+      </Card> */}
+      <CardOpcionesRapidas
+        ticket={Ticket!}
+        estados={estados!}
+      ></CardOpcionesRapidas>
 
       {/* Detalle del ticket */}
       <Title level={3}>🎟️ Detalle del Ticket</Title>
       <Card className="mb-6">
         <Descriptions column={1} size="middle" bordered>
-          <Descriptions.Item label="Codigo">{Ticket?.codigo}</Descriptions.Item>
+          <Descriptions.Item label="Código">{Ticket?.codigo}</Descriptions.Item>
           <Descriptions.Item label="Tipo">
             {Ticket?.categoria?.incidencia?.tipo}
           </Descriptions.Item>
-
           <Descriptions.Item label={Ticket?.categoria?.incidencia?.tipo}>
             {Ticket?.categoria?.incidencia?.nombre}
           </Descriptions.Item>
-
-          <Descriptions.Item label="Categoria">
+          <Descriptions.Item label="Categoría">
             {Ticket?.categoria?.nombre}
           </Descriptions.Item>
-
           <Descriptions.Item label="Descripción">
             {Ticket?.descripcion}
           </Descriptions.Item>
-
           <Descriptions.Item label="Estado">
             <Tag color="blue">{Ticket?.estado?.nombre}</Tag>
           </Descriptions.Item>
-
           <Descriptions.Item label="Prioridad">
             <Tag color="red">{Ticket?.prioridad?.nombre}</Tag>
           </Descriptions.Item>
-
           <Descriptions.Item label="Fecha de creación">
             {dayjs(Ticket?.createdAt).fromNow()}
           </Descriptions.Item>
@@ -261,9 +226,8 @@ export default function Page() {
             <div key={mensaje.id} className="mb-4">
               <Text strong>{mensaje?.emisor?.nombre}</Text>
               <div className="text-gray-500 text-sm">
-                {dayjs(Ticket.createdAt).fromNow()}
+                {dayjs(mensaje.createdAt).fromNow()}
               </div>
-              {/* {dayjs(Ticket?.createdAt).fromNow()} */}
               <div className="mt-1">{mensaje.contenido}</div>
             </div>
           ))}
@@ -280,32 +244,9 @@ export default function Page() {
           </Button>
         </div>
       </Card>
-      <Modal
-        title="Basic Modal"
-        closable={{ "aria-label": "Custom Close Button" }}
-        open={isModalOpen}
-        // onOk={handleOk}
-        // onCancel={handleCancel}
-      >
-        <Form
-          layout="vertical"
-          form={form}
-          onFinish={handleFinish}
-          autoComplete="off"
-        >
-          <Form.Item
-            label="Area"
-            name="area"
-            rules={[{ required: true, message: "Seleccione un area" }]}
-          >
-            {/* <Select placeholder="Seleccione un area">
-              {areas.map(area => (
-                Option
-              )}
-            </Select> */}
-          </Form.Item>
-        </Form>
-      </Modal>
+
+      {/* Modal de derivación */}
+      <ComponenteModal ref={modalRef} ticket={Ticket!} />
     </div>
   );
 }

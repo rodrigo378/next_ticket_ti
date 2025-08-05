@@ -92,14 +92,14 @@ export default function Page() {
     console.log("key => ", key);
 
     if (key === "mis_tickets") fetchTickets("true");
-    else if (key === "grupo") fetchTickets(undefined, ["1", "2", "3", "7"]);
-    else if (key === "finalizados") fetchTickets(undefined, ["5"]);
+    else if (key === "grupo") fetchTickets(undefined, ["1", "2", "3", "5"]);
+    else if (key === "finalizados") fetchTickets(undefined, ["4"]);
   };
 
   useEffect(() => {
     fetchEstados();
     fetchPrioridades();
-    fetchTickets("true", ["1", "2", "3", "5"]);
+    fetchTickets("true", ["1", "2", "3"]);
   }, []);
 
   const ticketsFiltrados = ticketsTi.filter((ticket) => {
