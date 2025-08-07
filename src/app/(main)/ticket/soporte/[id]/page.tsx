@@ -49,7 +49,6 @@ export default function Page() {
   const modalRef = useRef<ModalHandle>(null);
   const abrirModal = () => {
     console.log("click");
-
     modalRef.current?.openModal();
   };
 
