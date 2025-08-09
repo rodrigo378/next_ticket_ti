@@ -1,6 +1,7 @@
 import { Ticket } from "@/interface/ticket_ti";
 import { api } from "./api";
 import { AxiosResponse } from "axios";
+import { CalificacionTicket } from "@/interface/calificacion";
 
 export const createTicketTi = async (formData: FormData): Promise<unknown> => {
   const token = localStorage.getItem("token");
@@ -91,13 +92,13 @@ export const derivarTicket = async (
   return response.data;
 };
 
-// @UseGuards(AuthGuard('jwt'))
-// @Post('/derivar/:ticket_id')
-// derivarTicket(
-//   @Body() dto: DerivarTicketDto,
-//   @Req() req: AuthenticatedRequest,
-//   @Param('ticket_id') ticket_id: string,
-// ) {
-//   const user_id = req.user.id;
-//   return this.ticketService.derivarTicket(Number(ticket_id), dto, user_id);
-// }
+export const createCalificacion = async (data: Partial<CalificacionTicket>) => {
+  const token = localStorage.getItem("token");
+  const response = await api.post("/ticket/calificacion", data, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  return response.data;
+};

@@ -91,7 +91,7 @@ export default function Page() {
     setTabKey(key);
     console.log("key => ", key);
 
-    if (key === "mis_tickets") fetchTickets("true");
+    if (key === "mis_tickets") fetchTickets("true", ["2", "3", "5"]);
     else if (key === "grupo") fetchTickets(undefined, ["1", "2", "3", "5"]);
     else if (key === "finalizados") fetchTickets(undefined, ["4"]);
   };
@@ -99,7 +99,7 @@ export default function Page() {
   useEffect(() => {
     fetchEstados();
     fetchPrioridades();
-    fetchTickets("true", ["1", "2", "3"]);
+    fetchTickets("true", ["2", "3", "5"]);
   }, []);
 
   const ticketsFiltrados = ticketsTi.filter((ticket) => {

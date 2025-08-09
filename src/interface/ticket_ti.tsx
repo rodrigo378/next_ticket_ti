@@ -1,4 +1,5 @@
 import { Area } from "./area";
+import { CalificacionTicket } from "./calificacion";
 import { DerivacionTicket } from "./derivacionTicket";
 import { EstadoTicket } from "./estado";
 import { Categoria } from "./incidencia";
@@ -49,4 +50,5 @@ export interface Ticket {
   mensajes?: MensajeTicket[];
   slaTicket?: SLATicket;
   DerivacionTicket: DerivacionTicket[];
+  CalificacionTicket: CalificacionTicket;
 }
