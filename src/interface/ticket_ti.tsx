@@ -42,8 +42,10 @@ export interface Ticket {
   categoria_id: number;
   categoria?: Categoria;
 
-  createdAt?: string;
-  updatedAt?: string;
+  createdAt: Date;
+  asignadoAt?: Date;
+  respondidoAt?: Date;
+  finalizadoAt?: Date;
 
   documentos?: DocumentoTicket[];
   mensajes?: MensajeTicket[];

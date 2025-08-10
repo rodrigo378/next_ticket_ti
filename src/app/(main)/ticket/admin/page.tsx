@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import {
   Table,
   Button,
@@ -11,10 +11,15 @@ import {
   Divider,
   Descriptions,
   Tabs,
+  Row,
+  Col,
+  Progress,
+  Typography,
+  Card,
 } from "antd";
 import { EyeOutlined } from "@ant-design/icons";
 import { Usuario } from "@/interface/usuario";
-import { getTicket, getTickets, updateTicket } from "@/services/ticket_ti";
+import { asignarTicket, getTicket, getTickets } from "@/services/ticket_ti";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import "dayjs/locale/es";
@@ -26,6 +31,8 @@ dayjs.extend(relativeTime);
 dayjs.locale("es");
 
 const { Option } = Select;
+const { Text } = Typography;
+
 const items = [
   { key: "sin_asignar", label: "Sin asignar" },
   { key: "asignados", label: "Asignados" },
@@ -42,6 +49,7 @@ export default function Page() {
   const [asignadoId, setAsignadoId] = useState<number | undefined>();
   const [prioridadId, setPrioridadId] = useState<number | undefined>();
   const [tabKey, setTabKey] = useState("sin_asignar");
+
   const abrirDrawer = async (ticket: Ticket) => {
     try {
       const data = await getTicket(ticket.id!);
@@ -59,8 +67,6 @@ export default function Page() {
     try {
       setLoading(true);
       const data = await getTickets({ me: undefined, estados_id });
-      console.log("tickets => ", data);
-
       setTickets(data);
     } catch (error) {
       console.error("error => ", error);
@@ -86,12 +92,13 @@ export default function Page() {
     }
 
     try {
-      await updateTicket(Number(ticketSeleccionado.id), {
+      await asignarTicket(ticketSeleccionado.id, {
         asignado_id: asignadoId,
         prioridad_id: prioridadId,
-        estado_id: 2,
       });
+
       message.success("✅ Ticket actualizado correctamente");
+      // Refrescar la pestaña "Sin asignar" para que desaparezca de esa lista
       fetchTicketsTi(["1"]);
       setDrawerVisible(false);
     } catch (error) {
@@ -139,9 +146,14 @@ export default function Page() {
             ? "red"
             : prioridad?.nombre === "Media"
             ? "orange"
-            : "green";
-
-        return <Tag color={color}>{prioridad?.nombre}</Tag>;
+            : prioridad?.nombre === "Baja"
+            ? "green"
+            : "";
+        return (
+          <Tag color={color}>
+            {prioridad?.nombre === undefined ? "Sin asignar" : prioridad.nombre}
+          </Tag>
+        );
       },
     },
     {
@@ -150,12 +162,12 @@ export default function Page() {
       key: "estado",
       render: (estado: string) => {
         const color =
-          estado === "resuelto"
+          estado?.toLowerCase() === "resuelto"
             ? "green"
-            : estado === "abierto"
+            : estado?.toLowerCase() === "abierto"
             ? "blue"
             : "orange";
-        return <Tag color={color}>{estado.toUpperCase()}</Tag>;
+        return <Tag color={color}>{estado?.toUpperCase()}</Tag>;
       },
     },
     {
@@ -183,7 +195,6 @@ export default function Page() {
           <Tag color="default">No asignado</Tag>
         ),
     },
-
     {
       title: "Acciones",
       key: "acciones",
@@ -201,11 +212,59 @@ export default function Page() {
 
   const onChange = (key: string) => {
     setTabKey(key);
-    console.log("key => ", key);
-
     if (key === "sin_asignar") fetchTicketsTi(["1"]);
     else if (key === "asignados") fetchTicketsTi(["2", "3", "4"]);
   };
+
+  // -------- Helpers SLA para Drawer --------
+  const tieneSLA = useMemo(
+    () =>
+      Boolean(ticketSeleccionado?.slaTicket && ticketSeleccionado?.asignadoAt),
+    [ticketSeleccionado]
+  );
+
+  // Reemplaza tus helpers por estos:
+  const calcPercent = (start?: string | Date, end?: string | Date): number => {
+    if (!start || !end) return 0;
+    const s = dayjs(start);
+    const e = dayjs(end);
+    if (!s.isValid() || !e.isValid()) return 0;
+
+    const now = dayjs();
+    const total = e.diff(s);
+    if (total <= 0) return 100;
+
+    const transcurrido = Math.min(Math.max(now.diff(s), 0), total);
+    return Math.round((transcurrido / total) * 100);
+  };
+
+  const humanRemaining = (end?: string | Date): string => {
+    if (!end) return "—";
+    const e = dayjs(end);
+    if (!e.isValid()) return "—";
+
+    const now = dayjs();
+    if (now.isAfter(e)) return "Vencido";
+    return `Faltan ${e.toNow(true)}`;
+  };
+
+  const respPercent = calcPercent(
+    ticketSeleccionado?.asignadoAt,
+    ticketSeleccionado?.slaTicket?.tiempo_estimado_respuesta
+  );
+
+  const respRemaining = humanRemaining(
+    ticketSeleccionado?.slaTicket?.tiempo_estimado_respuesta
+  );
+
+  const resoPercent = calcPercent(
+    ticketSeleccionado?.asignadoAt,
+    ticketSeleccionado?.slaTicket?.tiempo_estimado_resolucion // ← aquí faltaba la coma antes
+  );
+
+  const resoRemaining = humanRemaining(
+    ticketSeleccionado?.slaTicket?.tiempo_estimado_resolucion
+  );
 
   return (
     <div>
@@ -233,7 +292,7 @@ export default function Page() {
           </span>
         }
         placement="right"
-        width={520}
+        width={560}
         onClose={() => setDrawerVisible(false)}
         open={drawerVisible}
       >
@@ -241,11 +300,8 @@ export default function Page() {
           <div className="flex flex-col gap-6">
             <Divider orientation="left">📄 Información General</Divider>
             <Descriptions bordered column={1} size="small">
-              <Descriptions.Item label="Descripción">
-                {ticketSeleccionado.descripcion}
-              </Descriptions.Item>
               <Descriptions.Item label="Área">
-                {ticketSeleccionado.categoria?.subarea?.area?.nombre}
+                {ticketSeleccionado.area?.nombre}
               </Descriptions.Item>
               <Descriptions.Item label="Estado">
                 <Tag color="blue">{ticketSeleccionado.estado?.nombre}</Tag>
@@ -254,33 +310,105 @@ export default function Page() {
                 {ticketSeleccionado.creado?.nombre}{" "}
                 {ticketSeleccionado.creado?.apellidos}
               </Descriptions.Item>
-              <Descriptions.Item label="Incidencia">
+              <Descriptions.Item label="Fecha de creación">
+                {ticketSeleccionado.createdAt
+                  ? dayjs(ticketSeleccionado.createdAt).format(
+                      "DD/MM/YYYY HH:mm"
+                    )
+                  : "—"}
+              </Descriptions.Item>
+              {ticketSeleccionado.asignadoAt && (
+                <Descriptions.Item label="Fecha de asignación">
+                  {ticketSeleccionado.asignadoAt
+                    ? dayjs(ticketSeleccionado.asignadoAt).format(
+                        "DD/MM/YYYY HH:mm"
+                      )
+                    : "—"}
+                </Descriptions.Item>
+              )}
+
+              <Descriptions.Item label="Catálogo de servicio">
+                {
+                  ticketSeleccionado.categoria?.incidencia?.catalogo_servicio
+                    ?.nombre
+                }
+              </Descriptions.Item>
+              <Descriptions.Item
+                label={ticketSeleccionado.categoria?.incidencia?.tipo}
+              >
                 {ticketSeleccionado.categoria?.incidencia?.nombre}
               </Descriptions.Item>
               <Descriptions.Item label="Categoría">
                 {ticketSeleccionado.categoria?.nombre}
               </Descriptions.Item>
+              <Descriptions.Item label="Descripcion">
+                {ticketSeleccionado.descripcion}
+              </Descriptions.Item>
             </Descriptions>
 
-            <Divider orientation="left">⏱ SLA del Ticket</Divider>
-            <Descriptions bordered column={1} size="small">
-              <Descriptions.Item label="Tiempo de Respuesta">
-                {ticketSeleccionado.slaTicket?.sla?.tiempo_respuesta} minutos
-              </Descriptions.Item>
-              <Descriptions.Item label="Tiempo de Resolución">
-                {ticketSeleccionado.slaTicket?.sla?.tiempo_resolucion} minutos
-              </Descriptions.Item>
-              <Descriptions.Item label="⏱ Estimado de Respuesta">
-                {dayjs(
-                  ticketSeleccionado.slaTicket?.tiempo_estimado_respuesta
-                ).format("DD/MM/YYYY HH:mm")}
-              </Descriptions.Item>
-              <Descriptions.Item label="📅 Estimado de Resolución">
-                {dayjs(
-                  ticketSeleccionado.slaTicket?.tiempo_estimado_resolucion
-                ).format("DD/MM/YYYY HH:mm")}
-              </Descriptions.Item>
-            </Descriptions>
+            {/* SLA del ticket: visible solo si está asignado y tiene registro SLA */}
+            {tieneSLA && (
+              <>
+                <Divider orientation="left">⏱ SLA del Ticket</Divider>
+                <Descriptions bordered column={1} size="small">
+                  <Descriptions.Item label="Tiempo de Respuesta (min)">
+                    {ticketSeleccionado.slaTicket?.sla?.tiempo_respuesta ?? "—"}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Tiempo de Resolución (min)">
+                    {ticketSeleccionado.slaTicket?.sla?.tiempo_resolucion ??
+                      "—"}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Estimado de Respuesta">
+                    {ticketSeleccionado.slaTicket?.tiempo_estimado_respuesta
+                      ? dayjs(
+                          ticketSeleccionado.slaTicket.tiempo_estimado_respuesta
+                        ).format("DD/MM/YYYY HH:mm")
+                      : "—"}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Estimado de Resolución">
+                    {ticketSeleccionado.slaTicket?.tiempo_estimado_resolucion
+                      ? dayjs(
+                          ticketSeleccionado.slaTicket
+                            .tiempo_estimado_resolucion
+                        ).format("DD/MM/YYYY HH:mm")
+                      : "—"}
+                  </Descriptions.Item>
+                </Descriptions>
+              </>
+            )}
+
+            {tieneSLA && (
+              <Card size="small" className="mt-2" bordered>
+                <Row gutter={[16, 16]}>
+                  <Col xs={24} md={12}>
+                    <Text strong>Progreso → Respuesta</Text>
+                    <div className="mt-2 flex items-center justify-center">
+                      <Progress
+                        type="circle"
+                        percent={respPercent}
+                        status={respPercent >= 100 ? "exception" : "normal"}
+                      />
+                    </div>
+                    <div className="text-center mt-2 text-xs text-gray-500">
+                      {respRemaining}
+                    </div>
+                  </Col>
+                  <Col xs={24} md={12}>
+                    <Text strong>Progreso → Resolución</Text>
+                    <div className="mt-2 flex items-center justify-center">
+                      <Progress
+                        type="circle"
+                        percent={resoPercent}
+                        status={resoPercent >= 100 ? "exception" : "normal"}
+                      />
+                    </div>
+                    <div className="text-center mt-2 text-xs text-gray-500">
+                      {resoRemaining}
+                    </div>
+                  </Col>
+                </Row>
+              </Card>
+            )}
 
             {ticketSeleccionado.documentos &&
               ticketSeleccionado.documentos?.length > 0 && (
@@ -310,7 +438,6 @@ export default function Page() {
               )}
 
             <Divider orientation="left">👨‍🔧 Asignación y Prioridad</Divider>
-
             <div className="flex flex-col gap-4">
               <div>
                 <p className="font-medium">Asignar Soporte:</p>

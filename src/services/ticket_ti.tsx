@@ -56,14 +56,6 @@ export const getTicket = async (ticket_id: number): Promise<Ticket> => {
   return response.data;
 };
 
-export const updateTicket = async (
-  ticket_id: number,
-  data: Partial<Ticket>
-) => {
-  const response = await api.put(`/ticket/${ticket_id}`, data);
-  return response.data;
-};
-
 export const createMensaje = async (data: {
   ticket_id: number;
   contenido: string;
@@ -91,13 +83,10 @@ export const derivarTicket = async (
   return response.data;
 };
 
-// @UseGuards(AuthGuard('jwt'))
-// @Post('/derivar/:ticket_id')
-// derivarTicket(
-//   @Body() dto: DerivarTicketDto,
-//   @Req() req: AuthenticatedRequest,
-//   @Param('ticket_id') ticket_id: string,
-// ) {
-//   const user_id = req.user.id;
-//   return this.ticketService.derivarTicket(Number(ticket_id), dto, user_id);
-// }
+export const asignarTicket = async (
+  ticket_id: number,
+  data: Partial<Ticket>
+) => {
+  const response = await api.put(`/ticket/asignar/${ticket_id}`, data);
+  return response.data;
+};
