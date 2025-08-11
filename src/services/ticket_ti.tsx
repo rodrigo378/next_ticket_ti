@@ -1,6 +1,7 @@
 import { Ticket } from "@/interface/ticket_ti";
 import { api } from "./api";
 import { AxiosResponse } from "axios";
+import { CalificacionTicket } from "@/interface/calificacion";
 
 export const createTicketTi = async (formData: FormData): Promise<unknown> => {
   const token = localStorage.getItem("token");
@@ -88,5 +89,24 @@ export const asignarTicket = async (
   data: Partial<Ticket>
 ) => {
   const response = await api.put(`/ticket/asignar/${ticket_id}`, data);
+  return response.data;
+};
+
+export const createCalificacion = async (data: Partial<CalificacionTicket>) => {
+  const token = localStorage.getItem("token");
+  const response = await api.post("/ticket/calificacion", data, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  return response.data;
+};
+
+export const cambiarEstado = async (
+  ticket_id: number,
+  data: { estado_id: number }
+) => {
+  const response = await api.put(`/ticket/estado/${ticket_id}`, data);
   return response.data;
 };

@@ -23,12 +23,23 @@ import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import "dayjs/locale/es";
 import { Ticket } from "@/interface/ticket_ti";
+import { CardOpcionesRapidas } from "@/components/ticket/card";
+import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
 
 dayjs.extend(relativeTime);
 dayjs.locale("es");
+dayjs.extend(isSameOrBefore);
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
+
+type ProgressStatus = "success" | "exception" | "normal" | "active";
+type EstadoBadge =
+  | "En tiempo"
+  | "Vencido"
+  | "N/A"
+  | "Cumplido"
+  | "Fuera de tiempo";
 
 export default function Page() {
   const params = useParams();
@@ -64,9 +75,47 @@ export default function Page() {
     fetchTicket(id);
   }, [id]);
 
-  // ---- Helpers de UI ----
+  // ---------- Helpers de SLA ----------
+  const nowForRespuesta = (t?: Ticket | null) =>
+    t?.respondidoAt ? dayjs(t.respondidoAt) : dayjs();
+
+  const nowForResolucion = (t?: Ticket | null) =>
+    t?.finalizadoAt ? dayjs(t.finalizadoAt) : dayjs();
+
+  const calcPercent = (
+    start?: string | Date,
+    end?: string | Date,
+    nowRef?: dayjs.Dayjs
+  ): number => {
+    if (!start || !end) return 0;
+    const s = dayjs(start);
+    const e = dayjs(end);
+    const now = nowRef ?? dayjs();
+    if (!s.isValid() || !e.isValid()) return 0;
+
+    const total = e.diff(s); // ms
+    if (total <= 0) return 100;
+
+    const trans = Math.min(Math.max(now.diff(s), 0), total);
+    return Math.floor((trans / total) * 100); // floor para estabilidad entre vistas
+  };
+
+  const humanRemaining = (
+    end?: string | Date,
+    nowRef?: dayjs.Dayjs
+  ): string => {
+    if (!end) return "—";
+    const e = dayjs(end);
+    const now = nowRef ?? dayjs();
+    if (!e.isValid()) return "—";
+    if (now.isAfter(e)) return "Vencido";
+    return `Faltan ${e.toNow(true)}`;
+  };
+
+  // ---- Estado general ----
   const estaResuelto = ticketData?.estado_id === 4;
 
+  // ---- Calificación (solo lectura) ----
   const yaTieneCalificacion = useMemo(
     () => Boolean(ticketData?.CalificacionTicket),
     [ticketData]
@@ -75,54 +124,133 @@ export default function Page() {
     ticketData?.CalificacionTicket?.calificacion || 0
   );
 
-  // ---- SLA de ESTE ticket ----
-  const createdAt = ticketData?.createdAt ? dayjs(ticketData.createdAt) : null;
-  const currentOrResolved = estaResuelto
-    ? dayjs(ticketData?.updatedAt) // aproximación si no tienes resuelto_at
-    : dayjs();
+  // ---- SLA de ESTE ticket (inicio = asignadoAt) ----
+  const asignadoAt = ticketData?.asignadoAt
+    ? dayjs(ticketData.asignadoAt)
+    : null;
 
   const estimadoResp = ticketData?.slaTicket?.tiempo_estimado_respuesta
     ? dayjs(ticketData.slaTicket.tiempo_estimado_respuesta)
     : null;
+
   const estimadoRes = ticketData?.slaTicket?.tiempo_estimado_resolucion
     ? dayjs(ticketData.slaTicket.tiempo_estimado_resolucion)
     : null;
 
-  type Calc = {
-    percent: number;
-    estado: "En tiempo" | "Vencido" | "N/A";
-    detalle: string;
-  };
+  // Congelar "ahora" por métrica:
+  const respNow = nowForRespuesta(ticketData);
+  const resoNow = nowForResolucion(ticketData);
 
-  const calcAvance = (
-    inicio: dayjs.Dayjs | null,
-    finEstimado: dayjs.Dayjs | null,
-    ahora: dayjs.Dayjs | null
-  ): Calc => {
-    if (!inicio || !finEstimado || !ahora)
-      return { percent: 0, estado: "N/A", detalle: "Sin datos de SLA" };
-    const total = finEstimado.diff(inicio, "minute");
-    const transcurrido = Math.max(
-      0,
-      Math.min(finEstimado.diff(inicio, "minute"), ahora.diff(inicio, "minute"))
-    );
-    const percent = total > 0 ? Math.round((transcurrido / total) * 100) : 0;
-    const vencido = ahora.isAfter(finEstimado);
-    const estado = vencido ? "Vencido" : "En tiempo";
-    const detalle = vencido
-      ? `Vencido hace ${finEstimado.from(ahora)}`
-      : `Restan ${ahora.to(finEstimado, true)}`;
-    return { percent: Math.min(100, percent), estado, detalle };
-  };
+  // ----- RESPUESTA: congelar al tener respondidoAt -----
+  const responded = Boolean(ticketData?.respondidoAt);
+  const respondedAt = ticketData?.respondidoAt
+    ? dayjs(ticketData.respondidoAt)
+    : null;
 
-  const avanceResp = calcAvance(createdAt, estimadoResp, currentOrResolved);
-  const avanceRes = calcAvance(createdAt, estimadoRes, currentOrResolved);
+  const respCumplido =
+    responded && estimadoResp
+      ? respondedAt!.isSameOrBefore(estimadoResp)
+      : undefined;
 
-  const colorBadge = (txt: string) =>
-    txt === "En tiempo" ? "green" : txt === "Vencido" ? "red" : "default";
+  const respPercentFinal = responded
+    ? 100
+    : calcPercent(
+        ticketData?.asignadoAt,
+        ticketData?.slaTicket?.tiempo_estimado_respuesta,
+        respNow
+      );
+
+  const respStatus: ProgressStatus = responded
+    ? respCumplido
+      ? "success"
+      : "exception"
+    : humanRemaining(
+        ticketData?.slaTicket?.tiempo_estimado_respuesta,
+        respNow
+      ) === "Vencido"
+    ? "exception"
+    : "active";
+
+  const respBadgeText: EstadoBadge = responded
+    ? respCumplido
+      ? "Cumplido"
+      : "Fuera de tiempo"
+    : humanRemaining(
+        ticketData?.slaTicket?.tiempo_estimado_respuesta,
+        respNow
+      ) === "Vencido"
+    ? "Vencido"
+    : estimadoResp && asignadoAt
+    ? "En tiempo"
+    : "N/A";
+
+  const respRemaining = humanRemaining(
+    ticketData?.slaTicket?.tiempo_estimado_respuesta,
+    respNow
+  );
+
+  // ----- RESOLUCIÓN: congelar con finalizadoAt igual que respuesta -----
+  const finalized = Boolean(ticketData?.finalizadoAt);
+  const finalizedAt = ticketData?.finalizadoAt
+    ? dayjs(ticketData.finalizadoAt)
+    : null;
+
+  const resCumplido =
+    finalized && estimadoRes
+      ? finalizedAt!.isSameOrBefore(estimadoRes)
+      : undefined;
+
+  const resPercentFinal = finalized
+    ? 100
+    : calcPercent(
+        ticketData?.asignadoAt,
+        ticketData?.slaTicket?.tiempo_estimado_resolucion,
+        resoNow
+      );
+
+  const resStatus: ProgressStatus = finalized
+    ? resCumplido
+      ? "success"
+      : "exception"
+    : humanRemaining(
+        ticketData?.slaTicket?.tiempo_estimado_resolucion,
+        resoNow
+      ) === "Vencido"
+    ? "exception"
+    : "active";
+
+  const resBadgeText: EstadoBadge = finalized
+    ? resCumplido
+      ? "Cumplido"
+      : "Fuera de tiempo"
+    : humanRemaining(
+        ticketData?.slaTicket?.tiempo_estimado_resolucion,
+        resoNow
+      ) === "Vencido"
+    ? "Vencido"
+    : estimadoRes && asignadoAt
+    ? "En tiempo"
+    : "N/A";
+
+  const resoRemaining = humanRemaining(
+    ticketData?.slaTicket?.tiempo_estimado_resolucion,
+    resoNow
+  );
+
+  const colorBadge = (estado: EstadoBadge) =>
+    estado === "En tiempo" || estado === "Cumplido"
+      ? "green"
+      : estado === "Vencido" || estado === "Fuera de tiempo"
+      ? "red"
+      : "default";
 
   return (
     <div className="max-w-5xl mx-auto mt-10 p-4 bg-white rounded-xl shadow-sm">
+      <CardOpcionesRapidas
+        ticket={ticketData as Ticket}
+        onTicketUpdate={() => fetchTicket(id)}
+      />
+
       {/* Calificación (solo lectura si existe y está resuelto) */}
       <Card
         className="mb-6"
@@ -169,59 +297,88 @@ export default function Page() {
         )}
       </Card>
 
-      {/* ⏱️ SLA SÓLO DE ESTE TICKET */}
+      {/* ⏱️ SLA SÓLO DE ESTE TICKET (inicio = asignadoAt) */}
       <Card title="⏱️ SLA del Ticket" className="mb-6">
         <Row gutter={[16, 16]}>
+          {/* RESPUESTA */}
           <Col xs={24} md={12}>
             <Card size="small">
-              <Text strong>Tiempo de RESPUESTA (estimado)</Text>
+              <Text strong>Tiempo de RESPUESTA</Text>
               <div className="mt-2 text-sm text-gray-600">
-                Inicio: {createdAt ? createdAt.format("DD/MM/YYYY HH:mm") : "—"}
+                Inicio:{" "}
+                {asignadoAt ? asignadoAt.format("DD/MM/YYYY HH:mm") : "—"}
                 <br />
                 Vence:{" "}
                 {estimadoResp ? estimadoResp.format("DD/MM/YYYY HH:mm") : "—"}
+                {respondedAt && (
+                  <>
+                    <br />
+                    Respondido: {respondedAt.format("DD/MM/YYYY HH:mm")}
+                  </>
+                )}
               </div>
+
               <div className="mt-3 flex items-center gap-3">
                 <Progress
-                  percent={avanceResp.percent}
-                  status={
-                    avanceResp.estado === "Vencido" ? "exception" : "active"
-                  }
+                  type="circle"
+                  percent={respPercentFinal}
+                  status={respStatus}
                 />
-                <Tag color={colorBadge(avanceResp.estado)}>
-                  {avanceResp.estado}
-                </Tag>
+                <Tag color={colorBadge(respBadgeText)}>{respBadgeText}</Tag>
               </div>
-              <div className="text-xs text-gray-500">{avanceResp.detalle}</div>
+
+              <div className="text-xs text-gray-500">
+                {respondedAt
+                  ? respCumplido
+                    ? "Respondido dentro del SLA"
+                    : `Respondido ${respondedAt.to(
+                        estimadoResp!,
+                        true
+                      )} después del límite`
+                  : respRemaining}
+              </div>
             </Card>
           </Col>
 
+          {/* RESOLUCIÓN */}
           <Col xs={24} md={12}>
             <Card size="small">
-              <Text strong>Tiempo de RESOLUCIÓN (estimado)</Text>
+              <Text strong>Tiempo de RESOLUCIÓN</Text>
               <div className="mt-2 text-sm text-gray-600">
-                Inicio: {createdAt ? createdAt.format("DD/MM/YYYY HH:mm") : "—"}
+                Inicio:{" "}
+                {asignadoAt ? asignadoAt.format("DD/MM/YYYY HH:mm") : "—"}
                 <br />
                 Vence:{" "}
                 {estimadoRes ? estimadoRes.format("DD/MM/YYYY HH:mm") : "—"}
+                {finalizedAt && (
+                  <>
+                    <br />
+                    Finalizado: {finalizedAt.format("DD/MM/YYYY HH:mm")}
+                  </>
+                )}
               </div>
               <div className="mt-3 flex items-center gap-3">
                 <Progress
-                  percent={avanceRes.percent}
-                  status={
-                    avanceRes.estado === "Vencido" ? "exception" : "active"
-                  }
+                  type="circle"
+                  percent={resPercentFinal}
+                  status={resStatus}
                 />
-                <Tag color={colorBadge(avanceRes.estado)}>
-                  {avanceRes.estado}
-                </Tag>
+                <Tag color={colorBadge(resBadgeText)}>{resBadgeText}</Tag>
               </div>
-              <div className="text-xs text-gray-500">{avanceRes.detalle}</div>
+              <div className="text-xs text-gray-500">
+                {finalizedAt
+                  ? resCumplido
+                    ? "Resuelto dentro del SLA"
+                    : `Resuelto ${finalizedAt.to(
+                        estimadoRes!,
+                        true
+                      )} después del límite`
+                  : resoRemaining}
+              </div>
             </Card>
           </Col>
         </Row>
 
-        {/* Si tu backend marca cumplimiento global */}
         {typeof ticketData?.slaTicket?.cumplido === "boolean" && (
           <Alert
             className="mt-4"
@@ -304,8 +461,15 @@ export default function Page() {
           <Descriptions.Item label="Prioridad">
             <Tag color="red">{ticketData?.prioridad?.nombre}</Tag>
           </Descriptions.Item>
+          <Descriptions.Item label="Fecha de asignación">
+            {ticketData?.asignadoAt
+              ? dayjs(ticketData.asignadoAt).format("DD/MM/YYYY HH:mm")
+              : "—"}
+          </Descriptions.Item>
           <Descriptions.Item label="Fecha de creación">
-            {dayjs(ticketData?.createdAt).fromNow()}
+            {ticketData?.createdAt
+              ? dayjs(ticketData.createdAt).format("DD/MM/YYYY HH:mm")
+              : "—"}
           </Descriptions.Item>
         </Descriptions>
       </Card>

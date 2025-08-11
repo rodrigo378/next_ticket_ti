@@ -1,4 +1,6 @@
 import { Subarea, UsuarioArea } from "./area";
+import { CalificacionTicket } from "./calificacion";
+import { DerivacionTicket } from "./derivacionTicket";
 import { LogAuditoria } from "./log";
 import { MensajeTicket } from "./mensaje";
 import { Permiso } from "./permisos";
@@ -35,6 +37,8 @@ export interface Usuario {
   mensajesEmitidos?: MensajeTicket[];
   logs?: LogAuditoria[];
   UsuarioArea?: UsuarioArea[];
+  DerivacionTicket: DerivacionTicket[];
+  CalificacionTicket: CalificacionTicket[];
 }
 
 export interface SignIn {

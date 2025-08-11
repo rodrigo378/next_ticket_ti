@@ -224,46 +224,62 @@ export default function Page() {
   );
 
   // Reemplaza tus helpers por estos:
-  const calcPercent = (start?: string | Date, end?: string | Date): number => {
+  // Congela el "ahora" para cada métrica
+  const nowForRespuesta = (t?: Ticket | null) =>
+    t?.respondidoAt ? dayjs(t.respondidoAt) : dayjs();
+
+  const nowForResolucion = (t?: Ticket | null) =>
+    t?.finalizadoAt ? dayjs(t.finalizadoAt) : dayjs();
+
+  const calcPercent = (
+    start?: string | Date,
+    end?: string | Date,
+    nowRef?: dayjs.Dayjs
+  ): number => {
     if (!start || !end) return 0;
     const s = dayjs(start);
     const e = dayjs(end);
+    const now = nowRef ?? dayjs();
     if (!s.isValid() || !e.isValid()) return 0;
 
-    const now = dayjs();
-    const total = e.diff(s);
+    const total = e.diff(s); // ms totales
     if (total <= 0) return 100;
 
-    const transcurrido = Math.min(Math.max(now.diff(s), 0), total);
-    return Math.round((transcurrido / total) * 100);
+    const trans = Math.min(Math.max(now.diff(s), 0), total);
+    return Math.floor((trans / total) * 100); // floor para estabilidad
   };
 
-  const humanRemaining = (end?: string | Date): string => {
+  const humanRemaining = (end?: string | Date, nowRef?: dayjs.Dayjs) => {
     if (!end) return "—";
     const e = dayjs(end);
+    const now = nowRef ?? dayjs();
     if (!e.isValid()) return "—";
-
-    const now = dayjs();
     if (now.isAfter(e)) return "Vencido";
     return `Faltan ${e.toNow(true)}`;
   };
 
+  // RESPUESTA: inicio = asignadoAt, fin = tiempo_estimado_respuesta, ahora = respondidoAt || now
+  const respNow = nowForRespuesta(ticketSeleccionado);
   const respPercent = calcPercent(
     ticketSeleccionado?.asignadoAt,
-    ticketSeleccionado?.slaTicket?.tiempo_estimado_respuesta
+    ticketSeleccionado?.slaTicket?.tiempo_estimado_respuesta,
+    respNow
   );
-
   const respRemaining = humanRemaining(
-    ticketSeleccionado?.slaTicket?.tiempo_estimado_respuesta
+    ticketSeleccionado?.slaTicket?.tiempo_estimado_respuesta,
+    respNow
   );
 
+  // RESOLUCIÓN: inicio = asignadoAt, fin = tiempo_estimado_resolucion, ahora = finalizadoAt || now
+  const resoNow = nowForResolucion(ticketSeleccionado);
   const resoPercent = calcPercent(
     ticketSeleccionado?.asignadoAt,
-    ticketSeleccionado?.slaTicket?.tiempo_estimado_resolucion // ← aquí faltaba la coma antes
+    ticketSeleccionado?.slaTicket?.tiempo_estimado_resolucion,
+    resoNow
   );
-
   const resoRemaining = humanRemaining(
-    ticketSeleccionado?.slaTicket?.tiempo_estimado_resolucion
+    ticketSeleccionado?.slaTicket?.tiempo_estimado_resolucion,
+    resoNow
   );
 
   return (
