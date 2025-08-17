@@ -99,7 +99,7 @@ export default function Page() {
   useEffect(() => {
     fetchEstados();
     fetchPrioridades();
-    fetchTickets("true", ["2", "3", "5"]);
+    fetchTickets("true", ["1", "2", "3", "5"]);
   }, []);
 
   const ticketsFiltrados = ticketsTi.filter((ticket) => {

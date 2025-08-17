@@ -16,33 +16,44 @@ import {
   Steps,
   Descriptions,
 } from "antd";
-import { UploadOutlined } from "@ant-design/icons";
+import type { StepsProps } from "antd";
+import {
+  UploadOutlined,
+  FormOutlined,
+  FileTextOutlined,
+  CheckCircleOutlined,
+} from "@ant-design/icons";
 import type { UploadFile } from "antd/es/upload/interface";
 
 import { Area } from "@/interface/area";
 import { Incidencia } from "@/interface/incidencia";
+import { CatalogoServicio } from "@/interface/catalogo";
 import { getAreas } from "@/services/area";
 import { getCatalogo } from "@/services/catalogo";
 import { createTicketTi } from "@/services/ticket_ti";
+import { getIncidencias } from "@/services/incidencias";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { getIncidencias } from "@/services/incidencias";
-import { CatalogoServicio } from "@/interface/catalogo";
 
-const { Title } = Typography;
+const { Title, Text } = Typography;
 const { TextArea } = Input;
 
-const STEPS = [
-  { title: "Datos del Ticket" },
-  { title: "Descripción y Adjuntos" },
-  { title: "Confirmación" },
+const STEP_KEYS = ["datos", "detalle", "confirmacion"] as const;
+
+// ✅ HAZLO CONSTANTE A NIVEL DE MÓDULO (no cambia entre renders)
+const REQUIRED_STEP1_FIELDS = [
+  "area_id",
+  "catalogo_servicio_id",
+  "tipo",
+  "incidencia_id",
+  "categoria_id",
 ] as const;
 
 export default function Page() {
   const router = useRouter();
   const [form] = Form.useForm();
 
-  const [current, setCurrent] = useState(0);
+  const [current, setCurrent] = useState<number>(0);
   const [areas, setAreas] = useState<Area[]>([]);
   const [catalogo, setCatalogo] = useState<CatalogoServicio[]>([]);
   const [incidencias, setIncidencias] = useState<Incidencia[]>([]);
@@ -50,8 +61,9 @@ export default function Page() {
   const [tipo, setTipo] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const catalogoId = Form.useWatch("catalogo_servicio_id", form);
-  const incidenciaId = Form.useWatch("incidencia_id", form);
+  // ✅ Tipar useWatch (evita any); si tus IDs pueden ser string, usa number | string
+  const catalogoId = Form.useWatch<number>("catalogo_servicio_id", form);
+  const incidenciaId = Form.useWatch<number>("incidencia_id", form);
 
   useEffect(() => {
     getAreas().then(setAreas);
@@ -104,14 +116,18 @@ export default function Page() {
     form.setFieldsValue({ categoria_id: undefined });
   };
 
+  // ✅ Sin warning: la constante es estable y no hace falta ponerla en deps
+  const isStep1Complete = REQUIRED_STEP1_FIELDS.every((name) =>
+    Boolean(form.getFieldValue(name))
+  );
   const next = async () => {
     try {
-      await form.validateFields([
-        "area_id",
-        "catalogo_servicio_id",
-        "tipo",
-        "incidencia_id",
-      ]);
+      if (current === 0) {
+        await form.validateFields([...REQUIRED_STEP1_FIELDS]);
+      }
+      if (current === 1) {
+        await form.validateFields(["descripcion"]);
+      }
       setCurrent((prev) => prev + 1);
     } catch {}
   };
@@ -153,60 +169,33 @@ export default function Page() {
       ? "Requerimiento"
       : "Detalle";
 
-  // const resumen = useMemo(() => {
-  //   const v = form.getFieldsValue(true);
-  //   console.log("V => ", v);
-
-  //   const area = areas.find((a) => a.id === v.area_id)?.nombre ?? "-";
-  //   const incidencia =
-  //     incidencias.find((i) => i.id === v.incidencia_id)?.nombre ?? "-";
-  //   const categoria =
-  //     incidencias
-  //       .find((i) => i.id === v.incidencia_id)
-  //       ?.categoria?.find((c) => c.id === v.categoria_id)?.nombre ?? "-";
-
-  //   return (
-  //     <Descriptions bordered column={1} size="middle">
-  //       <Descriptions.Item label="Área">{area}</Descriptions.Item>
-  //       <Descriptions.Item label="Tipo de solicitud">
-  //         {v.tipo || "-"}
-  //       </Descriptions.Item>
-  //       <Descriptions.Item label={labelIncidenciaRequerimiento}>
-  //         {incidencia}
-  //       </Descriptions.Item>
-  //       <Descriptions.Item label="Categoría">{categoria}</Descriptions.Item>
-  //       <Descriptions.Item label="Descripción">
-  //         {v.descripcion || "-"}
-  //       </Descriptions.Item>
-  //       <Descriptions.Item label="Archivos adjuntos">
-  //         {fileList.length > 0 ? (
-  //           <ul style={{ paddingLeft: "1rem" }}>
-  //             {fileList.map((file) => (
-  //               <li key={file.uid}>
-  //                 <Link
-  //                   href={URL.createObjectURL(file.originFileObj!)}
-  //                   target="_blank"
-  //                 >
-  //                   {file.name}
-  //                 </Link>
-  //               </li>
-  //             ))}
-  //           </ul>
-  //         ) : (
-  //           "— (ninguno)"
-  //         )}
-  //       </Descriptions.Item>
-  //     </Descriptions>
-  //   );
-  // }, [
-  //   areas,
-  //   incidencias,
-  //   fileList,
-  //   form.getFieldsValue(true), // 👈 fuerza actualización al cambiar campos
-  //   ,
-  //   form,
-  //   labelIncidenciaRequerimiento,
-  // ]);
+  const stepItems: StepsProps["items"] = [
+    {
+      title: "Datos del Ticket",
+      description: "Área, catálogo y clasificación",
+      icon: <FormOutlined />,
+      status: current > 0 ? (isStep1Complete ? "finish" : "error") : "process",
+    },
+    {
+      title: "Descripción y Adjuntos",
+      description: "Detalle del problema y evidencias",
+      icon: <FileTextOutlined />,
+      status:
+        current > 1
+          ? form.getFieldValue("descripcion")
+            ? "finish"
+            : "error"
+          : current === 1
+          ? "process"
+          : "wait",
+    },
+    {
+      title: "Confirmación",
+      description: "Revisa antes de enviar",
+      icon: <CheckCircleOutlined />,
+      status: current === 2 ? "process" : current > 2 ? "finish" : "wait",
+    },
+  ] as const;
 
   const renderStepContent = () => {
     switch (current) {
@@ -214,7 +203,7 @@ export default function Page() {
         return (
           <>
             <Row gutter={16}>
-              <Col span={12}>
+              <Col xs={24} md={12}>
                 <Form.Item
                   label="Área"
                   name="area_id"
@@ -225,16 +214,23 @@ export default function Page() {
                     onChange={handleAreaChange}
                     allowClear
                     size="large"
+                    showSearch
+                    optionFilterProp="label"
+                    className="w-full"
                   >
                     {areas.map((area) => (
-                      <Select.Option key={area.id} value={area.id}>
+                      <Select.Option
+                        key={area.id}
+                        value={area.id}
+                        label={area.nombre}
+                      >
                         {area.nombre}
                       </Select.Option>
                     ))}
                   </Select>
                 </Form.Item>
               </Col>
-              <Col span={12}>
+              <Col xs={24} md={12}>
                 <Form.Item
                   label="Catálogo de Servicio"
                   name="catalogo_servicio_id"
@@ -245,9 +241,15 @@ export default function Page() {
                     size="large"
                     disabled={!form.getFieldValue("area_id")}
                     onChange={handleCatalogoChange}
+                    showSearch
+                    optionFilterProp="label"
                   >
                     {catalogo.map((cat) => (
-                      <Select.Option key={cat.id} value={cat.id}>
+                      <Select.Option
+                        key={cat.id}
+                        value={cat.id}
+                        label={cat.nombre}
+                      >
                         {cat.nombre}
                       </Select.Option>
                     ))}
@@ -257,15 +259,15 @@ export default function Page() {
             </Row>
 
             <Row gutter={16}>
-              <Col span={12}>
+              <Col xs={24} md={12}>
                 <Form.Item label="Tipo de solicitud" required>
-                  {/* <div className="mb-2 text-gray-600 text-sm italic">
-                    📌 <strong>Incidencia:</strong> Problema o falla técnica
-                    (ej. no funciona el monitor).
-                    <br />
-                    📌 <strong>Requerimiento:</strong> Solicitud de instalación
-                    o configuración (ej. instalar impresora).
-                  </div> */}
+                  <div className="mb-2 text-gray-500 text-sm">
+                    <span className="italic">
+                      📌 <strong>Incidencia</strong>: problema o falla técnica.
+                      &nbsp;|&nbsp; 📌 <strong>Requerimiento</strong>:
+                      instalación, acceso o configuración.
+                    </span>
+                  </div>
                   <Form.Item
                     name="tipo"
                     noStyle
@@ -288,7 +290,7 @@ export default function Page() {
                 </Form.Item>
               </Col>
 
-              <Col span={12}>
+              <Col xs={24} md={12}>
                 <Form.Item
                   label={labelIncidenciaRequerimiento}
                   name="incidencia_id"
@@ -304,9 +306,11 @@ export default function Page() {
                     size="large"
                     disabled={!tipo}
                     onChange={handleIncidenciaChange}
+                    showSearch
+                    optionFilterProp="label"
                   >
                     {incidencias.map((i) => (
-                      <Select.Option key={i.id} value={i.id}>
+                      <Select.Option key={i.id} value={i.id} label={i.nombre}>
                         {i.nombre}
                       </Select.Option>
                     ))}
@@ -316,9 +320,13 @@ export default function Page() {
             </Row>
 
             <Row gutter={16}>
-              <Col span={12}>
+              <Col xs={24} md={12}>
                 <Form.Item
-                  label="Categoría"
+                  label={
+                    <div className="flex items-center gap-2">
+                      <span>Categoría</span>
+                    </div>
+                  }
                   name="categoria_id"
                   rules={[{ required: true, message: "Selecciona categoría" }]}
                 >
@@ -326,11 +334,17 @@ export default function Page() {
                     placeholder="Selecciona categoría"
                     size="large"
                     disabled={!incidenciaId}
+                    showSearch
+                    optionFilterProp="label"
                   >
                     {incidencias
                       .find((i) => i.id === incidenciaId)
                       ?.categoria?.map((cat) => (
-                        <Select.Option key={cat.id} value={cat.id}>
+                        <Select.Option
+                          key={cat.id}
+                          value={cat.id}
+                          label={cat.nombre}
+                        >
                           {cat.nombre}
                         </Select.Option>
                       ))}
@@ -349,7 +363,10 @@ export default function Page() {
               name="descripcion"
               rules={[{ required: true, message: "Describe el problema" }]}
             >
-              <TextArea rows={4} placeholder="Describe con detalle..." />
+              <TextArea
+                rows={5}
+                placeholder="Describe con detalle (qué, cuándo, dónde, cómo impacta)"
+              />
             </Form.Item>
             <Form.Item label="Adjuntar archivos (opcional)">
               <Upload
@@ -361,6 +378,9 @@ export default function Page() {
               >
                 <Button icon={<UploadOutlined />}>Seleccionar archivos</Button>
               </Upload>
+              <div className="text-xs text-gray-500 mt-2">
+                Máx. 10MB por archivo. Formatos: PDF, DOC/DOCX, PNG, JPG.
+              </div>
             </Form.Item>
           </>
         );
@@ -417,29 +437,66 @@ export default function Page() {
     }
   };
 
+  const handleStepClick = async (nextIndex: number) => {
+    // Navegación controlada: valida el paso actual antes de avanzar
+    if (nextIndex === current) return;
+    if (nextIndex > current) {
+      await next();
+    } else {
+      prev();
+    }
+  };
+
   return (
     <div className="max-w-5xl mx-auto mt-10 p-4">
       <Card className="shadow-md" style={{ borderRadius: 12 }}>
-        <Title level={3} className="text-center">
-          📝 Crear Nuevo Ticket
-        </Title>
-        <Steps current={current} style={{ marginTop: 24 }} />
+        <div className="flex flex-col items-center">
+          <Title level={3} className="text-center m-0">
+            📝 Crear Nuevo Ticket
+          </Title>
+          <Text type="secondary" className="text-center">
+            Sigue los pasos para registrar su ticket
+          </Text>
+        </div>
+
+        <div className="mt-6 px-2">
+          <Steps
+            current={current}
+            items={stepItems}
+            onChange={handleStepClick}
+            responsive
+          />
+        </div>
+
         <Divider />
-        <Form layout="vertical" form={form}>
+
+        <Form layout="vertical" form={form} className="px-1 md:px-2">
           {renderStepContent()}
+
           <Divider />
-          <div className="flex justify-between">
-            {current > 0 && <Button onClick={prev}>Anterior</Button>}
-            <div className="ml-auto">
-              {current < STEPS.length - 1 ? (
-                <Button type="primary" onClick={next} loading={loading}>
-                  Siguiente
+
+          {/* Footer de acciones sticky para mejor UX */}
+          <div className="sticky bottom-0 bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60 py-3">
+            <div className="flex justify-between">
+              {current > 0 ? (
+                <Button onClick={prev} disabled={loading}>
+                  Anterior
                 </Button>
               ) : (
-                <Button type="primary" onClick={onSubmit} loading={loading}>
-                  Crear Ticket
-                </Button>
+                <span />
               )}
+
+              <div className="ml-auto flex gap-2">
+                {current < STEP_KEYS.length - 1 ? (
+                  <Button type="primary" onClick={next} loading={loading}>
+                    Siguiente
+                  </Button>
+                ) : (
+                  <Button type="primary" onClick={onSubmit} loading={loading}>
+                    Crear Ticket
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
         </Form>

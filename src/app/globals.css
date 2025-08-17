@@ -2,26 +2,70 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Sistema de diseño base */
 :root {
   --background: #ffffff;
   --foreground: #171717;
+
+  --font-ui: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial,
+    "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    "Liberation Mono", monospace;
+
+  /* Tipografía base accesible */
+  --text-size: 16px;
+  --line-height: 1.5;
+
+  color-scheme: light dark; /* sincroniza formularios nativos */
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #ffffff;
-    --foreground: #0a0a0a;
+    --background: #0a0a0a; /* FONDO oscuro correcto */
+    --foreground: #ffffff; /* TEXTO claro correcto */
   }
+}
+
+html,
+body {
+  font-family: var(--font-ui);
+  font-variant-numeric: tabular-nums; /* columnas y métricas consistentes */
+  font-size: var(--text-size);
+  line-height: var(--line-height);
+  height: 100%;
 }
 
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  /* NO volver a declarar font-family aquí: ya se asignó arriba */
+}
+
+code,
+pre,
+kbd,
+samp,
+.code {
+  font-family: var(--font-mono);
+  font-size: 0.95rem;
+  line-height: 1.45;
 }
 
 @layer utilities {
   .text-balance {
     text-wrap: balance;
+  }
+}
+
+/* Accesibilidad adicional */
+::selection {
+  background: rgba(243, 6, 6, 0.12);
+  color: inherit;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+    transition: none !important;
   }
 }

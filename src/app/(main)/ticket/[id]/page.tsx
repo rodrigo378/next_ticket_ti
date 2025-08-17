@@ -196,9 +196,6 @@ export default function Page() {
           <Descriptions.Item label="Estado">
             <Tag color="blue">{ticketTi?.estado?.nombre}</Tag>
           </Descriptions.Item>
-          <Descriptions.Item label="Prioridad">
-            <Tag color="red">{ticketTi?.prioridad?.nombre}</Tag>
-          </Descriptions.Item>
           <Descriptions.Item label="Fecha de creación">
             {dayjs(ticketTi?.createdAt).fromNow()}
           </Descriptions.Item>
