@@ -1,6 +1,19 @@
-import { Tabs } from "antd";
+import { Badge, Tabs } from "antd";
+import TicketTable from "./TicketTable";
+import { Ticket } from "@/interface/ticket_ti";
+import TicketTableResueltos from "./TicketTableResueltos";
 
-export default function TicketTabs() {
+interface Props {
+  ticketsActivos: Ticket[];
+  ticketsResueltos: Ticket[];
+  pendientes: number;
+}
+
+export default function TicketTabs({
+  ticketsActivos,
+  ticketsResueltos,
+  pendientes,
+}: Props) {
   return (
     <>
       <Tabs
@@ -9,16 +22,7 @@ export default function TicketTabs() {
           {
             key: "activos",
             label: "Activos",
-            children: (
-              <h1>Aca va la tabla de ticket activos</h1>
-              // <Table
-              //   columns={columnsActivos}
-              //   dataSource={ticketsActivos}
-              //   pagination={{ pageSize: 5 }}
-              //   rowKey="id"
-              //   bordered
-              // />
-            ),
+            children: <TicketTable ticket={ticketsActivos}></TicketTable>,
           },
           {
             key: "resueltos",
@@ -26,13 +30,16 @@ export default function TicketTabs() {
               // <h1>Aca va la tabla de ticket resueltos</h1>
               <>
                 Resueltos
-                {/* {pendientes > 0 && (
+                {pendientes > 0 && (
                   <Badge count={pendientes} style={{ marginLeft: 8 }} />
-                )} */}
+                )}
               </>
             ),
             children: (
-              <h1>Aca va la tabla de ticket resueltos 2</h1>
+              <TicketTableResueltos
+                ticket={ticketsResueltos}
+              ></TicketTableResueltos>
+              // <h1>Aca va la tabla de ticket resueltos 2</h1>
               // <Table
               //   columns={columnsResueltos}
               //   dataSource={ticketsResueltos}

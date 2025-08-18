@@ -1,13 +1,13 @@
 import { Ticket } from "@/interface/ticket_ti";
-import { EyeOutlined } from "@ant-design/icons";
-import { Button, Table, Tag } from "antd";
+import { ExclamationCircleOutlined, EyeOutlined } from "@ant-design/icons";
+import { Button, Rate, Table, Tag } from "antd";
 import Link from "next/link";
 
 interface Props {
   ticket: Ticket[];
 }
 
-export default function TicketTable({ ticket }: Props) {
+export default function TicketTableResueltos({ ticket }: Props) {
   const columns = [
     {
       title: "Código",
@@ -58,6 +58,20 @@ export default function TicketTable({ ticket }: Props) {
           : "—",
     },
     {
+      title: "Calificación",
+      key: "calificacion",
+      render: (ticket: Ticket) => {
+        const calif = ticket?.CalificacionTicket?.calificacion;
+        return calif ? (
+          <Rate allowHalf disabled defaultValue={Number(calif)} />
+        ) : (
+          <Tag icon={<ExclamationCircleOutlined />} color="gold">
+            Pendiente
+          </Tag>
+        );
+      },
+    },
+    {
       title: "Creado",
       dataIndex: "createdAt",
       key: "createdAt",
@@ -86,6 +100,9 @@ export default function TicketTable({ ticket }: Props) {
       pagination={{ pageSize: 5 }}
       rowKey="id"
       bordered
+      rowClassName={(record: Ticket) =>
+        !record?.CalificacionTicket?.calificacion ? "bg-yellow-50" : ""
+      }
     />
   );
 }
