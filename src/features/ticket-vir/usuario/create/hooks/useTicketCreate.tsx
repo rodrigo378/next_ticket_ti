@@ -27,7 +27,6 @@ const REQUIRED_STEP1_FIELDS = [
 export const STEP_KEYS = ["datos", "detalle", "confirmacion"] as const;
 
 export function useTicketCreate() {
-  // 👈 NAMED EXPORT
   const router = useRouter();
   const [form] = Form.useForm();
 

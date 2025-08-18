@@ -2,16 +2,13 @@
 
 "use client";
 
-import ActionBar from "@/features/ticket-vir/create/components/ActionBar";
-import {
-  STEP_KEYS,
-  useTicketCreate,
-} from "@/features/ticket-vir/create/hooks/useTicketCreate";
-import Step_0 from "@/features/ticket-vir/create/steps/Step_0";
-import Step_1 from "@/features/ticket-vir/create/steps/Step_1";
-import Step_2 from "@/features/ticket-vir/create/steps/Step_2";
-import StepsHeader from "@/features/ticket-vir/create/steps/StepHeader";
 import { Divider, Form } from "antd";
+import { STEP_KEYS, useTicketCreate } from "./hooks/useTicketCreate";
+import Step_0 from "./steps/Step_0";
+import Step_1 from "./steps/Step_1";
+import Step_2 from "./steps/Step_2";
+import StepsHeader from "./steps/StepHeader";
+import ActionBar from "./components/ActionBar";
 
 export default function TicketCreateView() {
   const {
