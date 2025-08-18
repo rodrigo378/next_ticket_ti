@@ -112,7 +112,7 @@ export default function Page() {
       title: "Responsable",
       dataIndex: ["asignado", "nombre"],
       key: "responsable",
-      render: (_: any, record: Ticket) =>
+      render: (_: unknown, record: Ticket) =>
         record.asignado
           ? `${record.asignado.nombre} ${record.asignado.apellidos ?? ""}`
           : "—",
