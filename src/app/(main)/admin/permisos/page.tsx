@@ -125,7 +125,7 @@ export default function PermisosPage() {
               </Title>
 
               <Row gutter={[16, 16]}>
-                {modulo.items.map((item) => (
+                {modulo.items?.map((item) => (
                   <Col key={item.id} xs={24} sm={12} md={8} lg={6}>
                     <Checkbox
                       checked={isChecked(item.id)}

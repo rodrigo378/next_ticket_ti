@@ -57,7 +57,7 @@ export default function Page() {
     setOpenDrawer(true);
   };
 
-  const guardarEdicion = async (values: any) => {
+  const guardarEdicion = async (values: object) => {
     if (!slaSeleccionado) return;
     try {
       await updateSla(Number(slaSeleccionado.id), values); // debes tener esta función en tu servicio

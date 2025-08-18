@@ -1,10 +1,10 @@
 "use client";
 import { Space } from "antd";
 import TicketTabs from "./components/TicketTabs";
-import useMisTicket from "./hooks/useMisTicket";
+// import useMisTicket from "./hooks/useMisTicket";
 
 export default function MisTicketView() {
-  const { tickets } = useMisTicket();
+  // const { tickets } = useMisTicket();
 
   return (
     <>

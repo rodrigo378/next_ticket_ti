@@ -29,14 +29,14 @@ import { PrioridadTicket } from "@/interface/prioridad";
 const { Title } = Typography;
 const { Option } = Select;
 
-export const transiciones: Record<number, number[]> = {
-  1: [2],
-  2: [3],
-  3: [4, 5],
-  4: [3, 5],
-  5: [6],
-  7: [3],
-};
+// const transiciones: Record<number, number[]> = {
+//   1: [2],
+//   2: [3],
+//   3: [4, 5],
+//   4: [3, 5],
+//   5: [6],
+//   7: [3],
+// };
 
 const items = [
   { key: "mis_tickets", label: "🎧 Asignados a mí" },

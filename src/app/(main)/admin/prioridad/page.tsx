@@ -4,17 +4,16 @@ import { useEffect, useState } from "react";
 import { Table, Typography, Button, Drawer, Form, Input, message } from "antd";
 import { ColumnsType } from "antd/es/table";
 import { PlusOutlined } from "@ant-design/icons";
-import { Prioridad } from "@/interface/prioridad";
 import { getPrioridades } from "@/services/prioridad";
+import { PrioridadTicket } from "@/interface/prioridad";
 const { Title, Paragraph } = Typography;
 
 export default function Page() {
-  const [prioridades, setPrioridades] = useState<Prioridad[]>([]);
+  const [prioridades, setPrioridades] = useState<PrioridadTicket[]>([]);
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [form] = Form.useForm();
   const [modoEdicion, setModoEdicion] = useState(false);
-  const [prioridadSeleccionada, setPrioridadSeleccionada] =
-    useState<Prioridad | null>(null);
+  const [, setPrioridadSeleccionada] = useState<PrioridadTicket | null>(null);
 
   const fetchPrioridades = async () => {
     try {
@@ -30,7 +29,7 @@ export default function Page() {
     fetchPrioridades();
   }, []);
 
-  const abrirDrawer = (prioridad?: Prioridad) => {
+  const abrirDrawer = (prioridad?: PrioridadTicket) => {
     setModoEdicion(!!prioridad);
     setPrioridadSeleccionada(prioridad || null);
     form.setFieldsValue(prioridad || {});
@@ -62,7 +61,7 @@ export default function Page() {
     // }
   };
 
-  const columnas: ColumnsType<Prioridad> = [
+  const columnas: ColumnsType<PrioridadTicket> = [
     {
       title: "Nombre",
       dataIndex: "nombre",
