@@ -19,7 +19,7 @@ export default function TicketDetalleView() {
   const valorCalificado = ticket?.CalificacionTicket?.calificacion ?? 0;
 
   return (
-    <div className="mx-auto p-6 bg-white rounded-xl shadow-sm space-y-6">
+    <div className="max-w-5xl mx-auto mt-10 p-4 bg-white rounded-xl shadow-sm">
       <CardCalificacion
         ticket={ticket}
         valorCalificado={valorCalificado}

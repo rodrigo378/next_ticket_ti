@@ -72,7 +72,7 @@ export const createMensaje = async (data: {
 
 export const derivarTicket = async (
   ticket_id: number,
-  data: { a_area_id: number; nueva_categoria_id: number; motivo: string }
+  data: { a_area_id: number; motivo: string }
 ) => {
   const token = localStorage.getItem("token");
   const response = await api.post(`/ticket/derivar/${ticket_id}`, data, {

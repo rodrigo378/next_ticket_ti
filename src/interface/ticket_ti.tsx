@@ -40,7 +40,7 @@ export interface Ticket {
   area_id?: number;
   area?: Area;
 
-  categoria_id: number;
+  categoria_id?: number;
   categoria?: Categoria;
 
   createdAt: Date;
