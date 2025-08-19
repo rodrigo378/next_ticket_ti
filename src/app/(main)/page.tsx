@@ -1,4 +1,4 @@
-import DashboardView from "@/features/ticket-vir/dashboart/principal/dashboard";
+import DashboardView from "@/features/ticket-vir/dashboart/principal/Dashboard";
 
 export default function Page() {
   return (
