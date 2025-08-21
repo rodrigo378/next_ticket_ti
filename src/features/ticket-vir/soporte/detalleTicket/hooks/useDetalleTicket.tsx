@@ -1,5 +1,5 @@
 import { Ticket } from "@/interface/ticket_ti";
-import { getTicket } from "@/services/ticket_ti";
+import { createMensaje, getTicket } from "@/services/ticket_ti";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -13,9 +13,12 @@ export default function useDetalleTicket() {
 
   // STATE =====================
   const [ticket, setTicket] = useState<Ticket>();
+  const [nuevoMensaje, setNuevoMensaje] = useState("");
+  const [loadingMensaje, setLoadingMensaje] = useState(false);
 
   // USEEFECT ==================
   useEffect(() => {
+    console.log("se ejeuctro 2");
     fetchTicket(id);
   }, [id]);
 
@@ -29,9 +32,33 @@ export default function useDetalleTicket() {
     }
   };
 
+  const handleEnviarMensaje = async () => {
+    console.log("se ejeuctro");
+
+    if (!nuevoMensaje.trim()) return;
+    setLoadingMensaje(true);
+    try {
+      await createMensaje({
+        ticket_id: Number(id),
+        contenido: nuevoMensaje,
+      });
+      setNuevoMensaje("");
+      const res = await getTicket(Number(id));
+      setTicket(res);
+    } catch (error) {
+      console.log("error => ", error);
+    } finally {
+      setLoadingMensaje(false);
+    }
+  };
+
   return {
     id,
     ticket,
     fetchTicket,
+    nuevoMensaje,
+    setNuevoMensaje,
+    loadingMensaje,
+    handleEnviarMensaje,
   };
 }

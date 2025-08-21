@@ -1,7 +1,19 @@
 import { Ticket } from "@/interface/ticket_ti";
 import { EyeOutlined } from "@ant-design/icons";
-import { Button, Table, Tag } from "antd";
+import { Button, Table, Tag, Tooltip } from "antd";
 import Link from "next/link";
+
+import dayjs from "dayjs";
+import "dayjs/locale/es";
+import relativeTime from "dayjs/plugin/relativeTime";
+import utc from "dayjs/plugin/utc";
+import tz from "dayjs/plugin/timezone";
+
+dayjs.locale("es");
+dayjs.extend(relativeTime);
+dayjs.extend(utc);
+dayjs.extend(tz);
+dayjs.tz.setDefault("America/Lima");
 
 interface Props {
   ticket: Ticket[];
@@ -39,32 +51,38 @@ export default function TicketTable({ ticket }: Props) {
       dataIndex: ["categoria", "incidencia", "tipo"],
       key: "tipo",
     },
-    {
-      title: "Estado",
-      dataIndex: ["estado", "nombre"],
-      key: "estado",
-      render: (nombre?: string) => (
-        // <Tag color={estadoColor(nombre)}>{nombre}</Tag>
-        <Tag>{nombre}</Tag>
-      ),
-    },
-    {
-      title: "Responsable",
-      dataIndex: ["asignado", "nombre"],
-      key: "responsable",
-      render: (_: unknown, record: Ticket) =>
-        record.asignado
-          ? `${record.asignado.nombre} ${record.asignado.apellidos ?? ""}`
-          : "—",
-    },
+    // {
+    //   title: "Estado",
+    //   dataIndex: ["estado", "nombre"],
+    //   key: "estado",
+    //   render: (nombre?: string) => (
+    //     // <Tag color={estadoColor(nombre)}>{nombre}</Tag>
+    //     <Tag>{nombre}</Tag>
+    //   ),
+    // },
+    // {
+    //   title: "Responsable",
+    //   dataIndex: ["asignado", "nombre"],
+    //   key: "responsable",
+    //   render: (_: unknown, record: Ticket) =>
+    //     record.asignado
+    //       ? `${record.asignado.nombre} ${record.asignado.apellidos ?? ""}`
+    //       : "—",
+    // },
     {
       title: "Creado",
       dataIndex: "createdAt",
       key: "createdAt",
-      render: (createdAt: string | Date) => (
-        // <span>{dayjs(createdAt).fromNow()}</span>
-        <span>{createdAt.toLocaleString()}</span>
-      ),
+      sorter: (a: Ticket, b: Ticket) =>
+        dayjs(a.createdAt).valueOf() - dayjs(b.createdAt).valueOf(),
+      render: (createdAt: string | Date) => {
+        const d = dayjs(createdAt);
+        return (
+          <Tooltip title={`${d.format("DD/MM/YYYY HH:mm")} (Lima)`}>
+            <span>{d.fromNow()}</span>
+          </Tooltip>
+        );
+      },
     },
     {
       title: "Acciones",

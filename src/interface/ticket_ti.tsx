@@ -51,6 +51,11 @@ export interface Ticket {
   documentos?: DocumentoTicket[];
   mensajes?: MensajeTicket[];
   slaTicket?: SLATicket;
-  DerivacionTicket: DerivacionTicket[];
+
+  boolDerivado: boolean;
+
   CalificacionTicket: CalificacionTicket;
+
+  DerivacionesComoOrigen: DerivacionTicket[];
+  DerivacionesComoDestino: DerivacionTicket[];
 }

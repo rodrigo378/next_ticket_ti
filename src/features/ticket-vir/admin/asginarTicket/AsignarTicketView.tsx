@@ -7,6 +7,11 @@ import useAsignarTicket from "./hooks/useAsignarTicket";
 
 export default function AsignarTicketView() {
   const {
+    categoriaId,
+    setCategoriaId,
+
+    arbol,
+
     tabKey,
     tickets,
     ticket,
@@ -38,6 +43,9 @@ export default function AsignarTicketView() {
         ></TicketTableAdmin>
 
         <DrawerTicket
+          categoriaId={categoriaId}
+          setCategoriaId={setCategoriaId}
+          arbol={arbol}
           ticket={ticket!}
           drawerVisible={drawerVisible}
           setDrawerVisible={setDrawerVisible}

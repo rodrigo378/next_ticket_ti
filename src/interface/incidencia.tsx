@@ -35,3 +35,24 @@ export interface Incidencia {
 
   categoria?: Categoria[];
 }
+
+export type CatalogoArbol = Array<{
+  id: number;
+  nombre: string;
+  area: { id: number; nombre: string };
+  incidencias: Array<{
+    id: number;
+    nombre: string;
+    tipo: "incidencia" | "requerimiento";
+    categorias: Array<{ id: number; nombre: string }>;
+  }>;
+}>;
+
+// Tipo para TreeSelect
+export type TreeNode = {
+  title: React.ReactNode;
+  value: string | number;
+  selectable?: boolean;
+  disabled?: boolean;
+  children?: TreeNode[];
+};

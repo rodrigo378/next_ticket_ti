@@ -1,23 +1,48 @@
+"use client";
 import { Ticket } from "@/interface/ticket_ti";
-import { Alert, Card, Rate, Typography } from "antd";
-const { Text } = Typography;
-
+import { Alert, Card, Rate, Typography, Input, Button } from "antd";
+import { useState } from "react";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
+import "dayjs/locale/es";
 dayjs.extend(relativeTime);
 dayjs.locale("es");
+
+const { Text } = Typography;
+const { TextArea } = Input;
 
 interface Props {
   ticket: Ticket | null;
   valorCalificado: number;
-  crearCalificacion: (value: number) => void;
+  crearCalificacion: (value: number, comentario?: string) => void;
 }
 
-export default function CardCalificacion({
-  ticket,
-  valorCalificado,
-  crearCalificacion,
-}: Props) {
+export default function CardCalificacion({ ticket, crearCalificacion }: Props) {
+  const [rating, setRating] = useState<number>(0);
+  const [comentario, setComentario] = useState<string>("");
+  const [enviado, setEnviado] = useState<boolean>(false);
+
+  const yaTieneCalificacion = Boolean(ticket?.CalificacionTicket);
+
+  const handleRateChange = (value: number) => {
+    setRating(value);
+  };
+
+  const handleComentarioChange = (
+    e: React.ChangeEvent<HTMLTextAreaElement>
+  ) => {
+    setComentario(e.target.value);
+  };
+
+  const handleEnviar = async () => {
+    try {
+      crearCalificacion(rating, comentario);
+      setEnviado(true); // 👈 Cambiamos el estado a "enviado"
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   return (
     <>
       <Alert
@@ -30,11 +55,18 @@ export default function CardCalificacion({
 
       <Card className="mb-6" title="📝 Califica tu experiencia">
         <div className="text-center">
-          {true ? (
+          {yaTieneCalificacion ? (
             <>
               <Text strong>Tu calificación</Text>
               <div className="my-3">
-                <Rate allowHalf disabled defaultValue={valorCalificado} />
+                <Rate
+                  allowHalf
+                  disabled
+                  defaultValue={Number(
+                    ticket?.CalificacionTicket?.calificacion || 0
+                  )}
+                  style={{ fontSize: 28 }}
+                />
               </div>
               {ticket?.CalificacionTicket?.comentario ? (
                 <Text type="secondary" italic>
@@ -45,24 +77,59 @@ export default function CardCalificacion({
                   Gracias por tu evaluación.
                 </Text>
               )}
-              <div className="text-xs text-gray-500 mt-2">
+              <div className="mt-2 text-xs text-gray-500">
                 {dayjs(ticket?.CalificacionTicket?.createdAt).fromNow()}
               </div>
             </>
+          ) : enviado ? (
+            // 👇 Vista de agradecimiento más notoria
+            <div className="py-6">
+              <Text strong className="text-lg block mb-2">
+                🎉 ¡Gracias por tu opinión!
+              </Text>
+              <Text type="secondary">
+                Tu calificación fue registrada con éxito y nos ayudará a mejorar
+                nuestro servicio.
+              </Text>
+            </div>
           ) : (
             <>
               <Text strong>¿Cómo calificarías la atención recibida?</Text>
-              <div className="my-3">
+
+              <div className="my-4 flex justify-center">
                 <Rate
                   allowClear
                   allowHalf
-                  defaultValue={0}
-                  onChange={(value) => crearCalificacion(value)}
+                  value={rating}
+                  onChange={handleRateChange}
+                  style={{ fontSize: 34 }}
                 />
               </div>
-              <Text type="secondary" italic>
-                Tu opinión nos ayuda a mejorar nuestro servicio de soporte.
-              </Text>
+
+              <TextArea
+                rows={4}
+                placeholder="Cuéntanos brevemente tu experiencia (opcional)…"
+                value={comentario}
+                onChange={handleComentarioChange}
+                className="my-3"
+              />
+
+              <div className="mt-2 flex justify-center">
+                <Button
+                  type="primary"
+                  size="large"
+                  onClick={handleEnviar}
+                  disabled={rating === 0}
+                >
+                  Enviar calificación
+                </Button>
+              </div>
+
+              <div className="mt-3">
+                <Text type="secondary" italic>
+                  Tu opinión nos ayuda a mejorar nuestro servicio de soporte.
+                </Text>
+              </div>
             </>
           )}
         </div>

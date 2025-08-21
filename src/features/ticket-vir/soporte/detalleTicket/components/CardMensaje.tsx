@@ -1,7 +1,7 @@
 // IMPORTS: deja los que ya tienes en tu CardMensaje actual
 // OJO: no declares interfaces nuevas; usa tus tipos existentes
 import type { Ticket } from "@/interface/ticket_ti";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Button,
   Card,
@@ -84,12 +84,12 @@ export default function CardMensaje({
   })();
 
   // ======= Auto-scroll al final del hilo =======
-  const hiloRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (hiloRef.current) {
-      hiloRef.current.scrollTop = hiloRef.current.scrollHeight;
-    }
-  }, [mensajes.length]);
+  // const hiloRef = useRef<HTMLDivElement>(null);
+  // useEffect(() => {
+  //   if (hiloRef.current) {
+  //     hiloRef.current.scrollTop = hiloRef.current.scrollHeight;
+  //   }
+  // }, [mensajes.length]);
 
   const mensajesOrdenados = useMemo(() => {
     const arr = [...mensajes];
@@ -116,9 +116,10 @@ export default function CardMensaje({
       styles={{ body: { paddingTop: 16 } }}
     >
       <div
-        ref={hiloRef}
+        // ref={hiloRef}
         className="mb-4 max-h-96 overflow-y-auto pr-2 space-y-4"
         id="hilo-ticket"
+        // style={{ overflowAnchor: "none" }} // 👈 añade esto AQUÍ
       >
         {mensajesOrdenados.length === 0 ? (
           <Empty description="Sin mensajes en este ticket" />
@@ -192,6 +193,7 @@ export default function CardMensaje({
       <div className="flex flex-col gap-3">
         <TextArea
           rows={5}
+          autoSize={{ minRows: 5, maxRows: 5 }} // 👈 AÑADE ESTO
           placeholder={
             inputsDisabled
               ? "La redacción está deshabilitada para este estado del ticket."

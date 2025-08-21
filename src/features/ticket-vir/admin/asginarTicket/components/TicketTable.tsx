@@ -1,12 +1,12 @@
 import { PrioridadTicket } from "@/interface/prioridad";
 import { Ticket } from "@/interface/ticket_ti";
-import { Button, Table, Tag } from "antd";
+import { Button, Table, Tag, Tooltip } from "antd";
 
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import "dayjs/locale/es";
 import { Usuario } from "@/interface/usuario";
-import { EyeOutlined } from "@ant-design/icons";
+import { BranchesOutlined, EyeOutlined } from "@ant-design/icons";
 dayjs.extend(relativeTime);
 dayjs.locale("es");
 
@@ -29,7 +29,7 @@ export default function TicketTableAdmin({
     },
     {
       title: "Área",
-      dataIndex: ["categoria", "subarea", "area", "nombre"],
+      dataIndex: ["area", "nombre"],
       key: "area",
     },
     {
@@ -37,7 +37,8 @@ export default function TicketTableAdmin({
       key: "tipo",
       render: (record: Ticket) => {
         const tipo = record.categoria?.incidencia?.tipo;
-        const icon = tipo === "requerimiento" ? "📌" : "⚠️";
+        const icon =
+          tipo === "requerimiento" ? "📌" : tipo === "incidencia" ? "⚠️" : "X";
         return (
           <span>
             {icon} {tipo}
@@ -78,6 +79,28 @@ export default function TicketTableAdmin({
             : "orange";
         return <Tag color={color}>{estado?.toUpperCase()}</Tag>;
       },
+    },
+    {
+      title: "Derivado",
+      dataIndex: "boolDerivado",
+      key: "boolDerivado",
+      render: (boolDerivado: boolean) => (
+        <Tooltip
+          title={
+            boolDerivado
+              ? "Este ticket participa en una cadena de derivación"
+              : "Sin derivación"
+          }
+        >
+          <Tag
+            color={boolDerivado ? "processing" : "default"}
+            icon={boolDerivado ? <BranchesOutlined /> : undefined}
+            style={{ borderRadius: 999 }}
+          >
+            {boolDerivado ? "Derivado" : "No"}
+          </Tag>
+        </Tooltip>
+      ),
     },
     {
       title: "Fecha de creación",

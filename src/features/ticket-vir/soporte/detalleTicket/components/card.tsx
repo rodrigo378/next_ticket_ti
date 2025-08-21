@@ -53,6 +53,7 @@ export const CardOpcionesRapidas = ({ ticket, onTicketUpdate }: Props) => {
   };
 
   useEffect(() => {
+    console.log("aca en esta");
     fechEstados();
   }, []);
 

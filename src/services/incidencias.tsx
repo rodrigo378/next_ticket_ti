@@ -31,3 +31,8 @@ export const updateCategoria = async (id: number, data: Partial<Categoria>) => {
   const response = await api.put(`/incidencia/categoria/${id}`, data);
   return response.data;
 };
+
+export const getArbol = async (area_id: number) => {
+  const response = await api.get(`/incidencia/arbol/${area_id}`);
+  return response.data;
+};

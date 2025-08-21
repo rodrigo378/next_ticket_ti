@@ -11,6 +11,7 @@ import {
   Row,
   Select,
   Tag,
+  TreeSelect,
   Typography,
 } from "antd";
 import React, { useMemo } from "react";
@@ -21,12 +22,14 @@ import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import "dayjs/locale/es";
 import { Usuario } from "@/interface/usuario";
-import Title from "antd/es/typography/Title";
+import { DerivacionTicket } from "@/interface/derivacionTicket";
+import { TreeNode } from "@/interface/incidencia";
 
 dayjs.extend(relativeTime);
 dayjs.locale("es");
 
 interface Props {
+  arbol: TreeNode[];
   ticket: Ticket;
   drawerVisible: boolean;
   setDrawerVisible: React.Dispatch<React.SetStateAction<boolean>>;
@@ -36,9 +39,13 @@ interface Props {
   prioridadId: number;
   setPrioridadId: React.Dispatch<React.SetStateAction<number | undefined>>;
   handleActualizar: () => void;
+
+  categoriaId: number | undefined;
+  setCategoriaId: React.Dispatch<React.SetStateAction<number | undefined>>;
 }
 
 export default function DrawerTicket({
+  arbol,
   ticket,
   drawerVisible,
   setDrawerVisible,
@@ -48,6 +55,8 @@ export default function DrawerTicket({
   prioridadId,
   setPrioridadId,
   handleActualizar,
+  categoriaId,
+  setCategoriaId,
 }: Props) {
   const calcPercent = (
     start?: string | Date,
@@ -125,6 +134,7 @@ export default function DrawerTicket({
     >
       {ticket && (
         <div className="flex flex-col gap-6">
+          {/* Informacion general  */}
           <Divider orientation="left">📄 Información General</Divider>
           <Descriptions bordered column={1} size="small">
             <Descriptions.Item label="Área">
@@ -150,18 +160,60 @@ export default function DrawerTicket({
             )}
 
             <Descriptions.Item label="Catálogo de servicio">
-              {ticket.categoria?.incidencia?.catalogo_servicio?.nombre}
+              {ticket.categoria?.incidencia?.catalogo_servicio?.nombre !==
+              undefined
+                ? ticket.categoria?.incidencia?.catalogo_servicio?.nombre
+                : " - - - - - - "}
             </Descriptions.Item>
-            <Descriptions.Item label={ticket.categoria?.incidencia?.tipo}>
-              {ticket.categoria?.incidencia?.nombre}
+            <Descriptions.Item
+              label={
+                ticket.categoria?.incidencia?.tipo === undefined
+                  ? "Tipo"
+                  : ticket.categoria?.incidencia?.tipo
+              }
+            >
+              {ticket.categoria?.incidencia?.nombre !== undefined
+                ? ticket.categoria?.incidencia?.nombre
+                : " - - - - - - "}
             </Descriptions.Item>
             <Descriptions.Item label="Categoría">
-              {ticket.categoria?.nombre}
+              {ticket.categoria?.nombre !== undefined
+                ? ticket.categoria?.nombre
+                : " - - - - - - "}
             </Descriptions.Item>
             <Descriptions.Item label="Descripcion">
               {ticket.descripcion}
             </Descriptions.Item>
           </Descriptions>
+
+          {/* 🔀 Derivación */}
+          {Array.isArray(ticket?.DerivacionesComoDestino) &&
+            ticket.DerivacionesComoDestino.length > 0 && (
+              <>
+                <Divider orientation="left">🔀 Derivado desde</Divider>
+                {ticket.DerivacionesComoDestino.map((d: DerivacionTicket) => (
+                  <Descriptions key={d.id} bordered column={1} size="small">
+                    <Descriptions.Item label="De área">
+                      {d.de_area.nombre}
+                    </Descriptions.Item>
+                    <Descriptions.Item label="A área">
+                      {d.a_area.nombre}
+                    </Descriptions.Item>
+                    <Descriptions.Item label="Motivo">
+                      {d.motivo ?? "—"}
+                    </Descriptions.Item>
+                    <Descriptions.Item label="Fecha">
+                      {d.createdAt
+                        ? dayjs(d.createdAt).format("DD/MM/YYYY HH:mm")
+                        : "—"}
+                    </Descriptions.Item>
+                    <Descriptions.Item label="Derivado por">
+                      {`${d.usuario.nombre} ${d.usuario.apellidos}`}
+                    </Descriptions.Item>
+                  </Descriptions>
+                ))}
+              </>
+            )}
 
           {/* SLA del ticket: visible solo si está asignado y tiene registro SLA */}
           {tieneSLA && ticket.estado_id !== 7 && (
@@ -289,66 +341,57 @@ export default function DrawerTicket({
               </Select>
             </div>
 
-            {ticket.estado_id === 7 && (
-              <>
-                <h1>Asignar Categoria del ticket derivado</h1>
-                <div>
-                  <p className="font-medium">Catalogo:</p>
-                  <Select
-                    style={{ width: "100%" }}
-                    value={prioridadId?.toString()}
-                    onChange={(value) => setPrioridadId(Number(value))}
-                    placeholder="Seleccionar prioridad"
-                  >
-                    <Option value="1">
-                      <Tag color="green">Baja</Tag>
-                    </Option>
-                  </Select>
-                </div>
+            {Array.isArray(ticket?.DerivacionesComoDestino) &&
+              ticket.DerivacionesComoDestino.length > 0 && (
+                <Card
+                  size="small"
+                  className="rounded-lg border border-dashed"
+                  title={
+                    <span className="font-semibold">
+                      📚 Clasificación de servicio
+                    </span>
+                  }
+                  extra={
+                    <Tag color="processing" style={{ borderRadius: 999 }}>
+                      Ticket derivado
+                    </Tag>
+                  }
+                >
+                  <div className="text-xs text-gray-500 mb-2">
+                    Selecciona:{" "}
+                    <strong>Catálogo → Incidencia → Categoría</strong>
+                  </div>
 
-                <div>
-                  <p className="font-medium">Tipo:</p>
-                  <Select
+                  <TreeSelect
                     style={{ width: "100%" }}
-                    value={prioridadId?.toString()}
-                    onChange={(value) => setPrioridadId(Number(value))}
-                    placeholder="Seleccionar prioridad"
-                  >
-                    <Option value="1">
-                      <Tag color="green">Baja</Tag>
-                    </Option>
-                  </Select>
-                </div>
+                    value={categoriaId}
+                    treeData={arbol}
+                    // treeDefaultExpandAll
+                    treeLine
+                    showSearch
+                    placeholder={
+                      arbol?.length
+                        ? "Selecciona una categoría"
+                        : "Cargando árbol..."
+                    }
+                    allowClear
+                    disabled={!arbol?.length}
+                    listHeight={400}
+                    filterTreeNode={(input, node) =>
+                      String(node?.title ?? "")
+                        .toLowerCase()
+                        .includes(input.toLowerCase())
+                    }
+                    onChange={(value) => setCategoriaId(value as number)}
+                  />
 
-                <div>
-                  <p className="font-medium">incidencia|requerimiento:</p>
-                  <Select
-                    style={{ width: "100%" }}
-                    value={prioridadId?.toString()}
-                    onChange={(value) => setPrioridadId(Number(value))}
-                    placeholder="Seleccionar prioridad"
-                  >
-                    <Option value="1">
-                      <Tag color="green">Baja</Tag>
-                    </Option>
-                  </Select>
-                </div>
-
-                <div>
-                  <p className="font-medium">categoria:</p>
-                  <Select
-                    style={{ width: "100%" }}
-                    value={prioridadId?.toString()}
-                    onChange={(value) => setPrioridadId(Number(value))}
-                    placeholder="Seleccionar prioridad"
-                  >
-                    <Option value="1">
-                      <Tag color="green">Baja</Tag>
-                    </Option>
-                  </Select>
-                </div>
-              </>
-            )}
+                  <div className="text-[11px] text-gray-500 mt-8">
+                    Solo las <strong>categorías</strong> son seleccionables; los
+                    niveles de <em>Catálogo</em> e <em>Incidencia</em> sirven
+                    para agrupar.
+                  </div>
+                </Card>
+              )}
 
             <Button
               type="primary"

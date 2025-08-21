@@ -1,8 +1,10 @@
 "use client";
 
-// Requisitos mínimos:
-// npm i antd @ant-design/plots
-// Se permite Tailwind. No se usa dnd-kit ni CSS global adicional.
+// Dashboard principal de Mesa de Ayuda con Chart.js + react-chartjs-2
+// Tecnologías: Next.js (App Router), Tailwind (clases utilitarias), Ant Design (UI básica)
+// Instrucciones de instalación:
+// npm i antd chart.js react-chartjs-2 chartjs-plugin-annotation
+// (opcional) Si Tailwind no está: https://tailwindcss.com/docs/guides/nextjs
 
 import React from "react";
 import {
@@ -29,26 +31,63 @@ import {
   RedoOutlined,
   SlidersOutlined,
 } from "@ant-design/icons";
-import dynamic from "next/dynamic";
 
-// Evitar SSR con G2 v5 (@ant-design/plots v2)
-const Pie: any = dynamic(() => import("@ant-design/plots").then((m) => m.Pie), {
-  ssr: false,
-});
-const Column: any = dynamic(
-  () => import("@ant-design/plots").then((m) => m.Column),
-  { ssr: false }
-);
-const Line: any = dynamic(
-  () => import("@ant-design/plots").then((m) => m.Line),
-  { ssr: false }
-);
-const Bar: any = dynamic(() => import("@ant-design/plots").then((m) => m.Bar), {
-  ssr: false,
-});
+// Chart.js core
+import {
+  Chart as ChartJS,
+  ArcElement,
+  BarElement,
+  LineElement,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  Tooltip as ChartTooltip,
+  Legend,
+  Title as ChartTitle,
+} from "chart.js";
+import annotationPlugin from "chartjs-plugin-annotation";
+import { Doughnut, Bar, Line } from "react-chartjs-2";
 
 const { Header, Content } = Layout;
 const { Title, Text } = Typography;
+
+// Registro de componentes de Chart.js
+ChartJS.register(
+  ArcElement,
+  BarElement,
+  LineElement,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  ChartTooltip,
+  Legend,
+  ChartTitle,
+  annotationPlugin
+);
+
+// Plugin para mostrar valor centrado en los donuts (simulación de gauge)
+const CenterTextPlugin = {
+  id: "centerText",
+  afterDraw(chart: any) {
+    const { ctx, chartArea } = chart;
+    if (!chart?.config?.options?.plugins?.centerText) return;
+    const {
+      text,
+      font = "600 16px Inter, sans-serif",
+      color = "#111",
+    } = chart.config.options.plugins.centerText;
+    ctx.save();
+    ctx.font = font;
+    ctx.fillStyle = color;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    const x = (chartArea.left + chartArea.right) / 2;
+    const y = (chartArea.top + chartArea.bottom) / 2;
+    ctx.fillText(text, x, y);
+    ctx.restore();
+  },
+};
+ChartJS.register(CenterTextPlugin as any);
 
 // ===================== Sección genérica =====================
 function SectionCard({
@@ -71,8 +110,8 @@ function SectionCard({
   );
 }
 
-export default function DashboardView() {
-  // ===================== DATA ESTÁTICA =====================
+export default function DashboardSLAChartJS() {
+  // ===================== DATA (DEMO) =====================
   const kpis = {
     abiertos: 120,
     enProceso: 85,
@@ -86,106 +125,197 @@ export default function DashboardView() {
     satisfaccionPromedio: 4.3,
   };
 
-  const distEstados = [
-    { type: "Abiertos", value: kpis.abiertos },
-    { type: "En Proceso", value: kpis.enProceso },
-    { type: "Cerrados", value: kpis.cerrados },
+  const estados = [kpis.abiertos, kpis.enProceso, kpis.cerrados];
+  const estadosLabels = ["Abiertos", "En Proceso", "Cerrados"];
+
+  const meses = ["Ene", "Feb", "Mar", "Abr"];
+  const cumplidos = [80, 100, 90, 120];
+  const vencidos = [20, 30, 40, 25];
+
+  const slaResp = [85, 90, 88, 87];
+  const slaResol = [70, 75, 72, 74];
+
+  const satisfDistribLabels = [
+    "Muy Satisfecho",
+    "Satisfecho",
+    "Neutral",
+    "Insatisfecho",
   ];
+  const satisfDistrib = [50, 30, 10, 10];
 
-  const cumplidosVsVencidos = [
-    { mes: "Ene", tipo: "Cumplidos", value: 80 },
-    { mes: "Ene", tipo: "Vencidos", value: 20 },
-    { mes: "Feb", tipo: "Cumplidos", value: 100 },
-    { mes: "Feb", tipo: "Vencidos", value: 30 },
-    { mes: "Mar", tipo: "Cumplidos", value: 90 },
-    { mes: "Mar", tipo: "Vencidos", value: 40 },
-    { mes: "Abr", tipo: "Cumplidos", value: 120 },
-    { mes: "Abr", tipo: "Vencidos", value: 25 },
-  ];
-
-  const tendencia = [
-    { mes: "Ene", tipo: "Respuesta", value: 85 },
-    { mes: "Feb", tipo: "Respuesta", value: 90 },
-    { mes: "Mar", tipo: "Respuesta", value: 88 },
-    { mes: "Abr", tipo: "Respuesta", value: 87 },
-    { mes: "Ene", tipo: "Resolución", value: 70 },
-    { mes: "Feb", tipo: "Resolución", value: 75 },
-    { mes: "Mar", tipo: "Resolución", value: 72 },
-    { mes: "Abr", tipo: "Resolución", value: 74 },
-  ];
-
-  const satisfaccion = [
-    { categoria: "Muy Satisfecho", value: 50 },
-    { categoria: "Satisfecho", value: 30 },
-    { categoria: "Neutral", value: 10 },
-    { categoria: "Insatisfecho", value: 10 },
-  ];
-
-  // ===================== CONFIG GRÁFICOS (v2) =====================
-  const totalEstados = distEstados.reduce((a, b) => a + b.value, 0);
-
-  const pieEstadosCfg = {
-    data: distEstados,
-    angleField: "value",
-    colorField: "type",
-    radius: 0.9,
-    label: {
-      position: "inside",
-      text: (d: any) => `${Math.round((d.value / totalEstados) * 100)}%`,
-      style: { fontSize: 14 },
+  // ===================== CONFIGS CHART.JS =====================
+  // 1) Donut Estados
+  const dataDonutEstados = {
+    labels: estadosLabels,
+    datasets: [
+      {
+        data: estados,
+        backgroundColor: ["#10b981", "#f59e0b", "#3b82f6"],
+        borderWidth: 0,
+      },
+    ],
+  };
+  const optDonutEstados: any = {
+    responsive: true,
+    plugins: {
+      legend: { position: "bottom" as const },
     },
-    interactions: [{ type: "element-highlight" }],
-  } as any;
+    cutout: "60%",
+  };
 
-  const barrasTiempoRespuestaCfg = {
-    data: [
-      { tipo: "Promedio", value: kpis.tiempoRespuestaProm },
-      { tipo: "Meta", value: kpis.tiempoRespuestaMeta },
+  // 2) Gauges (FRT / TTR) usando Doughnut + texto al centro
+  const gauge = (pct: number, label: string) => ({
+    data: {
+      labels: [label, "resto"],
+      datasets: [
+        {
+          data: [Math.round(pct * 100), 100 - Math.round(pct * 100)],
+          backgroundColor: [
+            pct >= 0.8 ? "#10b981" : pct >= 0.6 ? "#f59e0b" : "#ef4444",
+            "#e5e7eb",
+          ],
+          borderWidth: 0,
+        },
+      ],
+    },
+    options: {
+      cutout: "70%",
+      rotation: -90,
+      circumference: 180,
+      plugins: {
+        legend: { display: false },
+        centerText: {
+          text: `${Math.round(pct * 100)}%`,
+          color: "#111827",
+          font: "600 18px Inter, sans-serif",
+        },
+        title: { display: true, text: label },
+      },
+    },
+  });
+
+  // 3) Barras Prom vs Meta (Respuesta)
+  const dataRespBar = {
+    labels: ["Promedio", "Meta"],
+    datasets: [
+      {
+        label: "Minutos",
+        data: [kpis.tiempoRespuestaProm, kpis.tiempoRespuestaMeta],
+        backgroundColor: ["#3b82f6", "#9ca3af"],
+      },
     ],
-    xField: "tipo",
-    yField: "value",
-    columnWidthRatio: 0.5,
-    label: { position: "top" as const },
-  } as any;
+  };
+  const optRespBar = {
+    responsive: true,
+    plugins: { legend: { display: false } },
+    scales: { y: { beginAtZero: true } },
+  } as const;
 
-  const barrasTiempoResolucionCfg = {
-    data: [
-      { tipo: "Promedio", value: kpis.tiempoResolucionProm },
-      { tipo: "Meta", value: kpis.tiempoResolucionMeta },
+  // 4) Barras Prom vs Meta (Resolución)
+  const dataResolBar = {
+    labels: ["Promedio", "Meta"],
+    datasets: [
+      {
+        label: "Minutos",
+        data: [kpis.tiempoResolucionProm, kpis.tiempoResolucionMeta],
+        backgroundColor: ["#3b82f6", "#9ca3af"],
+      },
     ],
-    xField: "tipo",
-    yField: "value",
-    columnWidthRatio: 0.5,
-    label: { position: "top" as const },
-  } as any;
+  };
+  const optResolBar = optRespBar;
 
-  const stackedCumplidosCfg = {
-    data: cumplidosVsVencidos,
-    xField: "mes",
-    yField: "value",
-    seriesField: "tipo",
-    stack: true,
-  } as any;
+  // 5) Stacked Cumplidos vs Vencidos (mensual)
+  const dataStacked = {
+    labels: meses,
+    datasets: [
+      {
+        label: "Cumplidos",
+        data: cumplidos,
+        backgroundColor: "#10b981",
+        stack: "tickets",
+      },
+      {
+        label: "Vencidos",
+        data: vencidos,
+        backgroundColor: "#ef4444",
+        stack: "tickets",
+      },
+    ],
+  };
+  const optStacked = {
+    responsive: true,
+    plugins: { legend: { position: "bottom" as const } },
+    scales: {
+      x: { stacked: true },
+      y: { stacked: true, beginAtZero: true },
+    },
+  } as const;
 
-  const lineTendenciaCfg = {
-    data: tendencia,
-    xField: "mes",
-    yField: "value",
-    seriesField: "tipo",
-    shape: "smooth",
-    yAxis: { min: 0, max: 100 },
-    tooltip: { showMarkers: true },
-  } as any;
+  // 6) Línea tendencia SLA (con meta 80%)
+  const dataTrend = {
+    labels: meses,
+    datasets: [
+      {
+        label: "Respuesta",
+        data: slaResp,
+        borderColor: "#3b82f6",
+        backgroundColor: "rgba(59,130,246,0.15)",
+        tension: 0.35,
+      },
+      {
+        label: "Resolución",
+        data: slaResol,
+        borderColor: "#10b981",
+        backgroundColor: "rgba(16,185,129,0.15)",
+        tension: 0.35,
+      },
+    ],
+  };
+  const optTrend: any = {
+    responsive: true,
+    plugins: {
+      legend: { position: "bottom" },
+      annotation: {
+        annotations: {
+          meta80: {
+            type: "line",
+            yMin: 80,
+            yMax: 80,
+            borderColor: "#9ca3af",
+            borderDash: [4, 4],
+            borderWidth: 2,
+            label: {
+              display: true,
+              content: "Meta 80%",
+              backgroundColor: "#9ca3af",
+              position: "end",
+            },
+          },
+        },
+      },
+    },
+    scales: { y: { min: 0, max: 100, ticks: { stepSize: 20 } } },
+  };
 
-  const barSatisfaccionCfg = {
-    data: satisfaccion,
-    xField: "value",
-    yField: "categoria",
-    seriesField: "categoria",
-    legend: false,
-  } as any;
+  // 7) Distribución de satisfacción (barras horizontales)
+  const dataSatisfBarH = {
+    labels: satisfDistribLabels,
+    datasets: [
+      {
+        label: "Respuestas",
+        data: satisfDistrib,
+        backgroundColor: ["#10b981", "#3b82f6", "#f59e0b", "#ef4444"],
+      },
+    ],
+  };
+  const optSatisfBarH = {
+    indexAxis: "y" as const,
+    responsive: true,
+    plugins: { legend: { display: false } },
+    scales: { x: { beginAtZero: true } },
+  } as const;
 
-  // ===================== VISIBILIDAD (sin DnD) =====================
+  // ===================== VISIBILIDAD =====================
   type SectionId =
     | "kpiCards"
     | "pieEstados"
@@ -211,63 +341,45 @@ export default function DashboardView() {
     { id: "satisfaccionDistrib", title: "Distribución de Satisfacción" },
   ];
 
-  const FIXED_ORDER: SectionId[] = [
-    "kpiCards",
-    "pieEstados",
-    "frtGauge",
-    "ttrGauge",
-    "tiemposRespuesta",
-    "tiemposResolucion",
-    "cumplidosVencidos",
-    "tendenciaSLA",
-    "satisfaccionKPI",
-    "satisfaccionDistrib",
-  ];
-
   const [mounted, setMounted] = React.useState(false);
   const [hidden, setHidden] = React.useState<Record<SectionId, boolean>>(
     {} as Record<SectionId, boolean>
   );
+  const [openCustomize, setOpenCustomize] = React.useState(false);
 
   React.useEffect(() => {
     setMounted(true);
     try {
-      const savedHidden = localStorage.getItem("sla_dashboard_hidden");
+      const savedHidden = localStorage.getItem("sla_dashboard_hidden_chartjs");
       if (savedHidden) setHidden(JSON.parse(savedHidden));
     } catch {}
   }, []);
 
   React.useEffect(() => {
     if (!mounted) return;
-    localStorage.setItem("sla_dashboard_hidden", JSON.stringify(hidden));
+    localStorage.setItem(
+      "sla_dashboard_hidden_chartjs",
+      JSON.stringify(hidden)
+    );
   }, [hidden, mounted]);
 
-  const toggleHidden = (id: SectionId, value: boolean) => {
-    setHidden((prev) => ({ ...prev, [id]: value }));
-  };
-
+  const toggleHidden = (id: SectionId, value: boolean) =>
+    setHidden((p) => ({ ...p, [id]: value }));
   const resetVisibility = () => setHidden({} as Record<SectionId, boolean>);
 
-  // Helpers visuales
   const statusTag = (value: number) => {
     if (value >= 0.8) return <Tag color="green">Alto</Tag>;
     if (value >= 0.6) return <Tag color="orange">Medio</Tag>;
     return <Tag color="red">Bajo</Tag>;
   };
 
-  const [openCustomize, setOpenCustomize] = React.useState(false);
-
   return (
     <Layout className="min-h-screen bg-gray-50">
       <Header className="bg-white/90 backdrop-blur shadow-sm">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           <div>
-            <Title
-              level={3}
-              className="!mb-0 text-[white]"
-              style={{ color: "white" }}
-            >
-              Dashboard SLA – Mesa de Ayuda (Demo estática)
+            <Title level={3} className="!mb-0">
+              Dashboard SLA – Mesa de Ayuda (Chart.js)
             </Title>
             <Text type="secondary">
               Calidad del servicio (SLA) y métricas clave
@@ -358,7 +470,10 @@ export default function DashboardView() {
               <Col xs={24} md={12}>
                 {!hidden.pieEstados && (
                   <SectionCard title="Distribución por Estado">
-                    <Pie {...pieEstadosCfg} />
+                    <Doughnut
+                      data={dataDonutEstados}
+                      options={optDonutEstados}
+                    />
                   </SectionCard>
                 )}
               </Col>
@@ -366,15 +481,8 @@ export default function DashboardView() {
               <Col xs={24} md={12}>
                 {!hidden.frtGauge && (
                   <SectionCard title="SLA Respuesta (FRT)">
-                    <div className="flex flex-col items-center justify-center py-2">
-                      <Progress
-                        type="dashboard"
-                        percent={Math.round(kpis.frtCumplimiento * 100)}
-                        format={(p) => `${p}%`}
-                      />
-                      <Text type="secondary" className="mt-2">
-                        Meta ≥ 80%
-                      </Text>
+                    <div className="flex items-center justify-center">
+                      <Doughnut {...gauge(kpis.frtCumplimiento, "FRT")} />
                     </div>
                   </SectionCard>
                 )}
@@ -384,15 +492,8 @@ export default function DashboardView() {
               <Col xs={24} md={12}>
                 {!hidden.ttrGauge && (
                   <SectionCard title="SLA Resolución (TTR)">
-                    <div className="flex flex-col items-center justify-center py-2">
-                      <Progress
-                        type="dashboard"
-                        percent={Math.round(kpis.ttrCumplimiento * 100)}
-                        format={(p) => `${p}%`}
-                      />
-                      <Text type="secondary" className="mt-2">
-                        Meta ≥ 80%
-                      </Text>
+                    <div className="flex items-center justify-center">
+                      <Doughnut {...gauge(kpis.ttrCumplimiento, "TTR")} />
                     </div>
                   </SectionCard>
                 )}
@@ -401,7 +502,7 @@ export default function DashboardView() {
               <Col xs={24} md={12}>
                 {!hidden.tiemposRespuesta && (
                   <SectionCard title="Tiempo de Respuesta – Prom vs Meta">
-                    <Column {...barrasTiempoRespuestaCfg} />
+                    <Bar data={dataRespBar} options={optRespBar} />
                   </SectionCard>
                 )}
               </Col>
@@ -410,7 +511,7 @@ export default function DashboardView() {
               <Col xs={24} md={12}>
                 {!hidden.tiemposResolucion && (
                   <SectionCard title="Tiempo de Resolución – Prom vs Meta">
-                    <Column {...barrasTiempoResolucionCfg} />
+                    <Bar data={dataResolBar} options={optResolBar} />
                   </SectionCard>
                 )}
               </Col>
@@ -418,7 +519,7 @@ export default function DashboardView() {
               <Col xs={24} md={12}>
                 {!hidden.cumplidosVencidos && (
                   <SectionCard title="Cumplidos vs Vencidos (mensual)">
-                    <Column {...stackedCumplidosCfg} />
+                    <Bar data={dataStacked} options={optStacked} />
                   </SectionCard>
                 )}
               </Col>
@@ -427,7 +528,7 @@ export default function DashboardView() {
               <Col xs={24} md={12}>
                 {!hidden.tendenciaSLA && (
                   <SectionCard title="Tendencia Cumplimiento SLA">
-                    <Line {...lineTendenciaCfg} />
+                    <Line data={dataTrend} options={optTrend} />
                   </SectionCard>
                 )}
               </Col>
@@ -449,7 +550,7 @@ export default function DashboardView() {
               <Col xs={24}>
                 {!hidden.satisfaccionDistrib && (
                   <SectionCard title="Distribución de Satisfacción">
-                    <Bar {...barSatisfaccionCfg} />
+                    <Bar data={dataSatisfBarH} options={optSatisfBarH} />
                   </SectionCard>
                 )}
               </Col>
@@ -458,8 +559,8 @@ export default function DashboardView() {
 
           <Divider className="!mt-8" />
           <p className="text-center text-gray-400 text-xs">
-            Demo estática • UMA Service Desk • Personaliza visibilidad; se
-            guarda en localStorage.
+            Demo estática • UMA Service Desk • Visibilidad por sección con
+            persistencia local.
           </p>
         </div>
       </Content>

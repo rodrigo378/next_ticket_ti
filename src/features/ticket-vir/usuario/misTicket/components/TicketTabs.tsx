@@ -27,7 +27,6 @@ export default function TicketTabs({
           {
             key: "resueltos",
             label: (
-              // <h1>Aca va la tabla de ticket resueltos</h1>
               <>
                 Resueltos
                 {pendientes > 0 && (
@@ -39,20 +38,6 @@ export default function TicketTabs({
               <TicketTableResueltos
                 ticket={ticketsResueltos}
               ></TicketTableResueltos>
-              // <h1>Aca va la tabla de ticket resueltos 2</h1>
-              // <Table
-              //   columns={columnsResueltos}
-              //   dataSource={ticketsResueltos}
-              //   pagination={{ pageSize: 5 }}
-              //   rowKey="id"
-              //   bordered
-              //   // filas resaltadas cuando falta calificar
-              //   rowClassName={(record: Ticket) =>
-              //     !record?.CalificacionTicket?.calificacion
-              //       ? "bg-yellow-50"
-              //       : ""
-              //   }
-              // />
             ),
           },
         ]}

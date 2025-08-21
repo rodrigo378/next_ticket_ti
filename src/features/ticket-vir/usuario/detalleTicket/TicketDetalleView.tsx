@@ -5,6 +5,8 @@ import CardDetalle from "@/features/ticket-vir/usuario/detalleTicket/components/
 import CardMensaje from "@/features/ticket-vir/usuario/detalleTicket/components/CardMensaje";
 import CardCalificacion from "@/features/ticket-vir/usuario/detalleTicket/components/CardCalificacion";
 import useDetalleTicket from "@/features/ticket-vir/usuario/detalleTicket/hooks/useDetalleTicket";
+import { Flex, Typography } from "antd";
+const { Title, Text } = Typography;
 
 export default function TicketDetalleView() {
   const {
@@ -20,11 +22,22 @@ export default function TicketDetalleView() {
 
   return (
     <div className="max-w-5xl mx-auto mt-10 p-4 bg-white rounded-xl shadow-sm">
-      <CardCalificacion
-        ticket={ticket}
-        valorCalificado={valorCalificado}
-        crearCalificacion={crearCalificacion}
-      ></CardCalificacion>
+      <Flex justify="space-between" align="center">
+        <div className=" mb-4">
+          <Title level={3} style={{ margin: 0 }}>
+            Detalle del Ticket
+          </Title>
+          <Text type="secondary">Revisa el detalle de tu ticket</Text>
+        </div>
+      </Flex>
+
+      {ticket?.estado_id === 4 && (
+        <CardCalificacion
+          ticket={ticket}
+          valorCalificado={valorCalificado}
+          crearCalificacion={crearCalificacion}
+        />
+      )}
 
       <CardDetalle ticket={ticket}></CardDetalle>
 
