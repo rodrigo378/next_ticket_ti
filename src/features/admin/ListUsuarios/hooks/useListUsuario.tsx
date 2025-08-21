@@ -41,6 +41,9 @@ export default function useListUsuario() {
     usuarios,
     openAdministrativo,
 
+    //formulario
+    form,
+
     //funciones
     onCloseAdministrativo,
     showDrawerAdministrativo,
