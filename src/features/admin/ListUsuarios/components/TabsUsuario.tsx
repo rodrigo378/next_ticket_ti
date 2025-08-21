@@ -1,22 +1,26 @@
 import { Tabs } from "antd";
 import TableUsuarioAdministrativo from "./TablaAdministrativo";
 import { Usuario } from "@/interface/usuario";
+import TableUsuarioAlumno from "./TablaAlumno";
 
 interface Props {
   usuarios: Usuario[];
   showDrawerAdministrativo: (usuario_id: number) => void;
+  onChangeTab: (tabKey: string) => void;
 }
 
 export default function TabsUsuario({
   usuarios,
   showDrawerAdministrativo,
+  onChangeTab,
 }: Props) {
   return (
     <Tabs
       defaultActiveKey="administrativos"
+      onChange={onChangeTab}
       items={[
         {
-          key: "administrativos",
+          key: "administrativo",
           label: "Administrativos",
           children: (
             <TableUsuarioAdministrativo
@@ -26,9 +30,11 @@ export default function TabsUsuario({
           ),
         },
         {
-          key: "Alumnos",
-          label: "alumnos",
-          children: <h1>alumnos</h1>,
+          key: "alumno",
+          label: "Alumnos",
+          children: (
+            <TableUsuarioAlumno usuarios={usuarios}></TableUsuarioAlumno>
+          ),
         },
       ]}
     ></Tabs>

@@ -2,53 +2,52 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Sistema de diseño base */
-:root {
-  --background: #ffffff;
-  --foreground: #e41919;
-
-  --font-ui: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial,
-    "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
-  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-    "Liberation Mono", monospace;
-
-  /* Tipografía base accesible */
-  --text-size: 16px;
-  --line-height: 1.5;
-
-  color-scheme: light dark; /* sincroniza formularios nativos */
-}
-
-@media (prefers-color-scheme: dark) {
+@layer base {
   :root {
-    --background: #dbd9d9; /* FONDO oscuro correcto */
-    --foreground: #ffffff; /* TEXTO claro correcto */
+    --background: #ffffff;
+    --foreground: #e41919;
+
+    --font-ui: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial,
+      "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+    --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+      "Liberation Mono", monospace;
+
+    --text-size: 16px;
+    --line-height: 1.5;
+
+    color-scheme: light dark;
   }
-}
 
-html,
-body {
-  font-family: var(--font-ui);
-  font-variant-numeric: tabular-nums; /* columnas y métricas consistentes */
-  font-size: var(--text-size);
-  line-height: var(--line-height);
-  height: 100%;
-}
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --background: #dbd9d9;
+      --foreground: #ffffff;
+    }
+  }
 
-body {
-  color: var(--foreground);
-  background: var(--background);
-  /* NO volver a declarar font-family aquí: ya se asignó arriba */
-}
+  html,
+  body {
+    font-family: var(--font-ui);
+    font-variant-numeric: tabular-nums;
+    font-size: var(--text-size);
+    line-height: var(--line-height);
+    height: 100%;
+  }
 
-code,
-pre,
-kbd,
-samp,
-.code {
-  font-family: var(--font-mono);
-  font-size: 0.95rem;
-  line-height: 1.45;
+  body {
+    color: var(--foreground);
+    background: var(--background);
+  }
+
+  code,
+  pre,
+  kbd,
+  samp,
+  .code {
+    font-family: var(--font-mono);
+    font-size: 0.95rem;
+    line-height: 1.45;
+  }
 }
 
 @layer utilities {
@@ -57,7 +56,6 @@ samp,
   }
 }
 
-/* Accesibilidad adicional */
 ::selection {
   background: rgba(243, 6, 6, 0.12);
   color: inherit;

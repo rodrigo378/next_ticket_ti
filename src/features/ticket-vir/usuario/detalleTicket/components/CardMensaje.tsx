@@ -180,7 +180,6 @@ export default function CardMensaje({
 
       <Divider orientation="left">Redactar respuesta</Divider>
 
-      {/* Aviso de deshabilitado (sin agregar nuevos imports) */}
       {inputsDisabled && (
         <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 p-3">
           <Typography.Text type="secondary" className="text-xs">
@@ -189,7 +188,10 @@ export default function CardMensaje({
         </div>
       )}
 
-      <div className="flex flex-col gap-3">
+      <div
+        // className="flex flex-col gap-3"
+        style={{ display: "flex", flexDirection: "column" }}
+      >
         <TextArea
           rows={5}
           placeholder={

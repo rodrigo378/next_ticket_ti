@@ -13,12 +13,18 @@ export const createUsuario = async (data: CreateUsuario) => {
   return response.data;
 };
 
-export const getUsuarios = async (): Promise<Usuario[]> => {
+export const getUsuarios = async (filtros?: {
+  roles_id?: number[];
+}): Promise<Usuario[]> => {
   const token = localStorage.getItem("token");
 
   const response: AxiosResponse<Usuario[]> = await api.get("/admin/usuario", {
     headers: {
       Authorization: `Bearer ${token}`,
+    },
+    params: filtros,
+    paramsSerializer: {
+      indexes: null,
     },
   });
   return response.data;

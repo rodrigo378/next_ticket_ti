@@ -19,13 +19,9 @@ export default function TableUsuarioAdministrativo({
       key: "nombre",
       sorter: (a, b) => a.nombre.localeCompare(b.nombre),
       render: (text, record) => (
-        <div className="flex items-center gap-2">
-          <div className="flex flex-col">
-            <span className="font-semibold text-slate-700">
-              {record.nombre}
-            </span>
-            <span className="text-sm text-slate-500">{record.email}</span>
-          </div>
+        <div className="">
+          <p className="font-semibold text-slate-700">{record.nombre}</p>
+          <p className="text-sm text-slate-500">{record.email}</p>
         </div>
       ),
     },

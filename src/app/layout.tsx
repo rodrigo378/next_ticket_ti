@@ -39,10 +39,8 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="es-PE" className="h-full">
-      <body
-        className={`${inter.variable} ${jbMono.variable} antialiased h-full`}
-      >
+    <html lang="es-PE">
+      <body className={`${inter.variable} ${jbMono.variable} antialiased`}>
         <UserProvider>{children}</UserProvider>
       </body>
     </html>

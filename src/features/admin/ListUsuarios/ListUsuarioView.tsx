@@ -21,6 +21,7 @@ export default function ListUsuarioView() {
     showDrawerAdministrativo,
     onFinishAdministrativo,
     fetchSubareas,
+    onChangeTab,
   } = useListUsuario();
 
   return (
@@ -45,6 +46,7 @@ export default function ListUsuarioView() {
       <TabsUsuario
         usuarios={usuarios}
         showDrawerAdministrativo={showDrawerAdministrativo}
+        onChangeTab={onChangeTab}
       ></TabsUsuario>
 
       <DrawerAdministrativo

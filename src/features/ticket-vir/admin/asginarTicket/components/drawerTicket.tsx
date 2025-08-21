@@ -133,7 +133,13 @@ export default function DrawerTicket({
       open={drawerVisible}
     >
       {ticket && (
-        <div className="flex flex-col gap-6">
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: "1rem 0rem",
+          }}
+        >
           {/* Informacion general  */}
           <Divider orientation="left">📄 Información General</Divider>
           <Descriptions bordered column={1} size="small">
@@ -186,6 +192,31 @@ export default function DrawerTicket({
             </Descriptions.Item>
           </Descriptions>
 
+          {ticket.documentos && ticket.documentos?.length > 0 && (
+            <>
+              <Divider orientation="left">📎 Archivos Adjuntos</Divider>
+              <ul className="list-disc pl-5 space-y-1">
+                {ticket.documentos.map((archivo, index) => {
+                  const fileUrl = `http://localhost:4000${archivo.url.replace(
+                    /\\/g,
+                    "/"
+                  )}`;
+                  return (
+                    <li key={index}>
+                      <a
+                        href={fileUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:underline"
+                      >
+                        📄 {archivo.nombre}
+                      </a>
+                    </li>
+                  );
+                })}
+              </ul>
+            </>
+          )}
           {/* 🔀 Derivación */}
           {Array.isArray(ticket?.DerivacionesComoDestino) &&
             ticket.DerivacionesComoDestino.length > 0 && (
@@ -277,34 +308,11 @@ export default function DrawerTicket({
             </Card>
           )}
 
-          {ticket.documentos && ticket.documentos?.length > 0 && (
-            <>
-              <Divider orientation="left">📎 Archivos Adjuntos</Divider>
-              <ul className="list-disc pl-5 space-y-1">
-                {ticket.documentos.map((archivo, index) => {
-                  const fileUrl = `http://localhost:4000${archivo.url.replace(
-                    /\\/g,
-                    "/"
-                  )}`;
-                  return (
-                    <li key={index}>
-                      <a
-                        href={fileUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-600 hover:underline"
-                      >
-                        📄 {archivo.nombre}
-                      </a>
-                    </li>
-                  );
-                })}
-              </ul>
-            </>
-          )}
-
           <Divider orientation="left">👨‍🔧 Asignación y Prioridad</Divider>
-          <div className="flex flex-col gap-4">
+
+          <div
+            style={{ display: "flex", flexDirection: "column", gap: "1rem" }}
+          >
             <div>
               <p className="font-medium">Asignar Soporte:</p>
               <Select

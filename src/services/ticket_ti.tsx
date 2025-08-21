@@ -33,7 +33,7 @@ export const getTickets = async (filtros?: {
     },
     params: filtros,
     paramsSerializer: {
-      indexes: null, // <- IMPORTANTE para que Axios genere estados_id=1&estados_id=2
+      indexes: null,
     },
   });
   return response.data;

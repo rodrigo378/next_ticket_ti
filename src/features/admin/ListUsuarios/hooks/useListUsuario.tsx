@@ -1,5 +1,6 @@
 "use client";
 
+import { ROL_ID } from "@/const/rol.const";
 import { Area, Subarea } from "@/interface/area";
 import { Rol } from "@/interface/rol";
 import { CreateUsuario, UpdateUsuario, Usuario } from "@/interface/usuario";
@@ -25,9 +26,9 @@ export default function useListUsuario() {
   const [subareas, setSubareas] = useState<Subarea[]>([]);
 
   // FETCH ==========================================
-  const fetchUsuarios = async () => {
+  const fetchUsuarios = async (roles_id: number[]) => {
     try {
-      const data = await getUsuarios();
+      const data = await getUsuarios({ roles_id });
       setUsuarios(data);
     } catch (error) {
       console.log("error => ", error);
@@ -72,7 +73,14 @@ export default function useListUsuario() {
 
   // USEEFFECT =======================================
   useEffect(() => {
-    fetchUsuarios();
+    fetchUsuarios([
+      ROL_ID.NIVEL_1,
+      ROL_ID.NIVEL_2,
+      ROL_ID.NIVEL_3,
+      ROL_ID.NIVEL_4,
+      ROL_ID.NIVEL_5,
+      ROL_ID.ADMINISTRATIVO,
+    ]);
     fetchRoles();
     fetchAreas();
   }, []);
@@ -112,7 +120,14 @@ export default function useListUsuario() {
       }
 
       onCloseAdministrativo();
-      fetchUsuarios();
+      fetchUsuarios([
+        ROL_ID.NIVEL_1,
+        ROL_ID.NIVEL_2,
+        ROL_ID.NIVEL_3,
+        ROL_ID.NIVEL_4,
+        ROL_ID.NIVEL_5,
+        ROL_ID.ADMINISTRATIVO,
+      ]);
     } catch (error) {
       console.log("error => ", error);
     }
@@ -145,6 +160,24 @@ export default function useListUsuario() {
     }
   };
 
+  const onChangeTab = (tabKey: string) => {
+    switch (tabKey) {
+      case "administrativo":
+        fetchUsuarios([
+          ROL_ID.NIVEL_1,
+          ROL_ID.NIVEL_2,
+          ROL_ID.NIVEL_3,
+          ROL_ID.NIVEL_4,
+          ROL_ID.NIVEL_5,
+          ROL_ID.ADMINISTRATIVO,
+        ]);
+        break;
+      case "alumno":
+        fetchUsuarios([ROL_ID.ESTUDIANTE]);
+        break;
+    }
+  };
+
   return {
     usuario,
     usuarios,
@@ -161,5 +194,6 @@ export default function useListUsuario() {
     showDrawerAdministrativo,
     onFinishAdministrativo,
     fetchSubareas,
+    onChangeTab,
   };
 }
