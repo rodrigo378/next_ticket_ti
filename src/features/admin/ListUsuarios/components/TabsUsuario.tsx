@@ -4,7 +4,7 @@ import { Usuario } from "@/interface/usuario";
 
 interface Props {
   usuarios: Usuario[];
-  showDrawerAdministrativo: () => void;
+  showDrawerAdministrativo: (usuario_id: number) => void;
 }
 
 export default function TabsUsuario({

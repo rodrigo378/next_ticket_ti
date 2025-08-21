@@ -5,7 +5,7 @@ import { ColumnsType } from "antd/es/table";
 
 interface Props {
   usuarios: Usuario[];
-  showDrawerAdministrativo: () => void;
+  showDrawerAdministrativo: (usuario_id: number) => void;
 }
 
 export default function TableUsuarioAdministrativo({
@@ -48,6 +48,11 @@ export default function TableUsuarioAdministrativo({
       },
     },
     {
+      title: "Subarea",
+      dataIndex: ["subarea", "nombre"],
+      key: "subarea",
+    },
+    {
       title: "Áreas Administradas",
       key: "areas_admin",
       render: (record: Usuario) => {
@@ -70,12 +75,6 @@ export default function TableUsuarioAdministrativo({
         return "—";
       },
     },
-
-    {
-      title: "Subarea",
-      dataIndex: ["subarea", "nombre"],
-      key: "subarea",
-    },
     {
       title: "Estado",
       dataIndex: "estado",
@@ -94,7 +93,7 @@ export default function TableUsuarioAdministrativo({
         <div className="flex gap-2">
           <Button
             icon={<EyeOutlined />}
-            onClick={() => showDrawerAdministrativo()}
+            onClick={() => showDrawerAdministrativo(record.id)}
           />
         </div>
       ),

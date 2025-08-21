@@ -24,7 +24,21 @@ export const getUsuarios = async (): Promise<Usuario[]> => {
   return response.data;
 };
 
-export const updateUsuario = async (id: string, data: UpdateUsuario) => {
+export const getUsuario = async (usuario_id: number): Promise<Usuario> => {
+  const token = localStorage.getItem("token");
+
+  const response: AxiosResponse<Usuario> = await api.get(
+    `/admin/usuario/${usuario_id}`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+  return response.data;
+};
+
+export const updateUsuario = async (id: number, data: UpdateUsuario) => {
   const token = localStorage.getItem("token");
 
   const response = await api.put(`/admin/usuario/${id}`, data, {

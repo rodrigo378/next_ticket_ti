@@ -1,18 +1,26 @@
 "use client";
 
-import { Flex } from "antd";
+import { Button, Flex } from "antd";
 import DrawerAdministrativo from "./components/DrawerAdministrativo";
 import TabsUsuario from "./components/TabsUsuario";
 import useListUsuario from "./hooks/useListUsuario";
 import Title from "antd/es/typography/Title";
+import { PlusOutlined } from "@ant-design/icons";
 
 export default function ListUsuarioView() {
   const {
+    usuario,
     usuarios,
     openAdministrativo,
+    form,
+    roles,
+    areas,
+    subareas,
+
     onCloseAdministrativo,
     showDrawerAdministrativo,
-    form,
+    onFinishAdministrativo,
+    fetchSubareas,
   } = useListUsuario();
 
   return (
@@ -22,6 +30,15 @@ export default function ListUsuarioView() {
           <Title level={3} style={{ margin: 0 }}>
             Lista de usuarios
           </Title>
+        </div>
+        <div>
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={() => showDrawerAdministrativo()}
+          >
+            Añadir usuario
+          </Button>
         </div>
       </Flex>
 
@@ -33,6 +50,13 @@ export default function ListUsuarioView() {
       <DrawerAdministrativo
         openAdministrativo={openAdministrativo}
         onCloseAdministrativo={onCloseAdministrativo}
+        form={form}
+        usuario={usuario}
+        onFinishAdministrativo={onFinishAdministrativo}
+        roles={roles}
+        areas={areas}
+        subareas={subareas}
+        fetchSubareas={fetchSubareas}
       ></DrawerAdministrativo>
     </div>
   );

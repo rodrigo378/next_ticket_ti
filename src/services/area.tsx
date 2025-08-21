@@ -7,7 +7,7 @@ export const getAreas = async (): Promise<Area[]> => {
   return response.data;
 };
 
-export const getSubareas = async (area_id: string): Promise<Subarea[]> => {
+export const getSubareas = async (area_id: number): Promise<Subarea[]> => {
   const response: AxiosResponse<Subarea[]> = await api.get(
     `area/sub/${area_id}`
   );
