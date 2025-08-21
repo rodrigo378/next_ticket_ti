@@ -127,7 +127,7 @@ export default function Page() {
     if (!subareasPorCatalogo[catalogo_id]) {
       console.log();
 
-      const subareas = await getSubareas(catalogo_id.toString());
+      const subareas = await getSubareas(catalogo_id);
       setSubareasPorCatalogo((prev) => ({
         ...prev,
         [catalogo_id]: subareas,
@@ -153,7 +153,7 @@ export default function Page() {
     areaId: number
   ) => {
     if (!subareasPorCatalogo[catalogoId]) {
-      const subareas = await getSubareas(areaId.toString());
+      const subareas = await getSubareas(areaId);
       setSubareasPorCatalogo((prev) => ({
         ...prev,
         [catalogoId]: subareas,
