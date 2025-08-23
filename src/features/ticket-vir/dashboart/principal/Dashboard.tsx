@@ -49,7 +49,7 @@ const { Title: H1, Text } = Typography;
 const { Option } = Select;
 
 /* ============================
-   PALETA DE COLORES VIBRANTE
+  PALETA DE COLORES VIBRANTE
 ============================ */
 const palette = {
   indigo: "#6366F1",
@@ -436,8 +436,14 @@ export default function DashboardAreaUMA() {
             </Col>
           </Row>
 
-          <Card title="Resumen del día por estado" bodyStyle={{ height: 320 }}>
+          {/* <Card title="Resumen del día por estado" bodyStyle={{ height: 320 }}></Card> */}
+          <Card
+            title="Resumen del día por estado"
+            // style={{ border: "2px solid red" }}
+            className="h-[400px]"
+          >
             <Bar
+              className="h-[300px]"
               data={{
                 labels: [
                   "Creados",

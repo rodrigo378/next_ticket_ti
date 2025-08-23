@@ -17,6 +17,7 @@ interface Props {
 }
 
 export default function DrawerAdministrativo({
+  usuario,
   openAdministrativo,
   form,
   roles,
@@ -31,6 +32,7 @@ export default function DrawerAdministrativo({
   const area_id = Form.useWatch("area_id", form);
 
   // HANDLES =================================================
+
   const handleAreaChange = (area_id: number) => {
     form.setFieldsValue({ subarea_id: undefined });
     fetchSubareas(area_id);
@@ -38,7 +40,7 @@ export default function DrawerAdministrativo({
 
   return (
     <Drawer
-      title="Drawer"
+      title={usuario ? `Actualizar Usuario` : "Crear Usuario"}
       placement="right"
       width={500}
       onClose={onCloseAdministrativo}

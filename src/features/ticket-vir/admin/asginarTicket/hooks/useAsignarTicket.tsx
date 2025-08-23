@@ -2,7 +2,7 @@
 import { TreeNode } from "@/interface/incidencia";
 import { Ticket } from "@/interface/ticket_ti";
 import { Usuario } from "@/interface/usuario";
-import { getUsuarios } from "@/services/admin";
+import { getSoporte } from "@/services/admin";
 import { getArbol } from "@/services/incidencias";
 import { asignarTicket, getTicket, getTickets } from "@/services/ticket_ti";
 import { message } from "antd";
@@ -76,7 +76,7 @@ export default function useAsignarTicket() {
 
   const fetchUsuarios = async () => {
     try {
-      const data = await getUsuarios();
+      const data = await getSoporte();
       setUsuarios(data);
     } catch (error) {
       console.error("error => ", error);

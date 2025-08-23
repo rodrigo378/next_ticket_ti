@@ -151,6 +151,7 @@ export default function useListUsuario() {
 
           area_id: data.subarea?.area_id,
           subarea_id: data.subarea_id,
+          areas_id: data.UsuarioArea?.map((ua) => ua.area_id) ?? [],
         });
       }
 

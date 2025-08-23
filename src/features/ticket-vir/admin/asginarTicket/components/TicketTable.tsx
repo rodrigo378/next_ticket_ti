@@ -111,8 +111,14 @@ export default function TicketTableAdmin({
     {
       title: "Creado por",
       key: "creado_id",
-      render: (record: Ticket) =>
-        `${record.creado?.nombre || ""} ${record.creado?.apellidos || ""}`,
+      render: (record: Ticket) => (
+        <>
+          {`${record.creado?.nombre || ""} ${record.creado?.apellidos || ""}`}{" "}
+          <Tag color={record.creado?.rol_id === 7 ? "blue" : "green"}>
+            {record.creado?.rol_id === 7 ? "Alumno" : "Administrativo"}
+          </Tag>
+        </>
+      ),
     },
     {
       title: "Asignado a",

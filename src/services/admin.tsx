@@ -13,6 +13,17 @@ export const createUsuario = async (data: CreateUsuario) => {
   return response.data;
 };
 
+export const getSoporte = async () => {
+  const token = localStorage.getItem("token");
+  const response = await api.get("/admin/usuario/soporte", {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  return response.data;
+};
+
 export const getUsuarios = async (filtros?: {
   roles_id?: number[];
 }): Promise<Usuario[]> => {
