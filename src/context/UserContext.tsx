@@ -40,7 +40,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
           console.warn("⚠️ Error al obtener usuario:", error);
           localStorage.removeItem("token");
           setUsuario(null);
-          router.push("/login");
+          // router.push("/login");
         });
     } else {
       console.log("⛔ No hay token, redirigiendo a login");
