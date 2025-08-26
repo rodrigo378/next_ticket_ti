@@ -1,10 +1,9 @@
 "use client";
-import { TreeNode } from "@/interface/incidencia";
-import { Ticket } from "@/interface/ticket_ti";
-import { Usuario } from "@/interface/usuario";
+import { Core_Usuario } from "@/interface/core/core_usuario";
+import { HD_Ticket } from "@/interface/hd/hd_ticket";
 import { getSoporte } from "@/services/admin";
-import { getArbol } from "@/services/incidencias";
-import { asignarTicket, getTicket, getTickets } from "@/services/ticket_ti";
+import { getArbol } from "@/services/hd/incidencias";
+import { asignarTicket, getTicket, getTickets } from "@/services/hd/ticket_ti";
 import { message } from "antd";
 import { useEffect, useState } from "react";
 
@@ -47,13 +46,13 @@ export function buildTreeData(cats: ArbolRespuesta): IncTreeNode[] {
 
 export default function useAsignarTicket() {
   // USESTATE ========================================
-  const [tickets, setTickets] = useState<Ticket[]>([]);
-  const [ticket, setTicket] = useState<Ticket>();
+  const [tickets, setTickets] = useState<HD_Ticket[]>([]);
+  const [ticket, setTicket] = useState<HD_Ticket>();
   const [tabKey, setTabKey] = useState("sin_asignar");
   const [loading, setLoading] = useState(false);
   const [drawerVisible, setDrawerVisible] = useState(false);
 
-  const [usuarios, setUsuarios] = useState<Usuario[]>([]);
+  const [usuarios, setUsuarios] = useState<Core_Usuario[]>([]);
   const [asignadoId, setAsignadoId] = useState<number | undefined>();
   const [prioridadId, setPrioridadId] = useState<number | undefined>();
 
@@ -105,7 +104,7 @@ export default function useAsignarTicket() {
     else if (key === "asignados") fetchTickets(["2", "3", "4"]);
   };
 
-  const abrirDrawer = async (ticket: Ticket) => {
+  const abrirDrawer = async (ticket: HD_Ticket) => {
     console.log("se abrio drawer");
 
     try {
@@ -133,8 +132,8 @@ export default function useAsignarTicket() {
 
     // ✅ Detecta si el ticket es derivado (tiene orígenes)
     const isDerivado =
-      Array.isArray(ticket?.DerivacionesComoDestino) &&
-      ticket.DerivacionesComoDestino.length > 0;
+      Array.isArray(ticket?.derivacionesComoDestino) &&
+      ticket.derivacionesComoDestino.length > 0;
 
     // ✅ Si es derivado, categoría es obligatoria
     if (isDerivado && !categoriaId) {

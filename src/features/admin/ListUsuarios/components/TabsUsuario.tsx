@@ -1,18 +1,20 @@
 import { Tabs } from "antd";
 import TableUsuarioAdministrativo from "./TablaAdministrativo";
-import { Usuario } from "@/interface/usuario";
 import TableUsuarioAlumno from "./TablaAlumno";
+import { Core_Usuario } from "@/interface/core/core_usuario";
 
 interface Props {
-  usuarios: Usuario[];
+  usuarios: Core_Usuario[];
   showDrawerAdministrativo: (usuario_id: number) => void;
   onChangeTab: (tabKey: string) => void;
+  showDrawerModulo: (usuario_id: number) => void;
 }
 
 export default function TabsUsuario({
   usuarios,
   showDrawerAdministrativo,
   onChangeTab,
+  showDrawerModulo,
 }: Props) {
   return (
     <Tabs
@@ -26,6 +28,7 @@ export default function TabsUsuario({
             <TableUsuarioAdministrativo
               usuarios={usuarios}
               showDrawerAdministrativo={showDrawerAdministrativo}
+              showDrawerModulo={showDrawerModulo}
             ></TableUsuarioAdministrativo>
           ),
         },

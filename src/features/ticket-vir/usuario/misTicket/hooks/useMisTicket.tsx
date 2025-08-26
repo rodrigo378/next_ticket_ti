@@ -1,11 +1,11 @@
 "use client";
 
-import { Ticket } from "@/interface/ticket_ti";
-import { getTicketsMe } from "@/services/ticket_ti";
+import { HD_Ticket } from "@/interface/hd/hd_ticket";
+import { getTicketsMe } from "@/services/hd/ticket_ti";
 import { useEffect, useMemo, useState } from "react";
 
 export default function useMisTicket() {
-  const [tickets, setTickets] = useState<Ticket[]>([]);
+  const [tickets, setTickets] = useState<HD_Ticket[]>([]);
 
   const fetchTickets = async () => {
     try {
@@ -28,7 +28,7 @@ export default function useMisTicket() {
 
   const pendientes = useMemo(
     () =>
-      ticketResueltos.filter((t) => !t?.CalificacionTicket?.calificacion)
+      ticketResueltos.filter((t) => !t?.calificacionTicket?.calificacion)
         .length,
     [ticketResueltos]
   );

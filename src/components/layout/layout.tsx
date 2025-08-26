@@ -69,7 +69,7 @@ function toAntdItems(mods: IamMenuModule[]): MenuProps["items"] {
           label: g.label,
           icon: DefaultBullet, // <- para que al colapsar no aparezca la letra del grupo
           children,
-        } as any);
+        } as never);
       }
     });
   });
@@ -91,6 +91,8 @@ export default function MainLayout({
   const items = useMemo(() => toAntdItems(modules), [modules]);
 
   useEffect(() => {
+    console.log("del contex => ", usuario);
+
     (async () => {
       try {
         const data: IamMenuModule[] = await getFullMenu();
@@ -161,7 +163,7 @@ export default function MainLayout({
             icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
           />
           <Dropdown menu={userMenu} placement="bottomRight" trigger={["click"]}>
-            <Button>👋 {usuario?.nombre || "Usuario"}</Button>
+            <Button>{usuario?.email}</Button>
           </Dropdown>
         </Header>
 

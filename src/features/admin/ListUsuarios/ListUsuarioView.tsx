@@ -6,6 +6,7 @@ import TabsUsuario from "./components/TabsUsuario";
 import useListUsuario from "./hooks/useListUsuario";
 import Title from "antd/es/typography/Title";
 import { PlusOutlined } from "@ant-design/icons";
+import DrawerModulosUsuario from "./components/DrawerModulo";
 
 export default function ListUsuarioView() {
   const {
@@ -14,11 +15,20 @@ export default function ListUsuarioView() {
     roles,
     openAdministrativo,
     form,
+    formModules,
+    usuarioModulo,
+
+    areas,
 
     onCloseAdministrativo,
     showDrawerAdministrativo,
     onFinishAdministrativo,
     onChangeTab,
+    onFinishModulos,
+
+    openModulo,
+    onCloseModulo,
+    showDrawerModulo,
   } = useListUsuario();
 
   return (
@@ -44,6 +54,7 @@ export default function ListUsuarioView() {
         usuarios={usuarios}
         showDrawerAdministrativo={showDrawerAdministrativo}
         onChangeTab={onChangeTab}
+        showDrawerModulo={showDrawerModulo}
       ></TabsUsuario>
 
       <DrawerAdministrativo
@@ -54,6 +65,15 @@ export default function ListUsuarioView() {
         onCloseAdministrativo={onCloseAdministrativo}
         onFinishAdministrativo={onFinishAdministrativo}
       ></DrawerAdministrativo>
+
+      <DrawerModulosUsuario
+        open={openModulo}
+        onClose={onCloseModulo}
+        formModules={formModules}
+        usuarioModulo={usuarioModulo}
+        areas={areas}
+        onFinishModulos={onFinishModulos}
+      />
     </div>
   );
 }

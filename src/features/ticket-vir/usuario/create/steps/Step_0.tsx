@@ -1,13 +1,13 @@
-import { Area } from "@/interface/area";
-import { CatalogoServicio } from "@/interface/catalogo";
-import { Incidencia } from "@/interface/incidencia";
+import { HD_Area } from "@/interface/hd/hd_area";
+import { HD_CatalogoServicio } from "@/interface/hd/hd_catalogoServicio";
+import { HD_Incidencia } from "@/interface/hd/hd_incidencia";
 import { Col, Form, FormInstance, Row, Select } from "antd";
 
 interface Props {
   form: FormInstance;
-  areas: Area[];
-  incidencias: Incidencia[];
-  catalogo: CatalogoServicio[];
+  areas: HD_Area[];
+  incidencias: HD_Incidencia[];
+  catalogo: HD_CatalogoServicio[];
   fetchCatalogo: (area_id: number) => void;
 }
 

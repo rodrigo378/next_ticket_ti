@@ -18,12 +18,12 @@ import { getAreas, getSubareas } from "@/services/area";
 import { Area, Subarea } from "@/interface/area";
 import { Incidencia } from "@/interface/incidencia";
 import { CatalogoServicio } from "@/interface/catalogo";
-import { createCatalogo, getCatalogo } from "@/services/catalogo";
+import { createCatalogo, getCatalogo } from "@/services/hd/catalogo";
 import {
   createCategoria,
   createIncidencia,
   updateCategoria,
-} from "@/services/incidencias";
+} from "@/services/hd/incidencias";
 import { updateSla } from "@/services/sla";
 
 const { Title, Paragraph } = Typography;

@@ -1,10 +1,10 @@
-import { Ticket } from "@/interface/ticket_ti";
+import { HD_Ticket } from "@/interface/hd/hd_ticket";
 import { ExclamationCircleOutlined, EyeOutlined } from "@ant-design/icons";
 import { Button, Rate, Table, Tag } from "antd";
 import Link from "next/link";
 
 interface Props {
-  ticket: Ticket[];
+  ticket: HD_Ticket[];
 }
 
 export default function TicketTableResueltos({ ticket }: Props) {
@@ -23,7 +23,7 @@ export default function TicketTableResueltos({ ticket }: Props) {
     {
       title: "Servicio",
       key: "servicio",
-      render: (ticket: Ticket) => {
+      render: (ticket: HD_Ticket) => {
         const subarea = ticket.categoria?.subarea?.nombre || "—";
         const incidencia = ticket.categoria?.incidencia?.nombre || "—";
         const categoria = ticket.categoria?.nombre || "—";
@@ -52,7 +52,7 @@ export default function TicketTableResueltos({ ticket }: Props) {
       title: "Responsable",
       dataIndex: ["asignado", "nombre"],
       key: "responsable",
-      render: (_: unknown, record: Ticket) =>
+      render: (_: unknown, record: HD_Ticket) =>
         record.asignado
           ? `${record.asignado.nombre} ${record.asignado.apellidos ?? ""}`
           : "—",
@@ -60,8 +60,8 @@ export default function TicketTableResueltos({ ticket }: Props) {
     {
       title: "Calificación",
       key: "calificacion",
-      render: (ticket: Ticket) => {
-        const calif = ticket?.CalificacionTicket?.calificacion;
+      render: (ticket: HD_Ticket) => {
+        const calif = ticket?.calificacionTicket?.calificacion;
         return calif ? (
           <Rate allowHalf disabled defaultValue={Number(calif)} />
         ) : (
@@ -100,8 +100,8 @@ export default function TicketTableResueltos({ ticket }: Props) {
       pagination={{ pageSize: 5 }}
       rowKey="id"
       bordered
-      rowClassName={(record: Ticket) =>
-        !record?.CalificacionTicket?.calificacion ? "bg-yellow-50" : ""
+      rowClassName={(record: HD_Ticket) =>
+        !record?.calificacionTicket?.calificacion ? "bg-yellow-50" : ""
       }
     />
   );

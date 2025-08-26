@@ -1,10 +1,10 @@
 "use client";
-import { Ticket } from "@/interface/ticket_ti";
 import { Alert, Card, Rate, Typography, Input, Button } from "antd";
 import { useState } from "react";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import "dayjs/locale/es";
+import { HD_Ticket } from "@/interface/hd/hd_ticket";
 dayjs.extend(relativeTime);
 dayjs.locale("es");
 
@@ -12,7 +12,7 @@ const { Text } = Typography;
 const { TextArea } = Input;
 
 interface Props {
-  ticket: Ticket | null;
+  ticket: HD_Ticket | null;
   valorCalificado: number;
   crearCalificacion: (value: number, comentario?: string) => void;
 }
@@ -22,7 +22,7 @@ export default function CardCalificacion({ ticket, crearCalificacion }: Props) {
   const [comentario, setComentario] = useState<string>("");
   const [enviado, setEnviado] = useState<boolean>(false);
 
-  const yaTieneCalificacion = Boolean(ticket?.CalificacionTicket);
+  const yaTieneCalificacion = Boolean(ticket?.calificacionTicket);
 
   const handleRateChange = (value: number) => {
     setRating(value);
@@ -63,14 +63,14 @@ export default function CardCalificacion({ ticket, crearCalificacion }: Props) {
                   allowHalf
                   disabled
                   defaultValue={Number(
-                    ticket?.CalificacionTicket?.calificacion || 0
+                    ticket?.calificacionTicket?.calificacion || 0
                   )}
                   style={{ fontSize: 28 }}
                 />
               </div>
-              {ticket?.CalificacionTicket?.comentario ? (
+              {ticket?.calificacionTicket?.comentario ? (
                 <Text type="secondary" italic>
-                  “{ticket.CalificacionTicket.comentario}”
+                  “{ticket.calificacionTicket.comentario}”
                 </Text>
               ) : (
                 <Text type="secondary" italic>
@@ -78,7 +78,7 @@ export default function CardCalificacion({ ticket, crearCalificacion }: Props) {
                 </Text>
               )}
               <div className="mt-2 text-xs text-gray-500">
-                {dayjs(ticket?.CalificacionTicket?.createdAt).fromNow()}
+                {dayjs(ticket?.calificacionTicket?.createdAt).fromNow()}
               </div>
             </>
           ) : enviado ? (

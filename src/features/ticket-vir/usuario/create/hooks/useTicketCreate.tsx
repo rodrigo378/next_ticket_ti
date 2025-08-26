@@ -1,10 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Form, message } from "antd";
 import { useRouter } from "next/navigation";
-import { getAreas } from "@/services/area";
-import { getCatalogo } from "@/services/catalogo";
-import { getIncidencias } from "@/services/incidencias";
-import { createTicketTi } from "@/services/ticket_ti";
 import type { StepsProps } from "antd";
 import {
   FormOutlined,
@@ -12,9 +8,13 @@ import {
   CheckCircleOutlined,
 } from "@ant-design/icons";
 import type { UploadFile } from "antd/es/upload/interface";
-import type { Area } from "@/interface/area";
-import type { CatalogoServicio } from "@/interface/catalogo";
-import type { Incidencia } from "@/interface/incidencia";
+import { HD_Area } from "@/interface/hd/hd_area";
+import { HD_CatalogoServicio } from "@/interface/hd/hd_catalogoServicio";
+import { HD_Incidencia } from "@/interface/hd/hd_incidencia";
+import { getAreas } from "@/services/hd/area";
+import { getIncidencias } from "@/services/hd/incidencias";
+import { getCatalogo } from "@/services/hd/catalogo";
+import { createTicketTi } from "@/services/hd/ticket_ti";
 
 const REQUIRED_STEP1_FIELDS = [
   "area_id",
@@ -32,9 +32,9 @@ export function useTicketCreate() {
 
   const [current, setCurrent] = useState(0);
   const [loading, setLoading] = useState(false);
-  const [areas, setAreas] = useState<Area[]>([]);
-  const [catalogo, setCatalogo] = useState<CatalogoServicio[]>([]);
-  const [incidencias, setIncidencias] = useState<Incidencia[]>([]);
+  const [areas, setAreas] = useState<HD_Area[]>([]);
+  const [catalogo, setCatalogo] = useState<HD_CatalogoServicio[]>([]);
+  const [incidencias, setIncidencias] = useState<HD_Incidencia[]>([]);
   const [fileList, setFileList] = useState<UploadFile[]>([]);
 
   const tipo = Form.useWatch<string | undefined>("tipo", form);

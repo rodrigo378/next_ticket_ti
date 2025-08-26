@@ -1,4 +1,4 @@
-import { Ticket } from "@/interface/ticket_ti";
+import { HD_Ticket } from "@/interface/hd/hd_ticket";
 import {
   FileImageOutlined,
   FilePdfOutlined,
@@ -10,7 +10,7 @@ import dayjs from "dayjs";
 const { Text } = Typography;
 
 interface Props {
-  ticket: Ticket | null;
+  ticket: HD_Ticket | null;
 }
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";

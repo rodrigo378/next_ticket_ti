@@ -1,4 +1,3 @@
-import { Ticket } from "@/interface/ticket_ti";
 import { EyeOutlined } from "@ant-design/icons";
 import { Button, Table, Tag, Tooltip } from "antd";
 import Link from "next/link";
@@ -8,6 +7,7 @@ import "dayjs/locale/es";
 import relativeTime from "dayjs/plugin/relativeTime";
 import utc from "dayjs/plugin/utc";
 import tz from "dayjs/plugin/timezone";
+import { HD_Ticket } from "@/interface/hd/hd_ticket";
 
 dayjs.locale("es");
 dayjs.extend(relativeTime);
@@ -16,7 +16,7 @@ dayjs.extend(tz);
 dayjs.tz.setDefault("America/Lima");
 
 interface Props {
-  ticket: Ticket[];
+  ticket: HD_Ticket[];
 }
 
 export default function TicketTable({ ticket }: Props) {
@@ -35,7 +35,7 @@ export default function TicketTable({ ticket }: Props) {
     {
       title: "Servicio",
       key: "servicio",
-      render: (ticket: Ticket) => {
+      render: (ticket: HD_Ticket) => {
         const subarea = ticket.categoria?.subarea?.nombre || "—";
         const incidencia = ticket.categoria?.incidencia?.nombre || "—";
         const categoria = ticket.categoria?.nombre || "—";
@@ -73,7 +73,7 @@ export default function TicketTable({ ticket }: Props) {
       title: "Creado",
       dataIndex: "createdAt",
       key: "createdAt",
-      sorter: (a: Ticket, b: Ticket) =>
+      sorter: (a: HD_Ticket, b: HD_Ticket) =>
         dayjs(a.createdAt).valueOf() - dayjs(b.createdAt).valueOf(),
       render: (createdAt: string | Date) => {
         const d = dayjs(createdAt);

@@ -1,10 +1,10 @@
-import { CalificacionTicket } from "@/interface/calificacion";
-import { Ticket } from "@/interface/ticket_ti";
+import { HD_CalificacionTicket } from "@/interface/hd/hd_calificacionTicket";
+import { HD_Ticket } from "@/interface/hd/hd_ticket";
 import {
   createCalificacion,
   createMensaje,
   getTicket,
-} from "@/services/ticket_ti";
+} from "@/services/hd/ticket_ti";
 import { message } from "antd";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -13,7 +13,7 @@ export default function useDetalleTicket() {
   const params = useParams();
   const id = params.id as string;
 
-  const [ticket, setTicket] = useState<Ticket | null>(null);
+  const [ticket, setTicket] = useState<HD_Ticket | null>(null);
   const [nuevoMensaje, setNuevoMensaje] = useState("");
   const [loadingMensaje, setLoadingMensaje] = useState(false);
 
@@ -51,7 +51,7 @@ export default function useDetalleTicket() {
   const crearCalificacion = async (value: number) => {
     if (!ticket?.id) return;
 
-    const data: Partial<CalificacionTicket> = {
+    const data: Partial<HD_CalificacionTicket> = {
       ticket_id: ticket.id,
       calificacion: value,
     };

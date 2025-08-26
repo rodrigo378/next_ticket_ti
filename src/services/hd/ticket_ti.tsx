@@ -1,12 +1,12 @@
-import { Ticket } from "@/interface/ticket_ti";
-import { api } from "./api";
 import { AxiosResponse } from "axios";
-import { CalificacionTicket } from "@/interface/calificacion";
+import { api } from "../api";
+import { HD_Ticket } from "@/interface/hd/hd_ticket";
+import { HD_CalificacionTicket } from "@/interface/hd/hd_calificacionTicket";
 
 export const createTicketTi = async (formData: FormData): Promise<unknown> => {
   const token = localStorage.getItem("token");
 
-  const response = await api.post("/ticket", formData, {
+  const response = await api.post("/hd/ticket", formData, {
     headers: {
       Authorization: `Bearer ${token}`,
       // 👇 NO pongas Content-Type aquí. Axios lo pone automáticamente con boundary
@@ -20,14 +20,14 @@ export const createTicketTi = async (formData: FormData): Promise<unknown> => {
 export const getTickets = async (filtros?: {
   me?: string;
   estados_id?: string[];
-}): Promise<Ticket[]> => {
+}): Promise<HD_Ticket[]> => {
   const token = localStorage.getItem("token");
   // const params = new URLSearchParams();
 
   // if (filtros.me) params.append("me", filtros.me);
   // if (filtros.estado_id) params.append("estado_id", filtros.estado_id);
 
-  const response: AxiosResponse<Ticket[]> = await api.get(`/ticket`, {
+  const response: AxiosResponse<HD_Ticket[]> = await api.get(`/hd/ticket`, {
     headers: {
       Authorization: `Bearer ${token}`,
     },
@@ -39,10 +39,10 @@ export const getTickets = async (filtros?: {
   return response.data;
 };
 
-export const getTicketsMe = async (): Promise<Ticket[]> => {
+export const getTicketsMe = async (): Promise<HD_Ticket[]> => {
   const token = localStorage.getItem("token");
 
-  const response = await api.get("/ticket/me", {
+  const response = await api.get("/hd/ticket/me", {
     headers: {
       Authorization: `Bearer ${token}`,
     },
@@ -51,8 +51,10 @@ export const getTicketsMe = async (): Promise<Ticket[]> => {
   return response.data;
 };
 
-export const getTicket = async (ticket_id: number): Promise<Ticket> => {
-  const response: AxiosResponse<Ticket> = await api.get(`/ticket/${ticket_id}`);
+export const getTicket = async (ticket_id: number): Promise<HD_Ticket> => {
+  const response: AxiosResponse<HD_Ticket> = await api.get(
+    `/hd/ticket/${ticket_id}`
+  );
 
   return response.data;
 };
@@ -62,7 +64,7 @@ export const createMensaje = async (data: {
   contenido: string;
 }) => {
   const token = localStorage.getItem("token");
-  const response = await api.post("/ticket/mensaje", data, {
+  const response = await api.post("/hd/ticket/mensaje", data, {
     headers: {
       Authorization: `Bearer ${token}`,
     },
@@ -75,7 +77,7 @@ export const derivarTicket = async (
   data: { a_area_id: number; motivo: string }
 ) => {
   const token = localStorage.getItem("token");
-  const response = await api.post(`/ticket/derivar/${ticket_id}`, data, {
+  const response = await api.post(`/hd/ticket/derivar/${ticket_id}`, data, {
     headers: {
       Authorization: `Bearer ${token}`,
     },
@@ -86,15 +88,17 @@ export const derivarTicket = async (
 
 export const asignarTicket = async (
   ticket_id: number,
-  data: Partial<Ticket>
+  data: Partial<HD_Ticket>
 ) => {
-  const response = await api.put(`/ticket/asignar/${ticket_id}`, data);
+  const response = await api.put(`/hd/ticket/asignar/${ticket_id}`, data);
   return response.data;
 };
 
-export const createCalificacion = async (data: Partial<CalificacionTicket>) => {
+export const createCalificacion = async (
+  data: Partial<HD_CalificacionTicket>
+) => {
   const token = localStorage.getItem("token");
-  const response = await api.post("/ticket/calificacion", data, {
+  const response = await api.post("/hd/ticket/calificacion", data, {
     headers: {
       Authorization: `Bearer ${token}`,
     },
@@ -107,6 +111,6 @@ export const cambiarEstado = async (
   ticket_id: number,
   data: { estado_id: number }
 ) => {
-  const response = await api.put(`/ticket/estado/${ticket_id}`, data);
+  const response = await api.put(`/hd/ticket/estado/${ticket_id}`, data);
   return response.data;
 };

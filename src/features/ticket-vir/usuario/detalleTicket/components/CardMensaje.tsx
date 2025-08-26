@@ -1,6 +1,5 @@
 // IMPORTS: deja los que ya tienes en tu CardMensaje actual
 // OJO: no declares interfaces nuevas; usa tus tipos existentes
-import type { Ticket } from "@/interface/ticket_ti";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Button,
@@ -24,12 +23,13 @@ import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import "dayjs/locale/es";
 import type { UploadFile } from "antd/es/upload/interface";
-import { MensajeTicket } from "@/interface/mensaje";
+import { HD_Ticket } from "@/interface/hd/hd_ticket";
+import { HD_MensajeTicket } from "@/interface/hd/hd_mensajeTicket";
 dayjs.extend(relativeTime);
 dayjs.locale("es");
 
 interface Props {
-  ticket: Ticket | null;
+  ticket: HD_Ticket | null;
   nuevoMensaje: string;
   loadingMensaje: boolean;
   setNuevoMensaje: React.Dispatch<React.SetStateAction<string>>;
@@ -123,7 +123,7 @@ export default function CardMensaje({
         {mensajesOrdenados.length === 0 ? (
           <Empty description="Sin mensajes en este ticket" />
         ) : (
-          mensajesOrdenados.map((m: MensajeTicket) => (
+          mensajesOrdenados.map((m: HD_MensajeTicket) => (
             <div key={m.id} className="flex gap-3 items-start">
               <Avatar
                 size="large"

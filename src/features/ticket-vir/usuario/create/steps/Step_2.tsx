@@ -1,13 +1,13 @@
-import { Area } from "@/interface/area";
-import { Incidencia } from "@/interface/incidencia";
+import { HD_Area } from "@/interface/hd/hd_area";
+import { HD_Incidencia } from "@/interface/hd/hd_incidencia";
 import { Descriptions, Form, FormInstance, UploadFile } from "antd";
 import Title from "antd/es/typography/Title";
 import Link from "next/link";
 
 interface Props {
   form: FormInstance;
-  areas: Area[];
-  incidencias: Incidencia[];
+  areas: HD_Area[];
+  incidencias: HD_Incidencia[];
   fileList: UploadFile[];
 }
 

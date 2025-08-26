@@ -6,11 +6,13 @@ import { ColumnsType } from "antd/es/table";
 interface Props {
   usuarios: Core_Usuario[];
   showDrawerAdministrativo: (usuario_id: number) => void;
+  showDrawerModulo: (usuario_id: number) => void;
 }
 
 export default function TableUsuarioAdministrativo({
   usuarios,
   showDrawerAdministrativo,
+  showDrawerModulo,
 }: Props) {
   const columnas: ColumnsType<Core_Usuario> = [
     {
@@ -56,6 +58,7 @@ export default function TableUsuarioAdministrativo({
             icon={<EyeOutlined />}
             onClick={() => showDrawerAdministrativo(record.id)}
           />
+          <Button onClick={() => showDrawerModulo(record.id)}>Acciones</Button>
         </div>
       ),
     },

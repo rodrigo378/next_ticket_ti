@@ -1,11 +1,11 @@
 import { Badge, Tabs } from "antd";
 import TicketTable from "./TicketTable";
-import { Ticket } from "@/interface/ticket_ti";
 import TicketTableResueltos from "./TicketTableResueltos";
+import { HD_Ticket } from "@/interface/hd/hd_ticket";
 
 interface Props {
-  ticketsActivos: Ticket[];
-  ticketsResueltos: Ticket[];
+  ticketsActivos: HD_Ticket[];
+  ticketsResueltos: HD_Ticket[];
   pendientes: number;
 }
 

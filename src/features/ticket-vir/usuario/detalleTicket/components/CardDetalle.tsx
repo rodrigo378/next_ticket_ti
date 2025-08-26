@@ -1,4 +1,4 @@
-import { Ticket } from "@/interface/ticket_ti";
+import { HD_Ticket } from "@/interface/hd/hd_ticket";
 import { Card, Descriptions, Tag } from "antd";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
@@ -6,7 +6,7 @@ dayjs.extend(relativeTime);
 dayjs.locale("es");
 
 interface Props {
-  ticket: Ticket | null;
+  ticket: HD_Ticket | null;
 }
 
 export default function CardDetalle({ ticket }: Props) {

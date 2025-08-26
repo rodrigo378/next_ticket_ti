@@ -1,13 +1,13 @@
-import { Usuario } from "@/interface/usuario";
+import { Core_Usuario } from "@/interface/core/core_usuario";
 import { Table } from "antd";
 import { ColumnsType } from "antd/es/table";
 
 interface Props {
-  usuarios: Usuario[];
+  usuarios: Core_Usuario[];
 }
 
 export default function TableUsuarioAlumno({ usuarios }: Props) {
-  const columnas: ColumnsType<Usuario> = [
+  const columnas: ColumnsType<Core_Usuario> = [
     {
       title: "Usuario",
       dataIndex: "nombre",
