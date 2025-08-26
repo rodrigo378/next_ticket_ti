@@ -1,29 +1,24 @@
 "use client";
 
 import { ROL_ID } from "@/const/rol.const";
-import { Area, Subarea } from "@/interface/area";
-import { Rol } from "@/interface/rol";
-import { CreateUsuario, UpdateUsuario, Usuario } from "@/interface/usuario";
+import { Core_Rol } from "@/interface/core/core_rol";
+import { Core_Usuario } from "@/interface/core/core_usuario";
+import { getRoles } from "@/services/core/rol";
 import {
   createUsuario,
   getUsuario,
   getUsuarios,
-  updateUsuario,
-} from "@/services/admin";
-import { getAreas, getSubareas } from "@/services/area";
-import { getRoles } from "@/services/rol";
+} from "@/services/core/usuario";
 import { Form, message } from "antd";
 import { useEffect, useState } from "react";
 
 export default function useListUsuario() {
   // USESTATE =======================================
-  const [usuarios, setUsuarios] = useState<Usuario[]>([]);
-  const [usuario, setUsuario] = useState<Usuario>();
+  const [usuarios, setUsuarios] = useState<Core_Usuario[]>([]);
+  const [usuario, setUsuario] = useState<Core_Usuario>();
   const [openAdministrativo, setOpenAdministrativo] = useState<boolean>(false);
   const [form] = Form.useForm();
-  const [roles, setRoles] = useState<Rol[]>([]);
-  const [areas, setAreas] = useState<Area[]>([]);
-  const [subareas, setSubareas] = useState<Subarea[]>([]);
+  const [roles, setRoles] = useState<Core_Rol[]>([]);
 
   // FETCH ==========================================
   const fetchUsuarios = async (roles_id: number[]) => {
@@ -35,28 +30,10 @@ export default function useListUsuario() {
     }
   };
 
-  const fetchRoles = async () => {
+  const fetchRol = async () => {
     try {
       const data = await getRoles();
       setRoles(data);
-    } catch (error) {
-      console.log("error => ", error);
-    }
-  };
-
-  const fetchAreas = async () => {
-    try {
-      const data = await getAreas();
-      setAreas(data);
-    } catch (error) {
-      console.log("error => ", error);
-    }
-  };
-
-  const fetchSubareas = async (area_id: number) => {
-    try {
-      const data = await getSubareas(area_id);
-      setSubareas(data);
     } catch (error) {
       console.log("error => ", error);
     }
@@ -81,8 +58,7 @@ export default function useListUsuario() {
       ROL_ID.NIVEL_5,
       ROL_ID.ADMINISTRATIVO,
     ]);
-    fetchRoles();
-    fetchAreas();
+    fetchRol();
   }, []);
 
   // FUNCIONES
@@ -92,28 +68,19 @@ export default function useListUsuario() {
     // setSubareas([]);
   };
 
-  const onFinishAdministrativo = async (values: CreateUsuario) => {
+  const onFinishAdministrativo = async (values: Core_Usuario) => {
     try {
       if (usuario) {
-        console.log("actualizar");
-        console.log("usuario_id => ", usuario.id);
-        console.log("data => ", values);
-
-        const data: UpdateUsuario = {
+        const data = {
           nombre: values.nombre,
           apellidos: values.apellidos,
-          password: values.password,
           grado: values.grado,
-          genero: values.genero,
           estado: values.estado,
           rol_id: values.rol_id,
-          subarea_id: values.subarea_id,
-          areas_id: values.areas_id,
         };
-
-        const response = await updateUsuario(usuario.id, data);
+        // const response = await updateUsuario(usuario.id, data);
         message.success("✅ Usuario actualizado correctamente");
-        console.log("Usuario actualizado => ", response);
+        // console.log("Usuario actualizado => ", response);
       } else {
         await createUsuario(values);
         message.success("✅ Usuario registrado correctamente");
@@ -129,6 +96,7 @@ export default function useListUsuario() {
         ROL_ID.ADMINISTRATIVO,
       ]);
     } catch (error) {
+      message.error("Error al crear usuario");
       console.log("error => ", error);
     }
   };
@@ -138,23 +106,15 @@ export default function useListUsuario() {
       if (usuario_id) {
         const data = await getUsuario(usuario_id);
         setUsuario(data);
-        setSubareas(await getSubareas(data.subarea!.area_id));
         form.setFieldsValue({
           nombre: data.nombre,
           apellidos: data.apellidos,
           email: data.email,
-          genero: data.genero,
           grado: data.grado,
           estado: data.estado,
-
           rol_id: data.rol_id,
-
-          area_id: data.subarea?.area_id,
-          subarea_id: data.subarea_id,
-          areas_id: data.UsuarioArea?.map((ua) => ua.area_id) ?? [],
         });
       }
-
       setOpenAdministrativo(true);
     } catch (error) {
       console.log("error =>", error);
@@ -182,10 +142,8 @@ export default function useListUsuario() {
   return {
     usuario,
     usuarios,
-    roles,
-    areas,
     openAdministrativo,
-    subareas,
+    roles,
 
     //formulario
     form,
@@ -194,7 +152,6 @@ export default function useListUsuario() {
     onCloseAdministrativo,
     showDrawerAdministrativo,
     onFinishAdministrativo,
-    fetchSubareas,
     onChangeTab,
   };
 }

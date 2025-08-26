@@ -11,16 +11,13 @@ export default function ListUsuarioView() {
   const {
     usuario,
     usuarios,
+    roles,
     openAdministrativo,
     form,
-    roles,
-    areas,
-    subareas,
 
     onCloseAdministrativo,
     showDrawerAdministrativo,
     onFinishAdministrativo,
-    fetchSubareas,
     onChangeTab,
   } = useListUsuario();
 
@@ -50,15 +47,12 @@ export default function ListUsuarioView() {
       ></TabsUsuario>
 
       <DrawerAdministrativo
-        openAdministrativo={openAdministrativo}
-        onCloseAdministrativo={onCloseAdministrativo}
-        form={form}
         usuario={usuario}
-        onFinishAdministrativo={onFinishAdministrativo}
         roles={roles}
-        areas={areas}
-        subareas={subareas}
-        fetchSubareas={fetchSubareas}
+        openAdministrativo={openAdministrativo}
+        form={form}
+        onCloseAdministrativo={onCloseAdministrativo}
+        onFinishAdministrativo={onFinishAdministrativo}
       ></DrawerAdministrativo>
     </div>
   );

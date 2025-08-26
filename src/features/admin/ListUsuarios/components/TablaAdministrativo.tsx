@@ -1,10 +1,10 @@
-import { Usuario } from "@/interface/usuario";
+import { Core_Usuario } from "@/interface/core/core_usuario";
 import { EyeOutlined } from "@ant-design/icons";
 import { Button, Table, Tag } from "antd";
 import { ColumnsType } from "antd/es/table";
 
 interface Props {
-  usuarios: Usuario[];
+  usuarios: Core_Usuario[];
   showDrawerAdministrativo: (usuario_id: number) => void;
 }
 
@@ -12,7 +12,7 @@ export default function TableUsuarioAdministrativo({
   usuarios,
   showDrawerAdministrativo,
 }: Props) {
-  const columnas: ColumnsType<Usuario> = [
+  const columnas: ColumnsType<Core_Usuario> = [
     {
       title: "Usuario",
       dataIndex: "nombre",
@@ -37,41 +37,6 @@ export default function TableUsuarioAdministrativo({
       key: "rol",
     },
     {
-      title: "Área",
-      key: "area",
-      render: (record: Usuario) => {
-        return record.subarea?.area?.nombre || "—";
-      },
-    },
-    {
-      title: "Subarea",
-      dataIndex: ["subarea", "nombre"],
-      key: "subarea",
-    },
-    {
-      title: "Áreas Administradas",
-      key: "areas_admin",
-      render: (record: Usuario) => {
-        if (record.rol?.nivel === 5) {
-          return <Tag color="geekblue">Todas las áreas</Tag>;
-        }
-        if (record.rol?.nivel === 4) {
-          return (
-            <div className="flex flex-wrap gap-1">
-              {record.UsuarioArea?.length
-                ? record.UsuarioArea.map((ua) => (
-                    <Tag key={ua.area?.id} color="blue">
-                      {ua.area?.nombre}
-                    </Tag>
-                  ))
-                : "—"}
-            </div>
-          );
-        }
-        return "—";
-      },
-    },
-    {
       title: "Estado",
       dataIndex: "estado",
       key: "estado",
@@ -85,7 +50,7 @@ export default function TableUsuarioAdministrativo({
     {
       title: "Acciones",
       key: "acciones",
-      render: (record: Usuario) => (
+      render: (record: Core_Usuario) => (
         <div className="flex gap-2">
           <Button
             icon={<EyeOutlined />}

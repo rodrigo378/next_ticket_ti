@@ -1,6 +1,6 @@
 "use client";
 
-import { Usuario } from "@/interface/usuario";
+import { Core_Usuario } from "@/interface/core/core_usuario";
 import { getMe } from "@/services/auth";
 import { useRouter, usePathname } from "next/navigation";
 import {
@@ -13,14 +13,14 @@ import {
 } from "react";
 
 type UserContextType = {
-  usuario: Usuario | null;
-  setUsuario: (user: Usuario | null) => void;
+  usuario: Core_Usuario | null;
+  setUsuario: (user: Core_Usuario | null) => void;
 };
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
 
 export const UserProvider = ({ children }: { children: ReactNode }) => {
-  const [usuario, setUsuario] = useState<Usuario | null>(null);
+  const [usuario, setUsuario] = useState<Core_Usuario | null>(null);
   const router = useRouter();
   const pathname = usePathname();
 
@@ -44,7 +44,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
         });
     } else {
       console.log("⛔ No hay token, redirigiendo a login");
-      router.push("/login");
+      // router.push("/login");
     }
   }, [router, pathname]);
 
