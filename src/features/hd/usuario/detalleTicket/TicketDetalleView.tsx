@@ -1,11 +1,11 @@
 "use client";
 
-import CardArchivos from "@/features/ticket-vir/usuario/detalleTicket/components/CardArchivos";
-import CardDetalle from "@/features/ticket-vir/usuario/detalleTicket/components/CardDetalle";
-import CardMensaje from "@/features/ticket-vir/usuario/detalleTicket/components/CardMensaje";
-import CardCalificacion from "@/features/ticket-vir/usuario/detalleTicket/components/CardCalificacion";
-import useDetalleTicket from "@/features/ticket-vir/usuario/detalleTicket/hooks/useDetalleTicket";
 import { Flex, Typography } from "antd";
+import useDetalleTicket from "./hooks/useDetalleTicket";
+import CardCalificacion from "./components/CardCalificacion";
+import CardDetalle from "./components/CardDetalle";
+import CardArchivos from "./components/CardArchivos";
+import CardMensaje from "./components/CardMensaje";
 const { Title, Text } = Typography;
 
 export default function TicketDetalleView() {
@@ -18,7 +18,7 @@ export default function TicketDetalleView() {
     crearCalificacion,
   } = useDetalleTicket();
 
-  const valorCalificado = ticket?.CalificacionTicket?.calificacion ?? 0;
+  const valorCalificado = ticket?.calificacionTicket?.calificacion ?? 0;
 
   return (
     <div className="max-w-5xl mx-auto mt-10 p-4 bg-white rounded-xl shadow-sm">

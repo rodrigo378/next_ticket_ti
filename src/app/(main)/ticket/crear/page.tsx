@@ -1,4 +1,4 @@
-import TicketCreateView from "@/features/ticket-vir/usuario/create/TicketCreateView";
+import TicketCreateView from "@/features/hd/usuario/create/TicketCreateView";
 
 export default function Page() {
   return <TicketCreateView></TicketCreateView>;

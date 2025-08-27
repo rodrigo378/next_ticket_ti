@@ -2,7 +2,7 @@
 
 import { Core_Usuario } from "@/interface/core/core_usuario";
 import { getMe } from "@/services/core/usuario";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation"; // 👈 importa router
 import {
   createContext,
   ReactNode,
@@ -22,25 +22,25 @@ type UserContextType = {
 };
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
-
-// Rutas públicas donde NO forzamos redirección al login
 const PUBLIC_ROUTES = ["/login"];
 
 export const UserProvider = ({ children }: { children: ReactNode }) => {
   const [usuario, setUsuario] = useState<Core_Usuario | null>(null);
   const [ready, setReady] = useState(false);
   const pathname = usePathname();
+  const router = useRouter(); // 👈
 
   const loginRedirect = useCallback(() => {
     if (typeof window === "undefined") return;
-    // Si quieres saltarte tu página /login y pegar directo al backend, pon aquí la URL del backend /auth/login
-    window.location.href = "/login";
-  }, []);
+    // evita bucles si ya estás en /login
+    if (window.location.pathname === "/login") return;
+    // 👇 client-side navigation: no hay full reload ni FOUC
+    router.replace("/login");
+  }, [router]);
 
   const refreshUsuario = useCallback(async () => {
     const u = await getMe();
     console.log("funcion getMe => ", u);
-
     setUsuario(u);
   }, []);
 
@@ -48,19 +48,20 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     if (typeof window === "undefined") return;
     localStorage.removeItem("token");
     setUsuario(null);
-    loginRedirect();
+    loginRedirect(); // 👈 ya usa router.replace
   }, [loginRedirect]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    // 1) Captura ?token=... y limpia la URL
+    // 1) Captura ?token=... y limpia la URL (también returnTo)
     const url = new URL(window.location.href);
     const tokenFromUrl = url.searchParams.get("token");
     if (tokenFromUrl) {
       localStorage.setItem("token", tokenFromUrl);
       url.searchParams.delete("token");
-      const qs = url.searchParams.toString(); // <- importante
+      url.searchParams.delete("returnTo"); // 👈 limpia también esto
+      const qs = url.searchParams.toString();
       window.history.replaceState({}, "", url.pathname + (qs ? `?${qs}` : ""));
     }
 
@@ -69,12 +70,8 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     if (!token) {
       setUsuario(null);
       setReady(true);
-
-      // ⬇️ No redirijas si estás en una ruta pública (p.ej. /login)
       if (!PUBLIC_ROUTES.includes(pathname)) {
-        console.log("entro aca");
-
-        loginRedirect();
+        loginRedirect(); // 👈 navegación sin recarga
       }
       return;
     }
@@ -88,8 +85,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
       } catch {
         localStorage.removeItem("token");
         if (!cancelled) setUsuario(null);
-        // Si quieres forzar login automático aquí, descomenta:
-        // if (!PUBLIC_ROUTES.includes(pathname)) loginRedirect();
+        // opcional: loginRedirect();
       } finally {
         if (!cancelled) setReady(true);
       }

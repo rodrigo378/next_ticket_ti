@@ -18,5 +18,6 @@ export interface IamMenuModule {
   key: string; // ej: "ADM"
   label: string; // ej: "Administrador"
   order?: number;
+  icono: string;
   groups: IamMenuGroup[];
 }
