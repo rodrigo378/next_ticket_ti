@@ -1,19 +1,19 @@
-import { PrioridadTicket } from "@/interface/prioridad";
-import { Ticket } from "@/interface/ticket_ti";
 import { Button, Table, Tag, Tooltip } from "antd";
 
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import "dayjs/locale/es";
-import { Usuario } from "@/interface/usuario";
 import { BranchesOutlined, EyeOutlined } from "@ant-design/icons";
+import { HD_Ticket } from "@/interface/hd/hd_ticket";
+import { HD_PrioridadTicket } from "@/interface/hd/hd_prioridadTicket";
+import { Core_Usuario } from "@/interface/core/core_usuario";
 dayjs.extend(relativeTime);
 dayjs.locale("es");
 
 interface Props {
-  tickets: Ticket[];
+  tickets: HD_Ticket[];
   loading: boolean;
-  abrirDrawer: (ticket: Ticket) => void;
+  abrirDrawer: (ticket: HD_Ticket) => void;
 }
 
 export default function TicketTableAdmin({
@@ -35,7 +35,7 @@ export default function TicketTableAdmin({
     {
       title: "Tipo",
       key: "tipo",
-      render: (record: Ticket) => {
+      render: (record: HD_Ticket) => {
         const tipo = record.categoria?.incidencia?.tipo;
         const icon =
           tipo === "requerimiento" ? "📌" : tipo === "incidencia" ? "⚠️" : "X";
@@ -50,7 +50,7 @@ export default function TicketTableAdmin({
       title: "Prioridad",
       dataIndex: "prioridad",
       key: "prioridad_id",
-      render: (prioridad: PrioridadTicket) => {
+      render: (prioridad: HD_PrioridadTicket) => {
         const color =
           prioridad?.nombre === "Alta"
             ? "red"
@@ -111,7 +111,7 @@ export default function TicketTableAdmin({
     {
       title: "Creado por",
       key: "creado_id",
-      render: (record: Ticket) => (
+      render: (record: HD_Ticket) => (
         <>
           {`${record.creado?.nombre || ""} ${record.creado?.apellidos || ""}`}{" "}
           <Tag color={record.creado?.rol_id === 7 ? "blue" : "green"}>
@@ -124,7 +124,7 @@ export default function TicketTableAdmin({
       title: "Asignado a",
       dataIndex: "asignado",
       key: "asignado",
-      render: (asignado: Usuario | null) =>
+      render: (asignado: Core_Usuario | null) =>
         asignado ? (
           <span>
             {asignado.nombre} {asignado.apellidos}
@@ -136,7 +136,7 @@ export default function TicketTableAdmin({
     {
       title: "Acciones",
       key: "acciones",
-      render: (record: Ticket) => (
+      render: (record: HD_Ticket) => (
         <Button
           type="link"
           icon={<EyeOutlined />}

@@ -1,6 +1,6 @@
 import { useUsuario } from "@/context/UserContext";
-import { Ticket } from "@/interface/ticket_ti";
-import { getTickets } from "@/services/ticket_ti";
+import { HD_Ticket } from "@/interface/hd/hd_ticket";
+import { getTickets } from "@/services/hd/ticket_ti";
 import { message } from "antd";
 import { useEffect, useState } from "react";
 
@@ -8,7 +8,7 @@ export default function useBandeja() {
   // USESTATE ========================
   const [tabKey, setTabKey] = useState("mis_tickets");
   const [loading, setLoading] = useState(false);
-  const [tickets, setTickets] = useState<Ticket[]>([]);
+  const [tickets, setTickets] = useState<HD_Ticket[]>([]);
   const { usuario } = useUsuario();
 
   // USEEFFECT

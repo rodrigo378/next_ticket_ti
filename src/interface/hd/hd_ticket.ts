@@ -34,10 +34,10 @@ export interface HD_Ticket {
   categoria_id?: number | null;
   categoria?: HD_Categoria | null;
 
-  createdAt: string; // ISO
-  asignadoAt?: string | null;
-  respondidoAt?: string | null;
-  finalizadoAt?: string | null;
+  createdAt: Date; // ISO
+  asignadoAt?: Date | null;
+  respondidoAt?: Date | null;
+  finalizadoAt?: Date | null;
 
   documentos?: HD_DocumentoTicket[];
   mensajes?: HD_MensajeTicket[];

@@ -1,5 +1,5 @@
-import { Ticket } from "@/interface/ticket_ti";
-import { Usuario } from "@/interface/usuario";
+import { Core_Usuario } from "@/interface/core/core_usuario";
+import { HD_Ticket } from "@/interface/hd/hd_ticket";
 import {
   CheckCircleTwoTone,
   CloseCircleTwoTone,
@@ -9,8 +9,8 @@ import { Button, Space, Table, Tag, Tooltip } from "antd";
 import Link from "next/link";
 
 interface Props {
-  usuario: Usuario;
-  tickets: Ticket[];
+  usuario: Core_Usuario;
+  tickets: HD_Ticket[];
   loading: boolean;
 }
 
@@ -24,7 +24,7 @@ export default function TableTickets({ usuario, tickets, loading }: Props) {
     {
       title: "Tipo",
       key: "tipo",
-      render: (record: Ticket) => {
+      render: (record: HD_Ticket) => {
         const tipo = record.categoria?.incidencia?.tipo;
         const icon = tipo === "requerimiento" ? "📌" : "⚠️";
         return (
@@ -37,7 +37,7 @@ export default function TableTickets({ usuario, tickets, loading }: Props) {
     {
       title: "Clasificación",
       key: "clasificacion",
-      render: (record: Ticket) => {
+      render: (record: HD_Ticket) => {
         return (
           <span>
             {record.categoria?.incidencia?.nombre} /{" "}
@@ -63,7 +63,7 @@ export default function TableTickets({ usuario, tickets, loading }: Props) {
     {
       title: "Estado / Asignado",
       key: "estado",
-      render: (record: Ticket) => {
+      render: (record: HD_Ticket) => {
         const asignado = record.asignado_id === usuario?.id;
         return (
           <Space>
@@ -80,7 +80,7 @@ export default function TableTickets({ usuario, tickets, loading }: Props) {
     {
       title: "Asunto",
       key: "asunto",
-      render: (record: Ticket) => (
+      render: (record: HD_Ticket) => (
         <Tooltip title={record.descripcion}>
           <span
             style={{
@@ -99,7 +99,7 @@ export default function TableTickets({ usuario, tickets, loading }: Props) {
     {
       title: "Acciones",
       key: "acciones",
-      render: (record: Ticket) => {
+      render: (record: HD_Ticket) => {
         const estaAsignado = record.asignado_id === usuario?.id;
 
         return estaAsignado ? (

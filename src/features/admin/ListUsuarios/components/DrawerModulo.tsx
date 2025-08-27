@@ -171,16 +171,32 @@ export default function DrawerModulosUsuario({
                   />
                 </Form.Item>
               ) : (
-                <Form.Item label="Área">
-                  <Select<number>
-                    value={areasIdHd[0]}
-                    onChange={handleHdSingleAreaChange}
-                    options={areaOptions}
-                    placeholder="Seleccione un área"
-                    allowClear
-                    style={{ width: "100%" }}
-                  />
-                </Form.Item>
+                <>
+                  {/* 👈 Registrar el campo en el Form para que salga en onFinish */}
+                  <Form.Item
+                    name={["hd", "areas_id"]}
+                    initialValue={initialHdAreasId}
+                    hidden
+                  >
+                    <input />
+                  </Form.Item>
+
+                  <Form.Item label="Área">
+                    <Select<number>
+                      value={areasIdHd[0]}
+                      onChange={(id) =>
+                        formModules.setFieldValue(
+                          ["hd", "areas_id"],
+                          id == null ? [] : [id]
+                        )
+                      }
+                      options={areaOptions}
+                      placeholder="Seleccione un área"
+                      allowClear
+                      style={{ width: "100%" }}
+                    />
+                  </Form.Item>
+                </>
               )
             ) : null}
 
@@ -200,7 +216,6 @@ export default function DrawerModulosUsuario({
       width={520}
       open={open}
       onClose={onClose}
-      destroyOnClose
     >
       <Collapse items={items} defaultActiveKey={items.map((i) => i.key)} />
     </Drawer>

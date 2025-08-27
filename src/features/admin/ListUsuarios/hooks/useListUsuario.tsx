@@ -194,6 +194,8 @@ export default function useListUsuario() {
     adm?: { rol?: string };
     hd?: { rol?: string; areas_id?: number[] };
   }) => {
+    console.log("values => ", values);
+
     try {
       // toma el id del último usuario para el que abriste el drawer
       const userId = lastReqUserIdRef.current ?? usuario?.id;
@@ -207,19 +209,25 @@ export default function useListUsuario() {
       // ADM: solo rol
       if (values.adm?.rol) {
         tareas.push(
-          upsertUsuarioModulo(userId, "ADM", { rol: values.adm.rol } as any)
+          upsertUsuarioModulo(userId, "ADM", { rol: values.adm.rol })
         );
       }
 
       // HD: rol + (opcional) áreas_id
       if (values.hd?.rol) {
+        console.log("rol => ", values.hd.rol);
+        console.log(
+          "areas => ",
+          values.hd.rol,
+          Array.isArray(values.hd.areas_id) ? values.hd.areas_id : undefined
+        );
         tareas.push(
           upsertUsuarioModulo(userId, "HD", {
             rol: values.hd.rol,
             areas_id: Array.isArray(values.hd.areas_id)
               ? values.hd.areas_id
               : undefined,
-          } as any)
+          })
         );
       }
 

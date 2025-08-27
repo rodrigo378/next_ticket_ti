@@ -74,7 +74,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
       if (!PUBLIC_ROUTES.includes(pathname)) {
         console.log("entro aca");
 
-        // loginRedirect();
+        loginRedirect();
       }
       return;
     }

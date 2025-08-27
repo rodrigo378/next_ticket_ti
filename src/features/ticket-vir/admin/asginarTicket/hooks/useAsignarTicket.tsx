@@ -1,9 +1,14 @@
 "use client";
 import { Core_Usuario } from "@/interface/core/core_usuario";
+import { TreeNode } from "@/interface/hd/hd_incidencia";
 import { HD_Ticket } from "@/interface/hd/hd_ticket";
-import { getSoporte } from "@/services/admin";
 import { getArbol } from "@/services/hd/incidencias";
-import { asignarTicket, getTicket, getTickets } from "@/services/hd/ticket_ti";
+import {
+  asignarTicket,
+  getSoporte,
+  getTicket,
+  getTickets,
+} from "@/services/hd/ticket_ti";
 import { message } from "antd";
 import { useEffect, useState } from "react";
 
@@ -75,7 +80,7 @@ export default function useAsignarTicket() {
 
   const fetchUsuarios = async () => {
     try {
-      const data = await getSoporte();
+      const data = await getSoporte(1);
       setUsuarios(data);
     } catch (error) {
       console.error("error => ", error);

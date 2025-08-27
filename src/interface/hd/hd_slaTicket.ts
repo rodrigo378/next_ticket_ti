@@ -11,8 +11,8 @@ export enum SlaEstado {
 
 export interface HD_SLATicket {
   id: number;
-  tiempo_estimado_respuesta: string; // ISO
-  tiempo_estimado_resolucion?: string | null; // ISO
+  tiempo_estimado_respuesta: Date; // ISO
+  tiempo_estimado_resolucion?: Date | null; // ISO
   cumplido: boolean;
 
   ticket_id: number; // unique

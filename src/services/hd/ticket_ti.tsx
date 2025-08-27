@@ -114,3 +114,8 @@ export const cambiarEstado = async (
   const response = await api.put(`/hd/ticket/estado/${ticket_id}`, data);
   return response.data;
 };
+
+export const getSoporte = async (area_id: number) => {
+  const response = await api.get(`/hd/ticket/soporte/${area_id}`);
+  return response.data;
+};

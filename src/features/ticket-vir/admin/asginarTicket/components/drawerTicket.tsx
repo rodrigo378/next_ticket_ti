@@ -1,4 +1,3 @@
-import { Ticket } from "@/interface/ticket_ti";
 import { EyeOutlined } from "@ant-design/icons";
 import {
   Button,
@@ -21,21 +20,22 @@ const { Option } = Select;
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import "dayjs/locale/es";
-import { Usuario } from "@/interface/usuario";
-import { DerivacionTicket } from "@/interface/derivacionTicket";
-import { TreeNode } from "@/interface/incidencia";
+import { HD_Ticket } from "@/interface/hd/hd_ticket";
+import { Core_Usuario } from "@/interface/core/core_usuario";
+import { HD_DerivacionTicket } from "@/interface/hd/hd_derivacionTicket";
+import { TreeNode } from "@/interface/hd/hd_incidencia";
 
 dayjs.extend(relativeTime);
 dayjs.locale("es");
 
 interface Props {
   arbol: TreeNode[];
-  ticket: Ticket;
+  ticket: HD_Ticket;
   drawerVisible: boolean;
   setDrawerVisible: React.Dispatch<React.SetStateAction<boolean>>;
   asignadoId: number;
   setAsignadoId: React.Dispatch<React.SetStateAction<number | undefined>>;
-  usuarios: Usuario[];
+  usuarios: Core_Usuario[];
   prioridadId: number;
   setPrioridadId: React.Dispatch<React.SetStateAction<number | undefined>>;
   handleActualizar: () => void;
@@ -85,28 +85,28 @@ export default function DrawerTicket({
     return `Faltan ${e.toNow(true)}`;
   };
 
-  const nowForRespuesta = (t?: Ticket | null) =>
+  const nowForRespuesta = (t?: HD_Ticket | null) =>
     t?.respondidoAt ? dayjs(t.respondidoAt) : dayjs();
 
-  const nowForResolucion = (t?: Ticket | null) =>
+  const nowForResolucion = (t?: HD_Ticket | null) =>
     t?.finalizadoAt ? dayjs(t.finalizadoAt) : dayjs();
 
   const respNow = nowForRespuesta(ticket);
   const respPercent = calcPercent(
-    ticket?.asignadoAt,
+    ticket?.asignadoAt || "",
     ticket?.slaTicket?.tiempo_estimado_respuesta,
     respNow
   );
 
   const resoNow = nowForResolucion(ticket);
   const resoPercent = calcPercent(
-    ticket?.asignadoAt,
-    ticket?.slaTicket?.tiempo_estimado_resolucion,
+    ticket?.asignadoAt || "",
+    ticket?.slaTicket?.tiempo_estimado_resolucion || "",
     resoNow
   );
 
   const resoRemaining = humanRemaining(
-    ticket?.slaTicket?.tiempo_estimado_resolucion,
+    ticket?.slaTicket?.tiempo_estimado_resolucion || "",
     resoNow
   );
 
@@ -218,31 +218,33 @@ export default function DrawerTicket({
             </>
           )}
           {/* 🔀 Derivación */}
-          {Array.isArray(ticket?.DerivacionesComoDestino) &&
-            ticket.DerivacionesComoDestino.length > 0 && (
+          {Array.isArray(ticket?.derivacionesComoDestino) &&
+            ticket.derivacionesComoDestino.length > 0 && (
               <>
                 <Divider orientation="left">🔀 Derivado desde</Divider>
-                {ticket.DerivacionesComoDestino.map((d: DerivacionTicket) => (
-                  <Descriptions key={d.id} bordered column={1} size="small">
-                    <Descriptions.Item label="De área">
-                      {d.de_area.nombre}
-                    </Descriptions.Item>
-                    <Descriptions.Item label="A área">
-                      {d.a_area.nombre}
-                    </Descriptions.Item>
-                    <Descriptions.Item label="Motivo">
-                      {d.motivo ?? "—"}
-                    </Descriptions.Item>
-                    <Descriptions.Item label="Fecha">
-                      {d.createdAt
-                        ? dayjs(d.createdAt).format("DD/MM/YYYY HH:mm")
-                        : "—"}
-                    </Descriptions.Item>
-                    <Descriptions.Item label="Derivado por">
-                      {`${d.usuario.nombre} ${d.usuario.apellidos}`}
-                    </Descriptions.Item>
-                  </Descriptions>
-                ))}
+                {ticket.derivacionesComoDestino.map(
+                  (d: HD_DerivacionTicket) => (
+                    <Descriptions key={d.id} bordered column={1} size="small">
+                      <Descriptions.Item label="De área">
+                        {d.de_area!.nombre}
+                      </Descriptions.Item>
+                      <Descriptions.Item label="A área">
+                        {d.a_area!.nombre}
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Motivo">
+                        {d.motivo ?? "—"}
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Fecha">
+                        {d.createdAt
+                          ? dayjs(d.createdAt).format("DD/MM/YYYY HH:mm")
+                          : "—"}
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Derivado por">
+                        {`${d.usuario!.nombre} ${d.usuario!.apellidos}`}
+                      </Descriptions.Item>
+                    </Descriptions>
+                  )
+                )}
               </>
             )}
 
@@ -349,8 +351,8 @@ export default function DrawerTicket({
               </Select>
             </div>
 
-            {Array.isArray(ticket?.DerivacionesComoDestino) &&
-              ticket.DerivacionesComoDestino.length > 0 && (
+            {Array.isArray(ticket?.derivacionesComoDestino) &&
+              ticket.derivacionesComoDestino.length > 0 && (
                 <Card
                   size="small"
                   className="rounded-lg border border-dashed"
