@@ -1,8 +1,8 @@
-import { Ticket } from "@/interface/ticket_ti";
 import { Alert, Card, Divider, Progress, Tag, Typography, Space } from "antd";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
+import { HD_Ticket } from "@/interface/hd/hd_ticket";
 dayjs.extend(relativeTime);
 dayjs.locale("es");
 dayjs.extend(isSameOrBefore);
@@ -18,7 +18,7 @@ type EstadoBadge =
   | "Fuera de tiempo";
 
 interface Props {
-  ticket: Ticket;
+  ticket: HD_Ticket;
 }
 
 export default function CardSla({ ticket }: Props) {
@@ -61,9 +61,9 @@ export default function CardSla({ ticket }: Props) {
     return `Faltan ${e.toNow(true)}`;
   };
 
-  const nowForRespuesta = (t?: Ticket | null) =>
+  const nowForRespuesta = (t?: HD_Ticket | null) =>
     t?.respondidoAt ? dayjs(t.respondidoAt) : dayjs();
-  const nowForResolucion = (t?: Ticket | null) =>
+  const nowForResolucion = (t?: HD_Ticket | null) =>
     t?.finalizadoAt ? dayjs(t.finalizadoAt) : dayjs();
 
   const respNow = nowForRespuesta(ticket);
@@ -79,7 +79,7 @@ export default function CardSla({ ticket }: Props) {
   const respPercentFinal = responded
     ? 100
     : calcPercent(
-        ticket?.asignadoAt,
+        ticket?.asignadoAt || "",
         ticket?.slaTicket?.tiempo_estimado_respuesta,
         respNow
       );
@@ -129,8 +129,8 @@ export default function CardSla({ ticket }: Props) {
   const resPercentFinal = finalized
     ? 100
     : calcPercent(
-        ticket?.asignadoAt,
-        ticket?.slaTicket?.tiempo_estimado_resolucion,
+        ticket?.asignadoAt || "",
+        ticket?.slaTicket?.tiempo_estimado_resolucion || "",
         resoNow
       );
   const resCumplido =
@@ -142,8 +142,10 @@ export default function CardSla({ ticket }: Props) {
     ? resCumplido
       ? "success"
       : "exception"
-    : humanRemaining(ticket?.slaTicket?.tiempo_estimado_resolucion, resoNow) ===
-      "Vencido"
+    : humanRemaining(
+        ticket?.slaTicket?.tiempo_estimado_resolucion || "",
+        resoNow
+      ) === "Vencido"
     ? "exception"
     : "active";
 
@@ -151,15 +153,17 @@ export default function CardSla({ ticket }: Props) {
     ? resCumplido
       ? "Cumplido"
       : "Fuera de tiempo"
-    : humanRemaining(ticket?.slaTicket?.tiempo_estimado_resolucion, resoNow) ===
-      "Vencido"
+    : humanRemaining(
+        ticket?.slaTicket?.tiempo_estimado_resolucion || "",
+        resoNow
+      ) === "Vencido"
     ? "Vencido"
     : estimadoRes && asignadoAt
     ? "En tiempo"
     : "N/A";
 
   const resoRemaining = humanRemaining(
-    ticket?.slaTicket?.tiempo_estimado_resolucion,
+    ticket?.slaTicket?.tiempo_estimado_resolucion || "",
     resoNow
   );
 

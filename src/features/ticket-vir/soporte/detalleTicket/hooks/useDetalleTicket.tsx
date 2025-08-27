@@ -1,5 +1,5 @@
-import { Ticket } from "@/interface/ticket_ti";
-import { createMensaje, getTicket } from "@/services/ticket_ti";
+import { HD_Ticket } from "@/interface/hd/hd_ticket";
+import { createMensaje, getTicket } from "@/services/hd/ticket_ti";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -12,7 +12,7 @@ export default function useDetalleTicket() {
   const id = params.id as string;
 
   // STATE =====================
-  const [ticket, setTicket] = useState<Ticket>();
+  const [ticket, setTicket] = useState<HD_Ticket>();
   const [nuevoMensaje, setNuevoMensaje] = useState("");
   const [loadingMensaje, setLoadingMensaje] = useState(false);
 

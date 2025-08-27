@@ -1,15 +1,15 @@
 "use client";
-import { Area } from "@/interface/area";
-import { Ticket } from "@/interface/ticket_ti";
-import { getAreas } from "@/services/area"; // ✅ Faltaba importar esto
-import { derivarTicket } from "@/services/ticket_ti";
+import { HD_Area } from "@/interface/hd/hd_area";
+import { HD_Ticket } from "@/interface/hd/hd_ticket";
+import { getAreas } from "@/services/hd/area";
+import { derivarTicket } from "@/services/hd/ticket_ti";
 import { Button, Form, message, Modal, Select } from "antd";
 import TextArea from "antd/es/input/TextArea";
 import { useRouter } from "next/navigation";
 import { forwardRef, useImperativeHandle, useState } from "react";
 
 interface Props {
-  ticket: Ticket;
+  ticket: HD_Ticket;
 }
 
 interface ModalHandle {
@@ -22,7 +22,7 @@ const ComponenteModal = forwardRef<ModalHandle, Props>(({ ticket }, ref) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const [form] = Form.useForm();
-  const [areas, setAreas] = useState<Area[]>([]);
+  const [areas, setAreas] = useState<HD_Area[]>([]);
 
   useImperativeHandle(ref, () => ({
     openModal: () => {

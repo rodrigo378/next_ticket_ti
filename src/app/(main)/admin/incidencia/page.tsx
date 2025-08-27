@@ -14,17 +14,18 @@ import {
 } from "antd";
 import { useEffect, useState } from "react";
 import { SearchOutlined, PlusOutlined } from "@ant-design/icons";
-import { getAreas, getSubareas } from "@/services/area";
-import { Area, Subarea } from "@/interface/area";
-import { Incidencia } from "@/interface/incidencia";
-import { CatalogoServicio } from "@/interface/catalogo";
 import { createCatalogo, getCatalogo } from "@/services/hd/catalogo";
 import {
   createCategoria,
   createIncidencia,
   updateCategoria,
 } from "@/services/hd/incidencias";
-import { updateSla } from "@/services/sla";
+import { updateSla } from "@/services/hd/sla";
+import { HD_CatalogoServicio } from "@/interface/hd/hd_catalogoServicio";
+import { HD_Area } from "@/interface/hd/hd_area";
+import { HD_Subarea } from "@/interface/hd/hd_subarea";
+import { getAreas, getSubareas } from "@/services/hd/area";
+import { HD_Incidencia } from "@/interface/hd/hd_incidencia";
 
 const { Title, Paragraph } = Typography;
 const { Option } = Select;
@@ -32,12 +33,12 @@ const { Option } = Select;
 export default function Page() {
   const [catalogoIdActual, setCatalogoIdActual] = useState<number | null>(null);
 
-  const [catalogos, setCatalogos] = useState<CatalogoServicio[]>([]);
-  const [areas, setAreas] = useState<Area[]>([]);
+  const [catalogos, setCatalogos] = useState<HD_CatalogoServicio[]>([]);
+  const [areas, setAreas] = useState<HD_Area[]>([]);
   const [areaSeleccionada, setAreaSeleccionada] = useState<number | null>(null);
   const [filtro, setFiltro] = useState("");
   const [subareasPorCatalogo, setSubareasPorCatalogo] = useState<{
-    [catalogoId: number]: Subarea[];
+    [catalogoId: number]: HD_Subarea[];
   }>({});
 
   const [formCatalogo] = Form.useForm();
@@ -267,7 +268,7 @@ export default function Page() {
           {
             title: "Acciones",
             key: "accion",
-            render: (catalogo: CatalogoServicio) => (
+            render: (catalogo: HD_CatalogoServicio) => (
               <Button
                 type="primary"
                 onClick={() => onOpenIncidencia(catalogo.id)}
@@ -287,7 +288,7 @@ export default function Page() {
           return matchTexto && matchArea;
         })}
         expandable={{
-          expandedRowRender: (catalogo: CatalogoServicio) => {
+          expandedRowRender: (catalogo: HD_CatalogoServicio) => {
             cargarSubareasSiNoExisten(catalogo.id, catalogo.area_id);
             const subareas = subareasPorCatalogo[catalogo.id] || [];
 
@@ -307,7 +308,7 @@ export default function Page() {
                     {
                       title: "Acciones",
                       key: "accion",
-                      render: (incidencia: Incidencia) => (
+                      render: (incidencia: HD_Incidencia) => (
                         <Button
                           type="primary"
                           onClick={() =>
@@ -324,7 +325,7 @@ export default function Page() {
                   ]}
                   dataSource={catalogo.incidencias || []}
                   expandable={{
-                    expandedRowRender: (inc: Incidencia) => {
+                    expandedRowRender: (inc: HD_Incidencia) => {
                       return (
                         <div className="space-y-4">
                           {(inc.categoria || []).map((cat) => (
@@ -358,7 +359,7 @@ export default function Page() {
                                   </tr>
                                 </thead>
                                 <tbody>
-                                  {(cat.SLA || []).map((sla) => (
+                                  {(cat.sla || []).map((sla) => (
                                     <tr key={sla.id} className="border-t">
                                       <td>{sla.prioridad?.nombre}</td>
                                       <td>

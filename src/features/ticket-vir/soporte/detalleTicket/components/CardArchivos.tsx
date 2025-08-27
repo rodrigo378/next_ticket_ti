@@ -1,10 +1,10 @@
-import { Ticket } from "@/interface/ticket_ti";
+import { HD_Ticket } from "@/interface/hd/hd_ticket";
 import { PaperClipOutlined } from "@ant-design/icons";
 import { Card, List, Typography } from "antd";
 const { Text } = Typography;
 
 interface Props {
-  ticket: Ticket;
+  ticket: HD_Ticket;
 }
 
 export default function CardArchivos({ ticket }: Props) {

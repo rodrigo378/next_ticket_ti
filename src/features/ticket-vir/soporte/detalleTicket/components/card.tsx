@@ -1,6 +1,3 @@
-import { EstadoTicket } from "@/interface/estado";
-import { Ticket } from "@/interface/ticket_ti";
-import { getEstados } from "@/services/estado";
 import {
   Button,
   Card,
@@ -14,11 +11,14 @@ import {
 } from "antd";
 import { useEffect, useRef, useState } from "react";
 import ComponenteModal from "./modal";
-import { cambiarEstado } from "@/services/ticket_ti";
+import { HD_Ticket } from "@/interface/hd/hd_ticket";
+import { HD_EstadoTicket } from "@/interface/hd/hd_estadoTicket";
+import { getEstados } from "@/services/hd/estado";
+import { cambiarEstado } from "@/services/hd/ticket_ti";
 const { Title, Text } = Typography;
 
 interface Props {
-  ticket: Ticket;
+  ticket: HD_Ticket;
   onTicketUpdate: () => void; // nueva prop para actualizar ticket
 }
 
@@ -41,7 +41,7 @@ export const CardOpcionesRapidas = ({ ticket, onTicketUpdate }: Props) => {
     modalRef.current?.openModal();
   };
 
-  const [estados, setEstados] = useState<EstadoTicket[]>([]);
+  const [estados, setEstados] = useState<HD_EstadoTicket[]>([]);
 
   const fechEstados = async () => {
     try {

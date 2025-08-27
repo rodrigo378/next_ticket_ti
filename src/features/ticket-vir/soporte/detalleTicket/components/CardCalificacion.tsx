@@ -5,26 +5,26 @@ import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import "dayjs/locale/es";
 import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
-import { Ticket } from "@/interface/ticket_ti";
 import { useMemo } from "react";
+import { HD_Ticket } from "@/interface/hd/hd_ticket";
 dayjs.extend(relativeTime);
 dayjs.locale("es");
 dayjs.extend(isSameOrBefore);
 
 interface Props {
-  ticket: Ticket;
+  ticket: HD_Ticket;
 }
 
 export default function CardCalificacion({ ticket }: Props) {
   const estaResuelto = ticket?.estado_id === 4;
 
   const yaTieneCalificacion = useMemo(
-    () => Boolean(ticket?.CalificacionTicket),
+    () => Boolean(ticket?.calificacionTicket),
     [ticket]
   );
 
   const valorCalificacion = Number(
-    ticket?.CalificacionTicket?.calificacion || 0
+    ticket?.calificacionTicket?.calificacion || 0
   );
 
   return (
@@ -46,9 +46,9 @@ export default function CardCalificacion({ ticket }: Props) {
             <div className="my-3">
               <Rate allowHalf disabled defaultValue={valorCalificacion} />
             </div>
-            {ticket?.CalificacionTicket?.comentario ? (
+            {ticket?.calificacionTicket?.comentario ? (
               <Text type="secondary" italic>
-                “{ticket.CalificacionTicket.comentario}”
+                “{ticket.calificacionTicket.comentario}”
               </Text>
             ) : (
               <Text type="secondary" italic>
@@ -56,7 +56,7 @@ export default function CardCalificacion({ ticket }: Props) {
               </Text>
             )}
             <div className="text-xs text-gray-500 mt-2">
-              {dayjs(ticket?.CalificacionTicket?.createdAt).fromNow()}
+              {dayjs(ticket?.calificacionTicket?.createdAt).fromNow()}
             </div>
           </div>
         ) : (

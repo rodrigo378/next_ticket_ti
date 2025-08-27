@@ -1,20 +1,20 @@
 "use client";
-import { Ticket } from "@/interface/ticket_ti";
 import { Card, Descriptions, Tag, Space, Typography } from "antd";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import "dayjs/locale/es";
+import { HD_Ticket } from "@/interface/hd/hd_ticket";
 dayjs.extend(relativeTime);
 dayjs.locale("es");
 
 const { Text } = Typography;
 
 interface Props {
-  ticket: Ticket;
+  ticket: HD_Ticket;
 }
 
 export default function CardTicketOrigen({ ticket }: Props) {
-  const derivaciones = ticket.DerivacionesComoDestino ?? [];
+  const derivaciones = ticket.derivacionesComoDestino ?? [];
   if (!derivaciones.length) return null;
 
   const fmt = (d?: Date | string) =>
