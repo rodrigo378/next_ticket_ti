@@ -1,4 +1,4 @@
-import AsignarTicketView from "@/features/ticket-vir/admin/asginarTicket/AsignarTicketView";
+import AsignarTicketView from "@/features/hd/admin/asginarTicket/AsignarTicketView";
 
 export default function Page() {
   return <AsignarTicketView></AsignarTicketView>;

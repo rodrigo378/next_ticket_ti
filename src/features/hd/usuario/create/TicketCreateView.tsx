@@ -49,7 +49,6 @@ export default function TicketCreateView() {
 
   return (
     <div className="max-w-5xl mx-auto mt-10 p-4">
-      <h1 className="text-2xl font-bold mb-6 text-gray-800">Crear Ticket</h1>
       <StepsHeader
         current={current}
         items={stepItems}

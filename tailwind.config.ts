@@ -6,10 +6,9 @@ const config: Config = {
     "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/features/**/*.{js,ts,jsx,tsx,mdx}",
   ],
-  safelist: [
-    "bg-[url('/assets/fondo_login.jfif')]", // o cambia el archivo a .jpg y actualiza aquí
-  ],
+  safelist: ["bg-[url('/assets/fondo_login.jfif')]"],
   theme: {
     extend: {
       colors: {

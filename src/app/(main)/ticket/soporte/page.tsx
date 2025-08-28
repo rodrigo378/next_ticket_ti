@@ -1,4 +1,4 @@
-import BandejaView from "@/features/ticket-vir/soporte/bandeja/BandejaView";
+import BandejaView from "@/features/hd/soporte/bandeja/BandejaView";
 
 export default function Page() {
   return <BandejaView></BandejaView>;

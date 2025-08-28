@@ -1,7 +1,7 @@
 "use client";
 
-import DetalleTicket from "@/features/ticket-vir/soporte/detalleTicket/DetalleTicketView";
+import DetalleTicketView from "@/features/hd/soporte/detalleTicket/DetalleTicketView";
 
 export default function Page() {
-  return <DetalleTicket></DetalleTicket>;
+  return <DetalleTicketView></DetalleTicketView>;
 }

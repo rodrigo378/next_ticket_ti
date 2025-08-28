@@ -2,12 +2,15 @@ import { useMemo, useState } from "react";
 import {
   Button,
   Card,
+  Checkbox,
   Divider,
   Empty,
   Space,
   Typography,
   Upload,
   Avatar,
+  Tooltip,
+  Tag,
 } from "antd";
 import TextArea from "antd/es/input/TextArea";
 import {
@@ -16,6 +19,7 @@ import {
   DownloadOutlined,
   UserOutlined,
   TeamOutlined,
+  InfoCircleOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
@@ -32,23 +36,25 @@ interface Props {
   loadingMensaje: boolean;
   setNuevoMensaje: React.Dispatch<React.SetStateAction<string>>;
   handleEnviarMensaje: (opts?: { archivos?: UploadFile[] }) => void;
+
+  /** Persistir bloqueo en backend (opcional) */
+  onToggleBloqueo?: (blocked: boolean) => void;
 }
 
-export default function CardMensaje({
+export default function CardMensajeSoporte({
   ticket,
   nuevoMensaje,
   loadingMensaje,
   setNuevoMensaje,
   handleEnviarMensaje,
+  onToggleBloqueo,
 }: Props) {
   const mensajes = useMemo(() => ticket?.mensajes ?? [], [ticket?.mensajes]);
-
   const [fileList, setFileList] = useState<UploadFile[]>([]);
 
-  // ======= Reglas de habilitación por estado =======
+  // ====== Estado/bloqueo ======
   const estadoNombre = (ticket?.estado?.nombre || "").toLowerCase();
   const estadoCodigo = (ticket?.estado?.nombre || "").toUpperCase();
-
   const esAbierto =
     estadoNombre.includes("abierto") || estadoCodigo === "ABIERTO";
   const enProceso =
@@ -61,12 +67,15 @@ export default function CardMensaje({
     estadoCodigo === "FINALIZADO" ||
     estadoCodigo === "CERRADO";
 
-  // aplicamos las 3 reglas:
-  // - Abierto: deshabilitado
-  // - En Proceso: habilitado
-  // - Cancelado/Finalizado: deshabilitado
-  const inputsDisabled =
+  const [bloquearUsuario, setBloquearUsuario] = useState<boolean>(
+    Boolean((ticket as any)?.chatBloqueado ?? false)
+  );
+
+  const baseEstadoDisabled =
     !ticket || esAbierto || esCancelado || esFinalizado ? true : !enProceso;
+
+  // Soporte NUNCA está limitado por la regla de 2; solo por estado
+  const inputsDisabled = baseEstadoDisabled;
 
   const disabledReason = (() => {
     if (!ticket) return "El ticket no está disponible.";
@@ -76,28 +85,49 @@ export default function CardMensaje({
       return "Este ticket fue Cancelado; no se pueden enviar nuevos mensajes.";
     if (esFinalizado)
       return "Este ticket fue Finalizado; la conversación está cerrada.";
-    // si no está en ninguno de los anteriores y tampoco es En Proceso
     if (!enProceso) return "La conversación no está habilitada en este estado.";
     return null;
   })();
 
-  // ======= Auto-scroll al final del hilo =======
-  // const hiloRef = useRef<HTMLDivElement>(null);
-  // useEffect(() => {
-  //   if (hiloRef.current) {
-  //     hiloRef.current.scrollTop = hiloRef.current.scrollHeight;
-  //   }
-  // }, [mensajes.length]);
+  // ====== Regla de 2 mensajes (solo para visualización en soporte) ======
+  const esMensajeDeSoporte = (m: HD_MensajeTicket) => {
+    const rol = m?.emisor?.rol?.nombre?.toLowerCase?.() ?? "";
+    return rol.includes("soporte");
+  };
 
   const mensajesOrdenados = useMemo(() => {
     const arr = [...mensajes];
     return arr.sort(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (a: any, b: any) =>
         new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
     );
   }, [mensajes]);
 
+  const lastSupportIdx = useMemo(() => {
+    for (let i = mensajesOrdenados.length - 1; i >= 0; i--) {
+      if (esMensajeDeSoporte(mensajesOrdenados[i])) return i;
+    }
+    return -1;
+  }, [mensajesOrdenados]);
+
+  const userReplyCountSinceSupport = useMemo(() => {
+    if (lastSupportIdx === -1) return 0;
+    let c = 0;
+    for (let i = lastSupportIdx + 1; i < mensajesOrdenados.length; i++) {
+      if (!esMensajeDeSoporte(mensajesOrdenados[i])) c++;
+    }
+    return c;
+  }, [lastSupportIdx, mensajesOrdenados]);
+
+  const LIMITE_REPLIES = 2;
+  const tagColor =
+    lastSupportIdx === -1
+      ? "default"
+      : userReplyCountSinceSupport >= LIMITE_REPLIES
+      ? "red"
+      : "blue";
+
+  // ====== Enviar ======
   const puedeEnviar =
     !inputsDisabled && (nuevoMensaje.trim().length > 0 || fileList.length > 0);
 
@@ -109,15 +139,38 @@ export default function CardMensaje({
 
   return (
     <Card
-      title="📨 Conversación"
+      title={
+        <div className="flex items-center gap-2">
+          <span>📨 Conversación (Soporte)</span>
+          <Tag color={tagColor}>
+            {lastSupportIdx === -1
+              ? "Aún no has enviado el primer mensaje"
+              : `Usuario: ${userReplyCountSinceSupport}/${LIMITE_REPLIES} desde tu último mensaje`}
+          </Tag>
+        </div>
+      }
+      extra={
+        <Space>
+          <Tooltip title="Si está marcado, el usuario no podrá escribir.">
+            <Checkbox
+              checked={bloquearUsuario}
+              onChange={(e) => {
+                setBloquearUsuario(e.target.checked);
+                onToggleBloqueo?.(e.target.checked);
+              }}
+            >
+              Bloquear chat al usuario
+            </Checkbox>
+          </Tooltip>
+        </Space>
+      }
       className="mb-6 shadow-sm rounded-xl"
       styles={{ body: { paddingTop: 16 } }}
     >
+      {/* Mensajes */}
       <div
-        // ref={hiloRef}
         className="mb-4 max-h-96 overflow-y-auto pr-2 space-y-4"
         id="hilo-ticket"
-        // style={{ overflowAnchor: "none" }} // 👈 añade esto AQUÍ
       >
         {mensajesOrdenados.length === 0 ? (
           <Empty description="Sin mensajes en este ticket" />
@@ -127,20 +180,15 @@ export default function CardMensaje({
               <Avatar
                 size="large"
                 icon={
-                  m?.emisor?.rol?.nombre.toLowerCase?.() === "soporte" ? (
-                    <TeamOutlined />
-                  ) : (
-                    <UserOutlined />
-                  )
+                  esMensajeDeSoporte(m) ? <TeamOutlined /> : <UserOutlined />
                 }
                 className={
-                  m?.emisor?.rol?.nombre.toLowerCase?.() === "soporte"
+                  esMensajeDeSoporte(m)
                     ? "bg-blue-100 text-blue-600 me-3"
                     : "bg-gray-100 text-gray-600 me-3"
                 }
               />
-
-              <div className="flex-1 " style={{ paddingLeft: "10px" }}>
+              <div className="flex-1" style={{ paddingLeft: 10 }}>
                 <div className="flex items-center justify-between">
                   <Typography.Text strong>
                     {m?.emisor?.nombre ?? "—"}
@@ -177,25 +225,30 @@ export default function CardMensaje({
         )}
       </div>
 
-      <Divider orientation="left">Redactar respuesta</Divider>
+      <Divider orientation="left" style={{ marginTop: 8 }}>
+        Redactar respuesta
+      </Divider>
 
-      {/* Aviso de deshabilitado (sin agregar nuevos imports) */}
       {inputsDisabled && (
         <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 p-3">
-          <Typography.Text type="secondary" className="text-xs">
-            {disabledReason}
-          </Typography.Text>
+          <Space>
+            <InfoCircleOutlined />
+            <Typography.Text type="secondary" className="text-xs">
+              {disabledReason}
+            </Typography.Text>
+          </Space>
         </div>
       )}
 
+      {/* Redactor soporte */}
       <div className="flex flex-col gap-3">
         <TextArea
           rows={5}
-          autoSize={{ minRows: 5, maxRows: 5 }} // 👈 AÑADE ESTO
+          autoSize={{ minRows: 5, maxRows: 5 }}
           placeholder={
             inputsDisabled
-              ? "La redacción está deshabilitada para este estado del ticket."
-              : "Estimado(a) equipo de soporte,\n\n[Describa su consulta o actualización].\n\nAtentamente,"
+              ? "La redacción está deshabilitada."
+              : "Respuesta al usuario..."
           }
           value={nuevoMensaje}
           onChange={(e) => setNuevoMensaje(e.target.value)}
@@ -205,7 +258,7 @@ export default function CardMensaje({
         />
 
         <Upload.Dragger
-          className="mb-4 mt-6"
+          className="mb-4 mt-2"
           multiple
           fileList={fileList}
           onChange={(info) => setFileList(info.fileList)}
@@ -222,14 +275,19 @@ export default function CardMensaje({
           </p>
         </Upload.Dragger>
 
-        <div className="flex justify-end">
+        <div className="flex justify-end items-center">
           <Space>
             <Button
               type="primary"
               icon={<SendOutlined />}
               onClick={onEnviar}
               loading={loadingMensaje}
-              disabled={!puedeEnviar}
+              disabled={
+                !(
+                  !inputsDisabled &&
+                  (nuevoMensaje.trim().length > 0 || fileList.length > 0)
+                )
+              }
             >
               Enviar
             </Button>
@@ -237,9 +295,7 @@ export default function CardMensaje({
         </div>
 
         <Typography.Text type="secondary" className="text-xs">
-          Nota: evite compartir información sensible en este hilo. Todo lo que
-          escriba aquí será enviado como copia al correo registrado, por favor
-          revíselo.
+          Nota: evita compartir información sensible.
         </Typography.Text>
       </div>
     </Card>

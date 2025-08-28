@@ -46,11 +46,11 @@ export default function TicketTable({ ticket }: Props) {
         );
       },
     },
-    {
-      title: "Tipo",
-      dataIndex: ["categoria", "incidencia", "tipo"],
-      key: "tipo",
-    },
+    // {
+    //   title: "Tipo",
+    //   dataIndex: ["categoria", "incidencia", "tipo"],
+    //   key: "tipo",
+    // },
     // {
     //   title: "Estado",
     //   dataIndex: ["estado", "nombre"],
@@ -70,16 +70,16 @@ export default function TicketTable({ ticket }: Props) {
     //       : "—",
     // },
     {
-      title: "Creado",
+      title: "Creación",
+      key: "creacion",
       dataIndex: "createdAt",
-      key: "createdAt",
-      sorter: (a: HD_Ticket, b: HD_Ticket) =>
-        dayjs(a.createdAt).valueOf() - dayjs(b.createdAt).valueOf(),
       render: (createdAt: string | Date) => {
         const d = dayjs(createdAt);
         return (
-          <Tooltip title={`${d.format("DD/MM/YYYY HH:mm")} (Lima)`}>
-            <span>{d.fromNow()}</span>
+          <Tooltip title={`${d.format("dddd, DD/MM/YYYY HH:mm")} (Lima)`}>
+            <span>
+              {d.format("DD/MM/YYYY HH:mm")} · {d.fromNow()}
+            </span>
           </Tooltip>
         );
       },

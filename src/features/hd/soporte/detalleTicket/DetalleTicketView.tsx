@@ -20,13 +20,13 @@ import CardTicketOrigen from "./components/CardDerivado";
 import CardMensaje from "./components/CardMensaje";
 import { UserOutlined, MailOutlined, PhoneOutlined } from "@ant-design/icons";
 import { useCallback } from "react";
-import type { Ticket } from "@/interface/ticket_ti";
+import { HD_Ticket } from "@/interface/hd/hd_ticket";
 
 const { Text, Title } = Typography;
 
 /* ========= SUBCOMPONENTES (fuera del render para no remontar) ========= */
 
-function HeaderResumen({ ticket }: { ticket?: Ticket }) {
+function HeaderResumen({ ticket }: { ticket?: HD_Ticket }) {
   if (!ticket) return null;
 
   const estadoNombre = (ticket?.estado?.nombre || "").toLowerCase();
@@ -92,7 +92,7 @@ function Content({
   loadingMensaje,
   handleEnviarMensaje,
 }: {
-  ticket?: Ticket;
+  ticket?: HD_Ticket;
   id: string;
   onTicketUpdate: () => void;
   nuevoMensaje: string;
@@ -112,19 +112,10 @@ function Content({
 
   return (
     <Row gutter={[16, 16]}>
-      {/* Izquierda */}
-      <Col xs={24} lg={16}>
+      {/* Izquierda (principal) */}
+      <Col span={16}>
         <div className="space-y-6">
-          <CardOpcionesRapidas
-            ticket={ticket}
-            onTicketUpdate={onTicketUpdate}
-          />
-          <CardCalificacion ticket={ticket} />
-          <CardTicketOrigen ticket={ticket} />
-          <CardDetalle ticket={ticket} />
-          <CardArchivos ticket={ticket} />
-
-          {/* 👇 Agregado: Card de Mensajes */}
+          {/* Chat */}
           <CardMensaje
             ticket={ticket}
             nuevoMensaje={nuevoMensaje}
@@ -132,21 +123,41 @@ function Content({
             setNuevoMensaje={setNuevoMensaje}
             handleEnviarMensaje={handleEnviarMensaje}
           />
+
+          {/* Detalle del ticket */}
+          <CardDetalle ticket={ticket} />
+
+          {/* Archivos */}
+          <CardArchivos ticket={ticket} />
+
+          {/* Origen / Derivado */}
+          <CardTicketOrigen ticket={ticket} />
+
+          {/* Calificación (cierre) */}
+          <CardCalificacion ticket={ticket} />
         </div>
       </Col>
 
-      {/* Derecha */}
-      <Col xs={24} lg={8}>
-        {/* Desktop */}
-        <div className="hidden lg:block">
-          {/* Info usuario + SLA (mantén este orden) */}
-          <CardUsuarioCreador />
-          <CardSla ticket={ticket} />
-        </div>
-        {/* Móvil */}
-        <div className="lg:hidden">
-          <CardUsuarioCreador />
-          <CardSla ticket={ticket} />
+      {/* Derecha (sticky) */}
+      <Col span={8}>
+        <div style={{ position: "sticky", top: 16 }}>
+          {/* Acciones rápidas (movido a la derecha) */}
+          <div className="">
+            <CardOpcionesRapidas
+              ticket={ticket}
+              onTicketUpdate={onTicketUpdate}
+            />
+          </div>
+
+          {/* SLA */}
+          <div className="mt-4">
+            <CardSla ticket={ticket} />
+          </div>
+
+          {/* Usuario que creó el ticket */}
+          <div className="mt-4">
+            <CardUsuarioCreador />
+          </div>
         </div>
       </Col>
     </Row>

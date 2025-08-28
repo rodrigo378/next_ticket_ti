@@ -1,5 +1,4 @@
 import { Button, Table, Tag, Tooltip } from "antd";
-
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import "dayjs/locale/es";
@@ -7,6 +6,7 @@ import { BranchesOutlined, EyeOutlined } from "@ant-design/icons";
 import { HD_Ticket } from "@/interface/hd/hd_ticket";
 import { HD_PrioridadTicket } from "@/interface/hd/hd_prioridadTicket";
 import { Core_Usuario } from "@/interface/core/core_usuario";
+
 dayjs.extend(relativeTime);
 dayjs.locale("es");
 
@@ -22,16 +22,8 @@ export default function TicketTableAdmin({
   abrirDrawer,
 }: Props) {
   const columns = [
-    {
-      title: "Codigo",
-      dataIndex: "codigo",
-      key: "codigo",
-    },
-    {
-      title: "Área",
-      dataIndex: ["area", "nombre"],
-      key: "area",
-    },
+    { title: "Codigo", dataIndex: "codigo", key: "codigo" },
+    { title: "Área", dataIndex: ["area", "nombre"], key: "area" },
     {
       title: "Tipo",
       key: "tipo",
@@ -103,21 +95,35 @@ export default function TicketTableAdmin({
       ),
     },
     {
-      title: "Fecha de creación",
+      title: "Creación",
+      key: "creacion",
       dataIndex: "createdAt",
-      key: "createdAt",
-      render: (createdAt: string) => dayjs(createdAt).fromNow(),
+      render: (createdAt: string | Date) => {
+        const d = dayjs(createdAt);
+        // {d.fromNow()}
+        return (
+          <Tooltip
+            className="flex flex-col"
+            title={`${d.format("dddd, DD/MM/YYYY HH:mm")} (Lima)`}
+          >
+            <span>{d.format("DD/MM/YYYY HH:mm")}</span>
+            <span>{d.fromNow()}</span>
+          </Tooltip>
+        );
+      },
     },
     {
       title: "Creado por",
       key: "creado_id",
       render: (record: HD_Ticket) => (
-        <>
-          {`${record.creado?.nombre || ""} ${record.creado?.apellidos || ""}`}{" "}
+        <div className="flex flex-col !items-start">
+          <span>{`${record.creado?.nombre || ""} ${
+            record.creado?.apellidos || ""
+          }`}</span>
           <Tag color={record.creado?.rol_id === 7 ? "blue" : "green"}>
             {record.creado?.rol_id === 7 ? "Alumno" : "Administrativo"}
           </Tag>
-        </>
+        </div>
       ),
     },
     {
@@ -149,12 +155,16 @@ export default function TicketTableAdmin({
   ];
 
   return (
-    <Table
-      rowKey="id"
-      columns={columns}
-      dataSource={tickets}
-      loading={loading}
-      pagination={{ pageSize: 10 }}
-    />
+    <div style={{ width: "100%", overflowX: "auto" }}>
+      <Table
+        rowKey="id"
+        columns={columns}
+        dataSource={tickets}
+        loading={loading}
+        pagination={{ pageSize: 10, responsive: true }}
+        scroll={{ x: "max-content" }}
+        // opcional: size="small"
+      />
+    </div>
   );
 }
