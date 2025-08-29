@@ -82,9 +82,9 @@ export default function DrawerModulosUsuario({
     }
   };
 
-  const handleHdSingleAreaChange = (id?: number) => {
-    formModules.setFieldValue(["hd", "areas_id"], id == null ? [] : [id]);
-  };
+  // const handleHdSingleAreaChange = (id?: number) => {
+  //   formModules.setFieldValue(["hd", "areas_id"], id == null ? [] : [id]);
+  // };
 
   const roleOptions = [
     { label: "nivel_1", value: "nivel_1" },

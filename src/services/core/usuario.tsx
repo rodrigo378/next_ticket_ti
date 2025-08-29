@@ -49,6 +49,7 @@ export const getUsuarioModulo = async (usuario_id: number) => {
 export const upsertUsuarioModulo = async (
   usuario_id: number,
   codigo: string, // ej. "HD" | "ADM"
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   payload: any
 ): Promise<unknown> => {
   const { data } = await api.put(

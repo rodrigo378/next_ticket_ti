@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useMemo, useState } from "react";
 import {
   Button,
@@ -106,6 +107,7 @@ export default function CardMensajeUsuario({
       if (esMensajeDeSoporte(mensajesOrdenados[i])) return i;
     }
     return -1;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mensajesOrdenados]);
 
   const userReplyCountSinceSupport = useMemo(() => {
@@ -115,6 +117,7 @@ export default function CardMensajeUsuario({
       if (!esMensajeDeSoporte(mensajesOrdenados[i])) c++;
     }
     return c;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lastSupportIdx, mensajesOrdenados]);
 
   const LIMITE_REPLIES = 2;
@@ -152,8 +155,8 @@ export default function CardMensajeUsuario({
   })();
 
   // ====== Enviar ======
-  const puedeEnviar =
-    !inputsDisabled && (nuevoMensaje.trim().length > 0 || fileList.length > 0);
+  // const puedeEnviar =
+  // !inputsDisabled && (nuevoMensaje.trim().length > 0 || fileList.length > 0);
 
   const onEnviar = async () => {
     await handleEnviarMensaje({ archivos: fileList });

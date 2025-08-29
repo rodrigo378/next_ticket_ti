@@ -68,6 +68,7 @@ export default function CardMensajeSoporte({
     estadoCodigo === "CERRADO";
 
   const [bloquearUsuario, setBloquearUsuario] = useState<boolean>(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     Boolean((ticket as any)?.chatBloqueado ?? false)
   );
 
@@ -98,6 +99,7 @@ export default function CardMensajeSoporte({
   const mensajesOrdenados = useMemo(() => {
     const arr = [...mensajes];
     return arr.sort(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (a: any, b: any) =>
         new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
     );
@@ -128,8 +130,8 @@ export default function CardMensajeSoporte({
       : "blue";
 
   // ====== Enviar ======
-  const puedeEnviar =
-    !inputsDisabled && (nuevoMensaje.trim().length > 0 || fileList.length > 0);
+  // const puedeEnviar =
+  //   !inputsDisabled && (nuevoMensaje.trim().length > 0 || fileList.length > 0);
 
   const onEnviar = async () => {
     await handleEnviarMensaje({ archivos: fileList });

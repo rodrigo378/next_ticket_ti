@@ -138,9 +138,12 @@ export default function useListUsuario() {
 
       // 3) pre-llena el form con lo que vino del backend
       const adm = data.find(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (m: any) => m.modulo?.codigo === "ADM" || m.modulo_id === 1
       );
+
       const hd = data.find(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (m: any) => m.modulo?.codigo === "HD" || m.modulo_id === 2
       );
 
