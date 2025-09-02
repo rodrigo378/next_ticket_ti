@@ -1,4 +1,5 @@
 "use client";
+import { useUsuario } from "@/context/UserContext";
 import { Core_Usuario } from "@/interface/core/core_usuario";
 import { TreeNode } from "@/interface/hd/hd_incidencia";
 import { HD_Ticket } from "@/interface/hd/hd_ticket";
@@ -10,7 +11,8 @@ import {
   getTickets,
 } from "@/services/hd/ticket_ti";
 import { message } from "antd";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { io, Socket } from "socket.io-client";
 
 export type IncTreeNode = {
   title: string;
@@ -33,7 +35,7 @@ type ArbolRespuesta = Array<{
 
 export function buildTreeData(cats: ArbolRespuesta): IncTreeNode[] {
   return (cats ?? []).map((c) => ({
-    title: c.nombre, // 🔹 sin área
+    title: c.nombre,
     value: `CAT-${c.id}`,
     selectable: false,
     children: (c.incidencias ?? []).map((i) => ({
@@ -42,7 +44,7 @@ export function buildTreeData(cats: ArbolRespuesta): IncTreeNode[] {
       selectable: false,
       children: (i.categorias ?? []).map((k) => ({
         title: k.nombre,
-        value: k.id, // 🔹 hoja = id categoría
+        value: k.id,
         selectable: true,
       })),
     })),
@@ -50,7 +52,15 @@ export function buildTreeData(cats: ArbolRespuesta): IncTreeNode[] {
 }
 
 export default function useAsignarTicket() {
-  // USESTATE ========================================
+  // WS refs
+  const socketRef = useRef<Socket | null>(null);
+  const joinedRoomsRef = useRef<string[]>([]);
+  const tabRef = useRef<string>("sin_asignar");
+
+  // Context (usuario/hd/readyIam)
+  const { usuario, hd, readyIam } = useUsuario();
+
+  // STATE ========================================
   const [tickets, setTickets] = useState<HD_Ticket[]>([]);
   const [ticket, setTicket] = useState<HD_Ticket>();
   const [tabKey, setTabKey] = useState("sin_asignar");
@@ -64,7 +74,7 @@ export default function useAsignarTicket() {
   const [arbol, setArbol] = useState<TreeNode[]>([]);
   const [categoriaId, setCategoriaId] = useState<number>();
 
-  // FETCHS ==========================================
+  // FETCHS ========================================
   const fetchTickets = async (estados_id?: string[]) => {
     try {
       setLoading(true);
@@ -96,13 +106,84 @@ export default function useAsignarTicket() {
     }
   };
 
-  // USEEFECT ========================================
+  // WS helpers ====================================
+  const connectWS = () => {
+    if (socketRef.current) return socketRef.current;
+    const URL =
+      process.env.NEXT_PUBLIC_WS_URL ?? "http://localhost:4000/hd/ws/ticket"; // namespace incluido
+    const s = io(URL, { transports: ["websocket"], autoConnect: true });
+    socketRef.current = s;
+    return s;
+  };
+
+  const subscribeCreated = () => {
+    const s = connectWS();
+    const handler = (t: any) => {
+      console.log("ticket.created =>", t);
+      if (tabRef.current === "sin_asignar") {
+        setTickets((prev) => [t, ...prev]);
+      }
+    };
+    s.on("ticket.created", handler);
+    return () => s.off("ticket.created", handler);
+  };
+
+  // Efecto: conectar una vez y preparar rejoin tras reconexión
+  useEffect(() => {
+    const s = connectWS();
+
+    const onConnect = () => {
+      if (joinedRoomsRef.current.length) {
+        s.emit("tickets:join", { rooms: joinedRoomsRef.current });
+        console.log(
+          "[WS] Re-joined rooms tras reconexión =>",
+          joinedRoomsRef.current
+        );
+      }
+    };
+    s.on("connect", onConnect);
+
+    const unsubCreated = subscribeCreated();
+
+    return () => {
+      unsubCreated();
+      s.off("connect", onConnect);
+      s.disconnect();
+      socketRef.current = null;
+      joinedRoomsRef.current = [];
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Efecto: cuando IAM está listo, unirse a las rooms del módulo HD
+  useEffect(() => {
+    if (!readyIam) return;
+
+    const rooms = (hd?.extras?.rooms ?? []).filter(Boolean);
+    console.log("Usuario desde contexto =>", usuario);
+    console.log("HD rooms =>", rooms);
+    console.log("HD áreas =>", hd?.extras?.areas);
+
+    if (!rooms.length) return;
+    const s = connectWS();
+    s.emit("tickets:join", { rooms });
+    joinedRoomsRef.current = rooms;
+    console.log("[WS] Joined rooms =>", rooms);
+  }, [readyIam, hd, usuario]);
+
+  // Efecto: data HTTP (no WS). Re-carga por pestaña.
   useEffect(() => {
     fetchTickets(["1"]);
     fetchUsuarios();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tabKey]);
 
-  // ONCHANGE ========================================
+  // Mantener tabRef sincronizado para listeners WS
+  useEffect(() => {
+    tabRef.current = tabKey;
+  }, [tabKey]);
+
+  // ONCHANGE ======================================
   const onChangeTabs = (key: string) => {
     setTabKey(key);
     if (key === "sin_asignar") fetchTickets(["1"]);
@@ -110,18 +191,12 @@ export default function useAsignarTicket() {
   };
 
   const abrirDrawer = async (ticket: HD_Ticket) => {
-    console.log("se abrio drawer");
-
     try {
       const data = await getTicket(ticket.id!);
-      console.log("data => ", data);
-
       setTicket(data);
       setAsignadoId(data.asignado_id ?? undefined);
       setPrioridadId(data.prioridad_id ?? undefined);
-
       fetchIncidenciaArbol(ticket.area_id || 0);
-
       setDrawerVisible(true);
     } catch (error) {
       console.error("Error al obtener detalle del ticket", error);
@@ -135,12 +210,10 @@ export default function useAsignarTicket() {
       return;
     }
 
-    // ✅ Detecta si el ticket es derivado (tiene orígenes)
     const isDerivado =
       Array.isArray(ticket?.derivacionesComoDestino) &&
       ticket.derivacionesComoDestino.length > 0;
 
-    // ✅ Si es derivado, categoría es obligatoria
     if (isDerivado && !categoriaId) {
       message.warning("Selecciona la categoría para el ticket derivado.");
       return;
@@ -150,12 +223,10 @@ export default function useAsignarTicket() {
       await asignarTicket(ticket.id, {
         asignado_id: asignadoId,
         prioridad_id: prioridadId,
-        // Solo manda categoria_id cuando es derivado
         ...(isDerivado ? { categoria_id: categoriaId } : {}),
       });
 
       message.success("✅ Ticket actualizado correctamente");
-      // Refresca según la pestaña actual
       fetchTickets(tabKey === "sin_asignar" ? ["1"] : ["2", "3", "4"]);
       setDrawerVisible(false);
     } catch (error) {

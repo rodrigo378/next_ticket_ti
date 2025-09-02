@@ -1,8 +1,7 @@
 "use client";
 
-import { Core_Usuario } from "@/interface/core/core_usuario";
-import { getMe } from "@/services/core/usuario";
-import { usePathname, useRouter } from "next/navigation"; // 👈 importa router
+import { getIamContext } from "@/services/core/iam";
+import { usePathname, useRouter } from "next/navigation";
 import {
   createContext,
   ReactNode,
@@ -13,11 +12,39 @@ import {
   useCallback,
 } from "react";
 
+/* ===== Tipos para autocompletado ===== */
+type Area = { id: number; nombre: string; abreviado: string };
+type HdExtras = { areas: Area[]; rooms: string[] };
+type ModuleBase = {
+  code: string;
+  name: string;
+  icon: string;
+  role: string | null;
+  perfil: any;
+  extras?: any;
+};
+type HdModule = ModuleBase & { code: "HD"; extras: HdExtras };
+type IamCtx = {
+  user: { id: number; nombre: string; apellidos: string; email: string };
+  perfil_global: any;
+  modules: ModuleBase[];
+};
+/* ===================================== */
+
 type UserContextType = {
-  usuario: Core_Usuario | null;
-  setUsuario: (user: Core_Usuario | null) => void;
+  /** identidad (derivada de iam.user) */
+  usuario: IamCtx["user"] | null;
+  /** IAM completo (perfil_global, módulos, extras, etc.) */
+  iam: IamCtx | null;
+  /** módulo HD resuelto (si existe) */
+  hd?: HdModule;
+  /** listo para navegar (auth) */
   ready: boolean;
-  refreshUsuario: () => Promise<void>;
+  /** IAM cargado (áreas/rooms/roles) */
+  readyIam: boolean;
+  /** recargar IAM */
+  refreshIam: () => Promise<void>;
+  /** cerrar sesión */
   logout: () => void;
 };
 
@@ -25,66 +52,71 @@ const UserContext = createContext<UserContextType | undefined>(undefined);
 const PUBLIC_ROUTES = ["/login"];
 
 export const UserProvider = ({ children }: { children: ReactNode }) => {
-  const [usuario, setUsuario] = useState<Core_Usuario | null>(null);
+  const [iam, setIam] = useState<IamCtx | null>(null);
   const [ready, setReady] = useState(false);
+  const [readyIam, setReadyIam] = useState(false);
+
   const pathname = usePathname();
-  const router = useRouter(); // 👈
+  const router = useRouter();
 
   const loginRedirect = useCallback(() => {
     if (typeof window === "undefined") return;
-    // evita bucles si ya estás en /login
     if (window.location.pathname === "/login") return;
-    // 👇 client-side navigation: no hay full reload ni FOUC
     router.replace("/login");
   }, [router]);
 
-  const refreshUsuario = useCallback(async () => {
-    const u = await getMe();
-    console.log("funcion getMe => ", u);
-    setUsuario(u);
+  const refreshIam = useCallback(async () => {
+    setReadyIam(false);
+    try {
+      const ctx = await getIamContext();
+      console.log("ctx => ", ctx);
+      setIam(ctx);
+    } finally {
+      setReadyIam(true);
+    }
   }, []);
 
   const logout = useCallback(() => {
     if (typeof window === "undefined") return;
     localStorage.removeItem("token");
-    setUsuario(null);
-    loginRedirect(); // 👈 ya usa router.replace
+    setIam(null);
+    setReady(false);
+    setReadyIam(false);
+    loginRedirect();
   }, [loginRedirect]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    // 1) Captura ?token=... y limpia la URL (también returnTo)
+    // 1) Captura ?token=... y limpia la URL (SSO)
     const url = new URL(window.location.href);
     const tokenFromUrl = url.searchParams.get("token");
     if (tokenFromUrl) {
       localStorage.setItem("token", tokenFromUrl);
       url.searchParams.delete("token");
-      url.searchParams.delete("returnTo"); // 👈 limpia también esto
+      url.searchParams.delete("returnTo");
       const qs = url.searchParams.toString();
       window.history.replaceState({}, "", url.pathname + (qs ? `?${qs}` : ""));
     }
 
-    // 2) Si no hay token
+    // 2) Si no hay token -> redirigir si ruta privada
     const token = localStorage.getItem("token");
     if (!token) {
-      setUsuario(null);
+      setIam(null);
       setReady(true);
-      if (!PUBLIC_ROUTES.includes(pathname)) {
-        loginRedirect(); // 👈 navegación sin recarga
-      }
+      setReadyIam(false);
+      if (!PUBLIC_ROUTES.includes(pathname)) loginRedirect();
       return;
     }
 
-    // 3) Si hay token, intenta cargar /me
+    // 3) Si hay token -> cargar SOLO IAM
     let cancelled = false;
     (async () => {
       try {
-        const u = await getMe();
-        if (!cancelled) setUsuario(u);
+        await refreshIam();
       } catch {
         localStorage.removeItem("token");
-        if (!cancelled) setUsuario(null);
+        if (!cancelled) setIam(null);
         // opcional: loginRedirect();
       } finally {
         if (!cancelled) setReady(true);
@@ -94,11 +126,28 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     return () => {
       cancelled = true;
     };
-  }, [pathname, loginRedirect]);
+  }, [pathname, loginRedirect, refreshIam]);
 
-  const value = useMemo(
-    () => ({ usuario, setUsuario, ready, refreshUsuario, logout }),
-    [usuario, ready, refreshUsuario, logout]
+  // Derivar usuario desde IAM (no hay estado separado)
+  const usuario = iam?.user ?? null;
+
+  // Resolver módulo HD ya tipado
+  const hd = useMemo(() => {
+    const mod = iam?.modules.find((m) => m.code === "HD");
+    return mod ? ({ ...mod, code: "HD" } as HdModule) : undefined;
+  }, [iam]);
+
+  const value = useMemo<UserContextType>(
+    () => ({
+      usuario,
+      iam,
+      hd,
+      ready,
+      readyIam,
+      refreshIam,
+      logout,
+    }),
+    [usuario, iam, hd, ready, readyIam, refreshIam, logout]
   );
 
   return <UserContext.Provider value={value}>{children}</UserContext.Provider>;

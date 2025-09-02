@@ -109,7 +109,6 @@ export const CardOpcionesRapidas = ({ ticket, onTicketUpdate }: Props) => {
               showSearch
               optionFilterProp="label"
               placeholder="Selecciona un estado"
-              dropdownMatchSelectWidth
               getPopupContainer={(trigger) =>
                 trigger.parentElement as HTMLElement
               }

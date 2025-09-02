@@ -9,3 +9,13 @@ export const getFullMenu = async () => {
   });
   return response.data;
 };
+
+export const getIamContext = async () => {
+  const token = localStorage.getItem("token");
+  const response = await api.get("/core/iam/context", {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  return response.data;
+};
