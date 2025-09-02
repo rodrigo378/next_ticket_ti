@@ -15,7 +15,7 @@
     --text-size: 16px;
     --line-height: 1.5;
 
-    color-scheme: light dark;
+    /* color-scheme: light dark; */
   }
 
   @media (prefers-color-scheme: dark) {
@@ -57,7 +57,7 @@
 }
 
 ::selection {
-  background: rgba(250, 4, 4, 0.12);
+  background: rgba(51, 46, 46, 0.12);
   color: inherit;
 }
 

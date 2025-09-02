@@ -1,5 +1,6 @@
 import { HD_CalificacionTicket } from "../hd/hd_calificacionTicket";
 import { HD_DerivacionTicket } from "../hd/hd_derivacionTicket";
+import { HD_HorarioUsuario } from "../hd/hd_horarioUsuario";
 import { HD_MensajeTicket } from "../hd/hd_mensajeTicket";
 import { HD_Ticket } from "../hd/hd_ticket";
 import { HD_UsuarioArea } from "../hd/hd_usuarioArea";
@@ -38,4 +39,5 @@ export interface Core_Usuario {
   hdCalificaciones?: HD_CalificacionTicket[];
   usuarioModulo?: Core_UsuarioModulo[];
   hd_derivacionTicket?: HD_DerivacionTicket[];
+  HD_HorarioUsuario?: HD_HorarioUsuario[];
 }
