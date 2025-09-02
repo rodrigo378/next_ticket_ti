@@ -15,16 +15,16 @@ import {
 import { ColumnsType } from "antd/es/table";
 import { EditOutlined, SearchOutlined } from "@ant-design/icons";
 import { getSla, updateSla } from "@/services/hd/sla";
-import { SLA } from "@/interface/sla";
+import { HD_SLA } from "@/interface/hd/hd_sla";
 
 const { Title, Paragraph } = Typography;
 
 export default function Page() {
-  const [slas, setSlas] = useState<SLA[]>([]);
+  const [slas, setSlas] = useState<HD_SLA[]>([]);
   const [filtro, setFiltro] = useState("");
   const [openDrawer, setOpenDrawer] = useState(false);
   const [form] = Form.useForm();
-  const [slaSeleccionado, setSlaSeleccionado] = useState<SLA | null>(null);
+  const [slaSeleccionado, setSlaSeleccionado] = useState<HD_SLA | null>(null);
 
   const fetchSlas = async () => {
     try {
@@ -48,7 +48,7 @@ export default function Page() {
     return `${horas}h ${min}m`;
   };
 
-  const abrirDrawerEditar = (sla: SLA) => {
+  const abrirDrawerEditar = (sla: HD_SLA) => {
     setSlaSeleccionado(sla);
     form.setFieldsValue({
       tiempo_respuesta: sla.tiempo_respuesta,
@@ -72,7 +72,7 @@ export default function Page() {
     }
   };
 
-  const columnas: ColumnsType<SLA> = [
+  const columnas: ColumnsType<HD_SLA> = [
     {
       title: "Categoria",
       dataIndex: ["categoria", "nombre"],

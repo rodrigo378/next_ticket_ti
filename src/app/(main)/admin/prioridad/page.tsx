@@ -5,15 +5,17 @@ import { Table, Typography, Button, Drawer, Form, Input, message } from "antd";
 import { ColumnsType } from "antd/es/table";
 import { PlusOutlined } from "@ant-design/icons";
 import { getPrioridades } from "@/services/hd/prioridad";
-import { PrioridadTicket } from "@/interface/prioridad";
+import { HD_PrioridadTicket } from "@/interface/hd/hd_prioridadTicket";
 const { Title, Paragraph } = Typography;
 
 export default function Page() {
-  const [prioridades, setPrioridades] = useState<PrioridadTicket[]>([]);
+  const [prioridades, setPrioridades] = useState<HD_PrioridadTicket[]>([]);
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [form] = Form.useForm();
   const [modoEdicion, setModoEdicion] = useState(false);
-  const [, setPrioridadSeleccionada] = useState<PrioridadTicket | null>(null);
+  const [, setPrioridadSeleccionada] = useState<HD_PrioridadTicket | null>(
+    null
+  );
 
   const fetchPrioridades = async () => {
     try {
@@ -29,7 +31,7 @@ export default function Page() {
     fetchPrioridades();
   }, []);
 
-  const abrirDrawer = (prioridad?: PrioridadTicket) => {
+  const abrirDrawer = (prioridad?: HD_PrioridadTicket) => {
     setModoEdicion(!!prioridad);
     setPrioridadSeleccionada(prioridad || null);
     form.setFieldsValue(prioridad || {});
@@ -61,7 +63,7 @@ export default function Page() {
     // }
   };
 
-  const columnas: ColumnsType<PrioridadTicket> = [
+  const columnas: ColumnsType<HD_PrioridadTicket> = [
     {
       title: "Nombre",
       dataIndex: "nombre",
