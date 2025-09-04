@@ -1,4 +1,3 @@
-import { Core_Usuario } from "@/interface/core/core_usuario";
 import { HD_Ticket } from "@/interface/hd/hd_ticket";
 import {
   CheckCircleTwoTone,
@@ -9,7 +8,8 @@ import { Button, Space, Table, Tag, Tooltip } from "antd";
 import Link from "next/link";
 
 interface Props {
-  usuario: Core_Usuario;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  usuario: any;
   tickets: HD_Ticket[];
   loading: boolean;
 }

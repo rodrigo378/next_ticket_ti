@@ -120,6 +120,7 @@ export default function useAsignarTicket() {
 
   const subscribeCreated = () => {
     const s = connectWS();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const handler = (t: any) => {
       console.log("ticket.created =>", t);
       if (tabRef.current === "sin_asignar") {

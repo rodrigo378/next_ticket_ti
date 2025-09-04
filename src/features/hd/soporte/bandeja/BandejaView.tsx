@@ -1,9 +1,9 @@
 "use client";
 import { Flex, Typography } from "antd";
-import TableTickets from "./components/TableTickets";
 import TabsSoporte from "./components/Tabs";
 import useBandeja from "./hooks/useBandaja";
 import Title from "antd/es/typography/Title";
+import TableTickets from "./components/TableTickets";
 const { Text } = Typography;
 
 export default function BandejaView() {

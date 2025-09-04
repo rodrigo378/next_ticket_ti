@@ -20,12 +20,15 @@ type ModuleBase = {
   name: string;
   icon: string;
   role: string | null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   perfil: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   extras?: any;
 };
 type HdModule = ModuleBase & { code: "HD"; extras: HdExtras };
 type IamCtx = {
   user: { id: number; nombre: string; apellidos: string; email: string };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   perfil_global: any;
   modules: ModuleBase[];
 };
