@@ -16,16 +16,14 @@ export default function ListUsuarioView() {
     openAdministrativo,
     form,
     formModules,
-    usuarioModulo,
-
+    // usuarioModulo, // ❌ ya no se usa
+    modules, // ✅ ahora usamos modules del hook
     areas,
-
     onCloseAdministrativo,
     showDrawerAdministrativo,
     onFinishAdministrativo,
     onChangeTab,
     onFinishModulos,
-
     openModulo,
     onCloseModulo,
     showDrawerModulo,
@@ -55,7 +53,7 @@ export default function ListUsuarioView() {
         showDrawerAdministrativo={showDrawerAdministrativo}
         onChangeTab={onChangeTab}
         showDrawerModulo={showDrawerModulo}
-      ></TabsUsuario>
+      />
 
       <DrawerAdministrativo
         usuario={usuario}
@@ -64,13 +62,13 @@ export default function ListUsuarioView() {
         form={form}
         onCloseAdministrativo={onCloseAdministrativo}
         onFinishAdministrativo={onFinishAdministrativo}
-      ></DrawerAdministrativo>
+      />
 
       <DrawerModulosUsuario
         open={openModulo}
         onClose={onCloseModulo}
         formModules={formModules}
-        usuarioModulo={usuarioModulo}
+        modules={modules}
         areas={areas}
         onFinishModulos={onFinishModulos}
       />

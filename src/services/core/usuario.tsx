@@ -41,11 +41,13 @@ export const updateUsuario = async (
   return response.data;
 };
 
-export const getUsuarioModulo = async (usuario_id: number) => {
-  const response = await api.get(`/core/usuario/modulo/${usuario_id}`);
+// http://localhost:4000/core/usuario/2/modulos/config
+export const getUsuarioModuloConfig = async (usuario_id: number) => {
+  const response = await api.get(`/core/usuario/${usuario_id}/modulo/config`);
   return response.data;
 };
 
+// http://localhost:4000/core/usuario/1/modulo/HD
 export const upsertUsuarioModulo = async (
   usuario_id: number,
   codigo: string, // ej. "HD" | "ADM"
@@ -53,7 +55,7 @@ export const upsertUsuarioModulo = async (
   payload: any
 ): Promise<unknown> => {
   const { data } = await api.put(
-    `/core/usuario/${usuario_id}/modulos/${codigo}`,
+    `/core/usuario/${usuario_id}/modulo/${codigo}`,
     payload
   );
   return data;

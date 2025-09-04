@@ -8,7 +8,7 @@ import { getRoles } from "@/services/core/rol";
 import {
   createUsuario,
   getUsuario,
-  getUsuarioModulo,
+  getUsuarioModuloConfig, // { user, modules }
   getUsuarios,
   updateUsuario,
   upsertUsuarioModulo,
@@ -17,31 +17,52 @@ import { getAreas } from "@/services/hd/area";
 import { Form, message } from "antd";
 import { useEffect, useRef, useState } from "react";
 
+/** === TIPOS LOCALES PARA EL NUEVO PAYLOAD === */
+interface ModConfigModule {
+  codigo: string;
+  nombre: string;
+  acceso: boolean;
+  rol: string | null;
+  subarea?: {
+    id: number;
+    nombre: string;
+    area: { id: number; nombre: string; abreviado: string };
+  } | null;
+  admin_area_ids?: number[];
+}
+interface ModConfigResponse {
+  user: { id: number; nombre: string; apellidos: string; email: string };
+  modules: ModConfigModule[];
+}
+
 export default function useListUsuario() {
-  // USESTATE =======================================
+  // STATE =======================================
   const [usuarios, setUsuarios] = useState<Core_Usuario[]>([]);
   const [usuario, setUsuario] = useState<Core_Usuario>();
 
-  const [openAdministrativo, setOpenAdministrativo] = useState<boolean>(false);
-  const [openModulo, setOpenModulo] = useState<boolean>(false);
-  const [form] = Form.useForm();
+  const [openAdministrativo, setOpenAdministrativo] = useState(false);
+  const [openModulo, setOpenModulo] = useState(false);
 
+  const [form] = Form.useForm<Core_Usuario>();
   const [formModules] = Form.useForm();
 
   const [roles, setRoles] = useState<Core_Rol[]>([]);
-
   const [areas, setAreas] = useState<HD_Area[]>([]);
-  const [usuarioModulo, setUsuarioModulo] = useState([]);
+
+  // nuevo payload cacheado
+  const [usuarioModuloConfig, setUsuarioModuloConfig] =
+    useState<ModConfigResponse | null>(null);
 
   const lastReqUserIdRef = useRef<number | null>(null);
 
-  // FETCH ==========================================
+  // FETCH =======================================
   const fetchUsuarios = async (roles_id: number[]) => {
     try {
       const data = await getUsuarios({ roles_id });
       setUsuarios(data);
     } catch (error) {
-      console.log("error => ", error);
+      console.error("getUsuarios error => ", error);
+      message.error("No se pudo cargar la lista de usuarios.");
     }
   };
 
@@ -50,7 +71,7 @@ export default function useListUsuario() {
       const data = await getRoles();
       setRoles(data);
     } catch (error) {
-      console.log("error => ", error);
+      console.error("getRoles error => ", error);
     }
   };
 
@@ -59,110 +80,100 @@ export default function useListUsuario() {
       const data = await getAreas();
       setAreas(data);
     } catch (error) {
-      console.log("error => ", error);
+      console.error("getAreas error => ", error);
     }
   };
 
-  // const fetchUsuario = async (usuario_id: number) => {
-  //   try {
-  //     const data = await getUsuario(usuario_id);
-  //     setUsuario(data);
-  //   } catch (error) {
-  //     console.log("error =>", error);
-  //   }
-  // };
-
-  // USEEFFECT =======================================
   useEffect(() => {
     fetchUsuarios([CoreRol_Id.SUPERADMIN, CoreRol_Id.ADMINISTRATIVO]);
     fetchRol();
     fetchAreas();
   }, []);
 
-  // FUNCIONES
+  // HANDLERS ====================================
   const onCloseAdministrativo = () => {
     setOpenAdministrativo(false);
+    setUsuario(undefined);
     form.resetFields();
-    // setSubareas([]);
   };
 
   const onCloseModulo = () => {
     setOpenModulo(false);
+    setUsuarioModuloConfig(null);
     formModules.resetFields();
-    setUsuarioModulo([]);
-    lastReqUserIdRef.current = null; // <- limpia el id en uso
+    lastReqUserIdRef.current = null;
   };
 
   const onFinishAdministrativo = async (values: Core_Usuario) => {
     try {
       if (usuario) {
-        const data = {
+        const payload = {
           nombre: values.nombre,
           apellidos: values.apellidos,
           grado: values.grado,
           estado: values.estado,
           rol_id: values.rol_id,
+          email: values.email,
         };
-        const response = await updateUsuario(usuario.id, data);
+        await updateUsuario(usuario.id, payload);
         message.success("✅ Usuario actualizado correctamente");
-        console.log("Usuario actualizado => ", response);
       } else {
         await createUsuario(values);
         message.success("✅ Usuario registrado correctamente");
       }
-
       onCloseAdministrativo();
       fetchUsuarios([CoreRol_Id.SUPERADMIN, CoreRol_Id.ADMINISTRATIVO]);
     } catch (error) {
-      message.error("Error al crear usuario");
-      console.log("error => ", error);
+      console.error("onFinishAdministrativo error => ", error);
+      message.error("No se pudo guardar el usuario.");
     }
   };
 
   const showDrawerModulo = async (usuario_id: number) => {
+    // console.log("se abrio drawer modulo");
+
     try {
-      // marca esta solicitud como la más reciente
       lastReqUserIdRef.current = usuario_id;
 
-      // 1) limpia inmediatamente el estado anterior
+      setUsuarioModuloConfig(null);
       formModules.resetFields();
-      setUsuarioModulo([]);
 
-      // 2) trae la data nueva
-      const data = await getUsuarioModulo(usuario_id);
+      const data = await getUsuarioModuloConfig(usuario_id); // { user, modules }
+      console.log("data => ", data);
 
-      // si llegó una respuesta atrasada de otro usuario, ignora
       if (lastReqUserIdRef.current !== usuario_id) return;
 
-      setUsuarioModulo(data);
+      setUsuarioModuloConfig(data as ModConfigResponse);
 
-      // 3) pre-llena el form con lo que vino del backend
-      const adm = data.find(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (m: any) => m.modulo?.codigo === "ADM" || m.modulo_id === 1
+      const adm = (data as ModConfigResponse).modules.find(
+        (m) => m.codigo === "ADM"
       );
-
-      const hd = data.find(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (m: any) => m.modulo?.codigo === "HD" || m.modulo_id === 2
+      const hd = (data as ModConfigResponse).modules.find(
+        (m) => m.codigo === "HD"
       );
 
       formModules.setFieldsValue({
         adm: { rol: adm?.rol ?? undefined },
         hd: {
           rol: hd?.rol ?? undefined,
-          areas_id: hd?.payload?.areas_id ?? [],
+          areas_id: hd?.admin_area_ids ?? [],
+          area_id: hd?.subarea?.area?.id ?? undefined,
+          subarea_id: hd?.subarea?.id ?? undefined,
         },
       });
 
-      // 4) ahora sí, abre el Drawer (ya con valores correctos)
       setOpenModulo(true);
     } catch (error) {
-      console.log("error => ", error);
+      console.error("showDrawerModulo error => ", error);
+      message.error("No se pudo abrir la configuración de módulos.");
     }
   };
+
   const showDrawerAdministrativo = async (usuario_id?: number) => {
     try {
+      form.resetFields();
+      setUsuario(undefined);
+
       if (usuario_id) {
         const data = await getUsuario(usuario_id);
         setUsuario(data);
@@ -177,7 +188,8 @@ export default function useListUsuario() {
       }
       setOpenAdministrativo(true);
     } catch (error) {
-      console.log("error =>", error);
+      console.error("showDrawerAdministrativo error =>", error);
+      message.error("No se pudo abrir el formulario.");
     }
   };
 
@@ -189,18 +201,21 @@ export default function useListUsuario() {
       case "alumno":
         fetchUsuarios([CoreRol_Id.ESTUDIANTE]);
         break;
+      default:
+        break;
     }
   };
 
-  // 1) Reemplaza tu onFinishModulos por este:
   const onFinishModulos = async (values: {
     adm?: { rol?: string };
-    hd?: { rol?: string; areas_id?: number[] };
+    hd?: {
+      rol?: string;
+      areas_id?: number[];
+      subarea_id?: number;
+      area_id?: number;
+    };
   }) => {
-    console.log("values => ", values);
-
     try {
-      // toma el id del último usuario para el que abriste el drawer
       const userId = lastReqUserIdRef.current ?? usuario?.id;
       if (!userId) {
         message.error("Primero selecciona un usuario.");
@@ -209,27 +224,42 @@ export default function useListUsuario() {
 
       const tareas: Promise<unknown>[] = [];
 
-      // ADM: solo rol
       if (values.adm?.rol) {
         tareas.push(
           upsertUsuarioModulo(userId, "ADM", { rol: values.adm.rol })
         );
       }
 
-      // HD: rol + (opcional) áreas_id
       if (values.hd?.rol) {
-        console.log("rol => ", values.hd.rol);
-        console.log(
-          "areas => ",
-          values.hd.rol,
-          Array.isArray(values.hd.areas_id) ? values.hd.areas_id : undefined
-        );
+        const rol = values.hd.rol;
+        let areas_id: number[] | undefined = Array.isArray(values.hd.areas_id)
+          ? values.hd.areas_id.filter((n) => Number.isFinite(n))
+          : undefined;
+
+        const subarea_id: number | undefined =
+          typeof values.hd.subarea_id === "number"
+            ? values.hd.subarea_id
+            : undefined;
+
+        const area_id: number | undefined =
+          typeof values.hd.area_id === "number" ? values.hd.area_id : undefined; // opcional
+
+        if (rol === "nivel_5" || rol === "N5") {
+          areas_id = undefined;
+          // subarea_id = undefined;
+        } else if (rol === "nivel_4" || rol === "N4") {
+          if (!areas_id || areas_id.length === 0) areas_id = undefined;
+        } else {
+          if (areas_id && areas_id.length > 1) areas_id = [areas_id[0]];
+          if (!areas_id || areas_id.length === 0) areas_id = undefined;
+        }
+
         tareas.push(
           upsertUsuarioModulo(userId, "HD", {
-            rol: values.hd.rol,
-            areas_id: Array.isArray(values.hd.areas_id)
-              ? values.hd.areas_id
-              : undefined,
+            rol,
+            areas_id, // el back lo mapea a admin_area_ids
+            subarea_id, // vínculo principal del usuario
+            area_id, // opcional (si el back lo quiere explícito)
           })
         );
       }
@@ -241,11 +271,9 @@ export default function useListUsuario() {
 
       await Promise.all(tareas);
       message.success("Configuración de módulos actualizada.");
-
-      // refresca el drawer con lo que quedó en backend
-      await showDrawerModulo(userId);
+      await showDrawerModulo(userId); // refresca con backend
     } catch (err) {
-      console.error(err);
+      console.error("onFinishModulos error => ", err);
       message.error("No se pudo actualizar la configuración.");
     }
   };
@@ -256,15 +284,14 @@ export default function useListUsuario() {
     openAdministrativo,
     roles,
 
-    usuarioModulo,
+    // ⬇️ esto es lo que ahora necesita el Drawer
+    usuarioModuloConfig,
+    modules: usuarioModuloConfig?.modules ?? [],
 
     areas,
-
-    //formulario
     form,
     formModules,
 
-    //funciones
     onCloseAdministrativo,
     showDrawerAdministrativo,
     onFinishAdministrativo,

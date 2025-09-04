@@ -88,7 +88,7 @@ export default function TicketTable({ ticket }: Props) {
       title: "Acciones",
       key: "acciones",
       render: (record: { id: number }) => (
-        <Link href={`/ticket/${record.id}`}>
+        <Link href={`/hd/ticket/${record.id}`}>
           <Button type="link" icon={<EyeOutlined />}>
             Ver
           </Button>

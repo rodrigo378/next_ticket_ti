@@ -1,3 +1,5 @@
+"use client";
+
 import { Core_Rol } from "@/interface/core/core_rol";
 import { Core_Usuario } from "@/interface/core/core_usuario";
 import { Button, Drawer, Form, FormInstance, Input, Select } from "antd";
@@ -5,10 +7,8 @@ import { Button, Drawer, Form, FormInstance, Input, Select } from "antd";
 interface Props {
   usuario: Core_Usuario | undefined;
   roles: Core_Rol[];
-
   openAdministrativo: boolean;
-  form: FormInstance;
-
+  form: FormInstance<Core_Usuario>;
   onCloseAdministrativo: () => void;
   onFinishAdministrativo: (values: Core_Usuario) => void;
 }
@@ -16,10 +16,8 @@ interface Props {
 export default function DrawerAdministrativo({
   usuario,
   roles,
-
   openAdministrativo,
   form,
-
   onCloseAdministrativo,
   onFinishAdministrativo,
 }: Props) {
@@ -30,10 +28,11 @@ export default function DrawerAdministrativo({
       width={500}
       onClose={onCloseAdministrativo}
       open={openAdministrativo}
+      destroyOnClose
     >
       <Form form={form} layout="vertical" onFinish={onFinishAdministrativo}>
         <Form.Item name="nombre" label="Nombre" rules={[{ required: true }]}>
-          <Input placeholder="Ej. Juan"></Input>
+          <Input placeholder="Ej. Juan" />
         </Form.Item>
 
         <Form.Item
@@ -41,7 +40,7 @@ export default function DrawerAdministrativo({
           label="Apellidos"
           rules={[{ required: true }]}
         >
-          <Input placeholder="Ej. Perez"></Input>
+          <Input placeholder="Ej. Pérez" />
         </Form.Item>
 
         <Form.Item
@@ -53,7 +52,7 @@ export default function DrawerAdministrativo({
         </Form.Item>
 
         <Form.Item name="grado" label="Grado" rules={[{ required: true }]}>
-          <Input placeholder="Ej. Doc"></Input>
+          <Input placeholder="Ej. Doc." />
         </Form.Item>
 
         <Form.Item name="estado" label="Estado" rules={[{ required: true }]}>
@@ -73,7 +72,8 @@ export default function DrawerAdministrativo({
           </Select>
         </Form.Item>
 
-        <div className="flex justify-end">
+        <div className="flex justify-end gap-2">
+          <Button onClick={onCloseAdministrativo}>Cancelar</Button>
           <Button type="primary" htmlType="submit">
             {usuario ? `Actualizar` : "Crear"}
           </Button>

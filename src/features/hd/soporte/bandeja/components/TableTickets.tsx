@@ -103,7 +103,7 @@ export default function TableTickets({ usuario, tickets, loading }: Props) {
         const estaAsignado = record.asignado_id === usuario?.id;
 
         return estaAsignado ? (
-          <Link href={`/ticket/soporte/${record.id}`}>
+          <Link href={`/hd/bandeja/${record.id}`}>
             <Button
               type="link"
               icon={<EyeOutlined />}

@@ -96,11 +96,11 @@ export function useTicketCreate() {
       if (values.categoria_id)
         fd.append("categoria_id", String(values.categoria_id));
       fileList.forEach((f) => {
-        if (f.originFileObj) fd.append("archivos", f.originFileObj as Blob);
+        if (f.originFileObj) fd.append("archivos", f.originFileObj);
       });
       await createTicketTi(fd);
       message.success("🎉 Ticket creado exitosamente");
-      router.push("/ticket");
+      router.push("/hd/ticket");
     } finally {
       setLoading(false);
     }
@@ -137,7 +137,7 @@ export function useTicketCreate() {
     ],
     [current, isStep1Complete, form]
   );
-
+  // http://localhost:4000/hd/ticket/soporte/1
   return {
     form,
     current,

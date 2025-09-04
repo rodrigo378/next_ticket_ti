@@ -76,6 +76,8 @@ export default function useAsignarTicket() {
 
   // FETCHS ========================================
   const fetchTickets = async (estados_id?: string[]) => {
+    console.log("se fetchTickets => ", estados_id);
+
     try {
       setLoading(true);
       const data = await getTickets({ me: undefined, estados_id });
@@ -176,7 +178,7 @@ export default function useAsignarTicket() {
     fetchTickets(["1"]);
     fetchUsuarios();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tabKey]);
+  }, []);
 
   // Mantener tabRef sincronizado para listeners WS
   useEffect(() => {
@@ -185,6 +187,8 @@ export default function useAsignarTicket() {
 
   // ONCHANGE ======================================
   const onChangeTabs = (key: string) => {
+    console.log("se cambio el tab => ", key);
+
     setTabKey(key);
     if (key === "sin_asignar") fetchTickets(["1"]);
     else if (key === "asignados") fetchTickets(["2", "3", "4"]);

@@ -1,3 +1,5 @@
+"use client";
+
 import { Tabs } from "antd";
 import TableUsuarioAdministrativo from "./TablaAdministrativo";
 import TableUsuarioAlumno from "./TablaAlumno";
@@ -5,7 +7,7 @@ import { Core_Usuario } from "@/interface/core/core_usuario";
 
 interface Props {
   usuarios: Core_Usuario[];
-  showDrawerAdministrativo: (usuario_id: number) => void;
+  showDrawerAdministrativo: (usuario_id?: number) => void; // <- acepta opcional para "Crear"
   onChangeTab: (tabKey: string) => void;
   showDrawerModulo: (usuario_id: number) => void;
 }
@@ -18,7 +20,7 @@ export default function TabsUsuario({
 }: Props) {
   return (
     <Tabs
-      defaultActiveKey="administrativos"
+      defaultActiveKey="administrativo" // <- FIX
       onChange={onChangeTab}
       items={[
         {
@@ -29,17 +31,15 @@ export default function TabsUsuario({
               usuarios={usuarios}
               showDrawerAdministrativo={showDrawerAdministrativo}
               showDrawerModulo={showDrawerModulo}
-            ></TableUsuarioAdministrativo>
+            />
           ),
         },
         {
           key: "alumno",
           label: "Alumnos",
-          children: (
-            <TableUsuarioAlumno usuarios={usuarios}></TableUsuarioAlumno>
-          ),
+          children: <TableUsuarioAlumno usuarios={usuarios} />,
         },
       ]}
-    ></Tabs>
+    />
   );
 }
