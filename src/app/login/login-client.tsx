@@ -37,6 +37,7 @@ export default function LoginClient() {
   }, []);
 
   useEffect(() => {
+    console.log("api_Base => ", API_BASE);
     let p = 0;
     const id = setInterval(() => {
       p = Math.min(95, p + (10 + Math.random() * 20));
