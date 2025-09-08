@@ -5,7 +5,7 @@ import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
+const API_BASE = process.env.NEXT_PUBLIC_API_URL!;
 
 export default function LoginClient() {
   const router = useRouter();
@@ -167,7 +167,6 @@ export default function LoginClient() {
               <div className="relative">
                 <div className="absolute right-0 mt-4">
                   <svg
-                    xmlns="http://www.w3.org/2000/svg"
                     className="h-6 w-6 text-green-500"
                     fill="none"
                     viewBox="0 0 24 24"
