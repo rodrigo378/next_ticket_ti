@@ -1,6 +1,6 @@
 import { useUsuario } from "@/context/UserContext";
 import { HD_Ticket } from "@/interface/hd/hd_ticket";
-import { getTickets } from "@/services/hd/ticket_ti";
+import { getTickets } from "@/features/hd/service/ticket_ti";
 import { message } from "antd";
 import { useEffect, useState } from "react";
 
@@ -11,10 +11,9 @@ export default function useBandeja() {
   const [tickets, setTickets] = useState<HD_Ticket[]>([]);
   const { usuario } = useUsuario();
 
-  // USEEFFECT
+  // USEEFFECT ======================
   useEffect(() => {
     fetchTickets("true", ["2", "3"]);
-    // fetchTickets("false", ["1"]);
   }, []);
 
   // FETCHS =========================

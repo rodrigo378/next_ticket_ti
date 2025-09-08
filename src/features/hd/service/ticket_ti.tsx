@@ -1,5 +1,5 @@
 import { AxiosResponse } from "axios";
-import { api } from "../api";
+import { api } from "../../../services/api";
 import { HD_Ticket } from "@/interface/hd/hd_ticket";
 import { HD_CalificacionTicket } from "@/interface/hd/hd_calificacionTicket";
 

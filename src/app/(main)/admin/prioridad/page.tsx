@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Table, Typography, Button, Drawer, Form, Input, message } from "antd";
 import { ColumnsType } from "antd/es/table";
 import { PlusOutlined } from "@ant-design/icons";
-import { getPrioridades } from "@/services/hd/prioridad";
+import { getPrioridades } from "@/features/hd/service/prioridad";
 import { HD_PrioridadTicket } from "@/interface/hd/hd_prioridadTicket";
 const { Title, Paragraph } = Typography;
 

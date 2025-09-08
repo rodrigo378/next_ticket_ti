@@ -13,7 +13,7 @@ import {
   updateUsuario,
   upsertUsuarioModulo,
 } from "@/services/core/usuario";
-import { getAreas } from "@/services/hd/area";
+import { getAreas } from "@/features/hd/service/area";
 import { Form, message } from "antd";
 import { useEffect, useRef, useState } from "react";
 

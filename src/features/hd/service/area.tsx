@@ -1,6 +1,6 @@
 import { AxiosResponse } from "axios";
 import { HD_Area } from "@/interface/hd/hd_area";
-import { api } from "../api";
+import { api } from "../../../services/api";
 import { HD_Subarea } from "@/interface/hd/hd_subarea";
 import { HD_HorarioArea } from "@/interface/hd/hd_horarioArea";
 

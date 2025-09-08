@@ -1,5 +1,5 @@
 import { HD_HorarioUsuario } from "@/interface/hd/hd_horarioUsuario";
-import { api } from "../api";
+import { api } from "../../../services/api";
 import { HD_HorarioArea } from "@/interface/hd/hd_horarioArea";
 
 export const createHorarioUsuario = async (

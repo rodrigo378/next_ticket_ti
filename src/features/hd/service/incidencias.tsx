@@ -1,5 +1,5 @@
 import { HD_Incidencia } from "@/interface/hd/hd_incidencia";
-import { api } from "../api";
+import { api } from "../../../services/api";
 import { AxiosResponse } from "axios";
 import { HD_Categoria } from "@/interface/hd/hd_categoria";
 

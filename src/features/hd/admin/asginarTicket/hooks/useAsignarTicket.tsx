@@ -3,13 +3,13 @@ import { useUsuario } from "@/context/UserContext";
 import { Core_Usuario } from "@/interface/core/core_usuario";
 import { TreeNode } from "@/interface/hd/hd_incidencia";
 import { HD_Ticket } from "@/interface/hd/hd_ticket";
-import { getArbol } from "@/services/hd/incidencias";
+import { getArbol } from "@/features/hd/service/incidencias";
 import {
   asignarTicket,
   getSoporte,
   getTicket,
   getTickets,
-} from "@/services/hd/ticket_ti";
+} from "@/features/hd/service/ticket_ti";
 import { message } from "antd";
 import { useEffect, useRef, useState } from "react";
 import { io, Socket } from "socket.io-client";

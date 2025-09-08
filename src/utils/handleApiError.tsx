@@ -1,15 +1,19 @@
-// src/utils/handleApiError.ts
-import { message } from "antd";
-import { errorMap } from "./errorMap";
-import { normalizeError, NormalizedError } from "@/services/api";
+"use client";
+import { Modal } from "antd";
+import type { NormalizedError } from "@/services/api";
+import { errorMap as baseMap, type ErrorMap } from "./errorMap";
 
-export function handleApiError(error: unknown) {
-  const err: NormalizedError = normalizeError(error);
-  const handler = errorMap[err.code] ?? errorMap.UNKNOWN_ERROR;
+export function handleApiError(err: NormalizedError, extraMap?: ErrorMap) {
+  const map = extraMap ? { ...baseMap, ...extraMap } : baseMap;
+  const handler = map[err.code] ?? map.UNKNOWN_ERROR;
 
   try {
     handler(err);
-  } catch {
-    message.error(err.message || "Ocurrió un error.");
+  } catch (boom) {
+    console.error("Fallo mostrando modal:", boom, "error=", err);
+    Modal.error({
+      title: "Error",
+      content: err.message || "Ocurrió un error.",
+    });
   }
 }

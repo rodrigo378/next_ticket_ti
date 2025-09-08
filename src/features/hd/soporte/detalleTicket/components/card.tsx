@@ -3,8 +3,8 @@ import { useEffect, useRef, useState } from "react";
 import ComponenteModal from "./modal";
 import { HD_Ticket } from "@/interface/hd/hd_ticket";
 import { HD_EstadoTicket } from "@/interface/hd/hd_estadoTicket";
-import { getEstados } from "@/services/hd/estado";
-import { cambiarEstado } from "@/services/hd/ticket_ti";
+import { getEstados } from "@/features/hd/service/estado";
+import { cambiarEstado } from "@/features/hd/service/ticket_ti";
 
 const { Title, Text } = Typography;
 

@@ -7,7 +7,7 @@ import {
   getArea,
   updateHorario,
   createHorario,
-} from "@/services/hd/area";
+} from "@/features/hd/service/area";
 // import { createHorario, updateHorario } from "@/services/hd/horario"; // <-- tus funciones
 
 /* =============== UI mínimas (Tailwind) =============== */

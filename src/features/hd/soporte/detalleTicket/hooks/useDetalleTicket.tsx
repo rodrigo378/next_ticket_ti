@@ -1,5 +1,5 @@
 import { HD_Ticket } from "@/interface/hd/hd_ticket";
-import { createMensaje, getTicket } from "@/services/hd/ticket_ti";
+import { createMensaje, getTicket } from "@/features/hd/service/ticket_ti";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 

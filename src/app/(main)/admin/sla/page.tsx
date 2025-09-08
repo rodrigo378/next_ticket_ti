@@ -14,7 +14,7 @@ import {
 } from "antd";
 import { ColumnsType } from "antd/es/table";
 import { EditOutlined, SearchOutlined } from "@ant-design/icons";
-import { getSla, updateSla } from "@/services/hd/sla";
+import { getSla, updateSla } from "@/features/hd/service/sla";
 import { HD_SLA } from "@/interface/hd/hd_sla";
 
 const { Title, Paragraph } = Typography;

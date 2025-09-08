@@ -1,7 +1,7 @@
 "use client";
 
 import { HD_Ticket } from "@/interface/hd/hd_ticket";
-import { getTicketsMe } from "@/services/hd/ticket_ti";
+import { getTicketsMe } from "@/features/hd/service/ticket_ti";
 import { useEffect, useMemo, useState } from "react";
 
 export default function useMisTicket() {

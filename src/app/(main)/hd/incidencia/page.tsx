@@ -14,17 +14,17 @@ import {
 } from "antd";
 import { useEffect, useState } from "react";
 import { SearchOutlined, PlusOutlined } from "@ant-design/icons";
-import { createCatalogo, getCatalogo } from "@/services/hd/catalogo";
+import { createCatalogo, getCatalogo } from "@/features/hd/service/catalogo";
 import {
   createCategoria,
   createIncidencia,
   updateCategoria,
-} from "@/services/hd/incidencias";
-import { updateSla } from "@/services/hd/sla";
+} from "@/features/hd/service/incidencias";
+import { updateSla } from "@/features/hd/service/sla";
 import { HD_CatalogoServicio } from "@/interface/hd/hd_catalogoServicio";
 import { HD_Area } from "@/interface/hd/hd_area";
 import { HD_Subarea } from "@/interface/hd/hd_subarea";
-import { getAreas, getSubareas } from "@/services/hd/area";
+import { getAreas, getSubareas } from "@/features/hd/service/area";
 import { HD_Incidencia } from "@/interface/hd/hd_incidencia";
 
 const { Title, Paragraph } = Typography;

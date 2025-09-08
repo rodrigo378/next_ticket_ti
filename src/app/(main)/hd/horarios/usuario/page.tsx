@@ -4,7 +4,7 @@ import { getUsuario, getUsuarios } from "@/services/core/usuario";
 import {
   createHorarioUsuario,
   updateHorarioUsuario,
-} from "@/services/hd/horario_usuario";
+} from "@/features/hd/service/horario_usuario";
 import React, { useEffect, useState } from "react";
 
 // ===== TIPOS =====

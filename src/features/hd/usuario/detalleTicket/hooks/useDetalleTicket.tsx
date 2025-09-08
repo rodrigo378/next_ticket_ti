@@ -4,7 +4,7 @@ import {
   createCalificacion,
   createMensaje,
   getTicket,
-} from "@/services/hd/ticket_ti";
+} from "@/features/hd/service/ticket_ti";
 import { message } from "antd";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
