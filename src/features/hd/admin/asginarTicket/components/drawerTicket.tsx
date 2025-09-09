@@ -69,11 +69,11 @@ export default function DrawerTicket({
     const now = nowRef ?? dayjs();
     if (!s.isValid() || !e.isValid()) return 0;
 
-    const total = e.diff(s); // ms totales
+    const total = e.diff(s);
     if (total <= 0) return 100;
 
     const trans = Math.min(Math.max(now.diff(s), 0), total);
-    return Math.floor((trans / total) * 100); // floor para estabilidad
+    return Math.floor((trans / total) * 100);
   };
 
   const humanRemaining = (end?: string | Date, nowRef?: dayjs.Dayjs) => {
@@ -120,6 +120,25 @@ export default function DrawerTicket({
     [ticket]
   );
 
+  // === NUEVO: condiciones para mostrar clasificación ===
+  const esDerivado =
+    Array.isArray(ticket?.derivacionesComoDestino) &&
+    ticket.derivacionesComoDestino.length > 0;
+
+  const esTicketEstudiante = ticket?.creado?.rol_id === 3; // referencia que ya usas en la tabla
+
+  const sinCategoria = !ticket?.categoria_id;
+
+  const debeMostrarClasificacion =
+    esDerivado || esTicketEstudiante || sinCategoria;
+
+  // Etiqueta extra para el título del bloque de clasificación
+  const chipClasificacion = esDerivado
+    ? { color: "processing" as const, text: "Ticket derivado" }
+    : esTicketEstudiante
+    ? { color: "blue" as const, text: "Ticket de estudiante" }
+    : { color: "default" as const, text: "Sin categoría" };
+
   return (
     <Drawer
       title={
@@ -134,13 +153,9 @@ export default function DrawerTicket({
     >
       {ticket && (
         <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: "1rem 0rem",
-          }}
+          style={{ display: "flex", flexDirection: "column", gap: "1rem 0rem" }}
         >
-          {/* Informacion general  */}
+          {/* Información general */}
           <Divider orientation="left">📄 Información General</Divider>
           <Descriptions bordered column={1} size="small">
             <Descriptions.Item label="Área">
@@ -164,12 +179,9 @@ export default function DrawerTicket({
                   : "—"}
               </Descriptions.Item>
             )}
-
             <Descriptions.Item label="Catálogo de servicio">
-              {ticket.categoria?.incidencia?.catalogo_servicio?.nombre !==
-              undefined
-                ? ticket.categoria?.incidencia?.catalogo_servicio?.nombre
-                : " - - - - - - "}
+              {ticket.categoria?.incidencia?.catalogo_servicio?.nombre ??
+                " - - - - - - "}
             </Descriptions.Item>
             <Descriptions.Item
               label={
@@ -178,14 +190,10 @@ export default function DrawerTicket({
                   : ticket.categoria?.incidencia?.tipo
               }
             >
-              {ticket.categoria?.incidencia?.nombre !== undefined
-                ? ticket.categoria?.incidencia?.nombre
-                : " - - - - - - "}
+              {ticket.categoria?.incidencia?.nombre ?? " - - - - - - "}
             </Descriptions.Item>
             <Descriptions.Item label="Categoría">
-              {ticket.categoria?.nombre !== undefined
-                ? ticket.categoria?.nombre
-                : " - - - - - - "}
+              {ticket.categoria?.nombre ?? " - - - - - - "}
             </Descriptions.Item>
             <Descriptions.Item label="Descripcion">
               {ticket.descripcion}
@@ -217,38 +225,36 @@ export default function DrawerTicket({
               </ul>
             </>
           )}
-          {/* 🔀 Derivación */}
-          {Array.isArray(ticket?.derivacionesComoDestino) &&
-            ticket.derivacionesComoDestino.length > 0 && (
-              <>
-                <Divider orientation="left">🔀 Derivado desde</Divider>
-                {ticket.derivacionesComoDestino.map(
-                  (d: HD_DerivacionTicket) => (
-                    <Descriptions key={d.id} bordered column={1} size="small">
-                      <Descriptions.Item label="De área">
-                        {d.de_area!.nombre}
-                      </Descriptions.Item>
-                      <Descriptions.Item label="A área">
-                        {d.a_area!.nombre}
-                      </Descriptions.Item>
-                      <Descriptions.Item label="Motivo">
-                        {d.motivo ?? "—"}
-                      </Descriptions.Item>
-                      <Descriptions.Item label="Fecha">
-                        {d.createdAt
-                          ? dayjs(d.createdAt).format("DD/MM/YYYY HH:mm")
-                          : "—"}
-                      </Descriptions.Item>
-                      <Descriptions.Item label="Derivado por">
-                        {`${d.usuario!.nombre} ${d.usuario!.apellidos}`}
-                      </Descriptions.Item>
-                    </Descriptions>
-                  )
-                )}
-              </>
-            )}
 
-          {/* SLA del ticket: visible solo si está asignado y tiene registro SLA */}
+          {/* 🔀 Derivación */}
+          {esDerivado && (
+            <>
+              <Divider orientation="left">🔀 Derivado desde</Divider>
+              {ticket.derivacionesComoDestino!.map((d: HD_DerivacionTicket) => (
+                <Descriptions key={d.id} bordered column={1} size="small">
+                  <Descriptions.Item label="De área">
+                    {d.de_area!.nombre}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="A área">
+                    {d.a_area!.nombre}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Motivo">
+                    {d.motivo ?? "—"}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Fecha">
+                    {d.createdAt
+                      ? dayjs(d.createdAt).format("DD/MM/YYYY HH:mm")
+                      : "—"}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Derivado por">
+                    {`${d.usuario!.nombre} ${d.usuario!.apellidos}`}
+                  </Descriptions.Item>
+                </Descriptions>
+              ))}
+            </>
+          )}
+
+          {/* SLA (si corresponde) */}
           {tieneSLA && ticket.estado_id !== 7 && (
             <>
               <Divider orientation="left">⏱ SLA del Ticket</Divider>
@@ -351,57 +357,58 @@ export default function DrawerTicket({
               </Select>
             </div>
 
-            {Array.isArray(ticket?.derivacionesComoDestino) &&
-              ticket.derivacionesComoDestino.length > 0 && (
-                <Card
-                  size="small"
-                  className="rounded-lg border border-dashed"
-                  title={
-                    <span className="font-semibold">
-                      📚 Clasificación de servicio
-                    </span>
-                  }
-                  extra={
-                    <Tag color="processing" style={{ borderRadius: 999 }}>
-                      Ticket derivado
-                    </Tag>
-                  }
-                >
-                  <div className="text-xs text-gray-500 mb-2">
-                    Selecciona:{" "}
-                    <strong>Catálogo → Incidencia → Categoría</strong>
-                  </div>
+            {/* === NUEVO: Clasificación disponible también para tickets de ESTUDIANTE o sin categoría === */}
+            {debeMostrarClasificacion && (
+              <Card
+                size="small"
+                className="rounded-lg border border-dashed"
+                title={
+                  <span className="font-semibold">
+                    📚 Clasificación de servicio
+                  </span>
+                }
+                extra={
+                  <Tag
+                    color={chipClasificacion.color}
+                    style={{ borderRadius: 999 }}
+                  >
+                    {chipClasificacion.text}
+                  </Tag>
+                }
+              >
+                <div className="text-xs text-gray-500 mb-2">
+                  Selecciona: <strong>Catálogo → Incidencia → Categoría</strong>
+                </div>
 
-                  <TreeSelect
-                    style={{ width: "100%" }}
-                    value={categoriaId}
-                    treeData={arbol}
-                    // treeDefaultExpandAll
-                    treeLine
-                    showSearch
-                    placeholder={
-                      arbol?.length
-                        ? "Selecciona una categoría"
-                        : "Cargando árbol..."
-                    }
-                    allowClear
-                    disabled={!arbol?.length}
-                    listHeight={400}
-                    filterTreeNode={(input, node) =>
-                      String(node?.title ?? "")
-                        .toLowerCase()
-                        .includes(input.toLowerCase())
-                    }
-                    onChange={(value) => setCategoriaId(value as number)}
-                  />
+                <TreeSelect
+                  style={{ width: "100%" }}
+                  value={categoriaId}
+                  treeData={arbol}
+                  treeLine
+                  showSearch
+                  placeholder={
+                    arbol?.length
+                      ? "Selecciona una categoría"
+                      : "Cargando árbol..."
+                  }
+                  allowClear
+                  disabled={!arbol?.length}
+                  listHeight={400}
+                  filterTreeNode={(input, node) =>
+                    String(node?.title ?? "")
+                      .toLowerCase()
+                      .includes(input.toLowerCase())
+                  }
+                  onChange={(value) => setCategoriaId(value as number)}
+                />
 
-                  <div className="text-[11px] text-gray-500 mt-8">
-                    Solo las <strong>categorías</strong> son seleccionables; los
-                    niveles de <em>Catálogo</em> e <em>Incidencia</em> sirven
-                    para agrupar.
-                  </div>
-                </Card>
-              )}
+                <div className="text-[11px] text-gray-500 mt-8">
+                  Solo las <strong>categorías</strong> son seleccionables; los
+                  niveles de
+                  <em> Catálogo</em> e <em> Incidencia</em> sirven para agrupar.
+                </div>
+              </Card>
+            )}
 
             <Button
               type="primary"

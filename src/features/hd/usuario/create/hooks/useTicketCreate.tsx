@@ -104,7 +104,7 @@ export function useTicketCreate() {
       });
       await createTicketTi(fd);
       message.success("🎉 Ticket creado exitosamente");
-      router.push("/ticket");
+      router.push("/hd/ticket");
     } catch (e) {
       const err = e as NormalizedError;
       const painted = applyFormErrors(form, err);

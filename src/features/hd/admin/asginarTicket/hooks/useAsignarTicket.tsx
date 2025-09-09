@@ -81,6 +81,8 @@ export default function useAsignarTicket() {
     try {
       setLoading(true);
       const data = await getTickets({ me: undefined, estados_id });
+      console.log("data => ", data);
+
       setTickets(data);
     } catch (error) {
       console.error("error => ", error);
@@ -195,13 +197,14 @@ export default function useAsignarTicket() {
     else if (key === "asignados") fetchTickets(["2", "3", "4"]);
   };
 
-  const abrirDrawer = async (ticket: HD_Ticket) => {
+  const abrirDrawer = async (t: HD_Ticket) => {
     try {
-      const data = await getTicket(ticket.id!);
+      const data = await getTicket(t.id!);
       setTicket(data);
       setAsignadoId(data.asignado_id ?? undefined);
       setPrioridadId(data.prioridad_id ?? undefined);
-      fetchIncidenciaArbol(ticket.area_id || 0);
+      setCategoriaId(data.categoria_id ?? undefined);
+      fetchIncidenciaArbol(t.area_id || 0);
       setDrawerVisible(true);
     } catch (error) {
       console.error("Error al obtener detalle del ticket", error);
@@ -215,22 +218,36 @@ export default function useAsignarTicket() {
       return;
     }
 
-    const isDerivado =
+    const esDerivado =
       Array.isArray(ticket?.derivacionesComoDestino) &&
       ticket.derivacionesComoDestino.length > 0;
 
-    if (isDerivado && !categoriaId) {
-      message.warning("Selecciona la categoría para el ticket derivado.");
+    const esTicketEstudiante = ticket?.creado?.rol_id === 3;
+    const sinCategoria = !ticket?.categoria_id;
+
+    // Requerir categoría en estos casos
+    const requiereCategoria = esDerivado || esTicketEstudiante || sinCategoria;
+
+    if (requiereCategoria && typeof categoriaId !== "number") {
+      message.warning("Selecciona una categoría para poder asignar.");
       return;
     }
 
-    try {
-      await asignarTicket(ticket.id, {
-        asignado_id: asignadoId,
-        prioridad_id: prioridadId,
-        ...(isDerivado ? { categoria_id: categoriaId } : {}),
-      });
+    const payload: {
+      asignado_id: number;
+      prioridad_id: number;
+      categoria_id?: number;
+    } = {
+      asignado_id: asignadoId,
+      prioridad_id: prioridadId,
+      // Si el usuario eligió categoría, envíala SIEMPRE
+      ...(typeof categoriaId === "number" ? { categoria_id: categoriaId } : {}),
+    };
 
+    console.log("PUT /hd/ticket/asignar payload =>", payload);
+
+    try {
+      await asignarTicket(ticket.id, payload);
       message.success("✅ Ticket actualizado correctamente");
       fetchTickets(tabKey === "sin_asignar" ? ["1"] : ["2", "3", "4"]);
       setDrawerVisible(false);
@@ -239,7 +256,6 @@ export default function useAsignarTicket() {
       message.error("❌ Error al actualizar el ticket");
     }
   };
-
   return {
     categoriaId,
     setCategoriaId,

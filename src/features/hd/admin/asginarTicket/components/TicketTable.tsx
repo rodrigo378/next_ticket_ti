@@ -120,8 +120,8 @@ export default function TicketTableAdmin({
           <span>{`${record.creado?.nombre || ""} ${
             record.creado?.apellidos || ""
           }`}</span>
-          <Tag color={record.creado?.rol_id === 7 ? "blue" : "green"}>
-            {record.creado?.rol_id === 7 ? "Alumno" : "Administrativo"}
+          <Tag color={record.creado?.rol_id === 3 ? "blue" : "green"}>
+            {record.creado?.rol_id === 3 ? `Alumno` : `Administrativo`}
           </Tag>
         </div>
       ),

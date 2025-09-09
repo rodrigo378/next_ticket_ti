@@ -4,7 +4,8 @@ const nextConfig = {
     return [
       {
         source: "/api/:path*",
-        destination: "https://mesa-api.uma.edu.pe/:path*",
+        destination: "http://localhost:4000/:path*",
+        // destination: "https://mesa-api.uma.edu.pe/:path*",
       },
     ];
   },

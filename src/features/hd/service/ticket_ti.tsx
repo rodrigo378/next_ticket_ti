@@ -88,7 +88,7 @@ export const derivarTicket = async (
 
 export const asignarTicket = async (
   ticket_id: number,
-  data: Partial<HD_Ticket>
+  data: { asignado_id: number; prioridad_id: number; categoria_id?: number }
 ) => {
   const response = await api.put(`/hd/ticket/asignar/${ticket_id}`, data);
   return response.data;
@@ -117,5 +117,20 @@ export const cambiarEstado = async (
 
 export const getSoporte = async (area_id: number) => {
   const response = await api.get(`/hd/ticket/soporte/${area_id}`);
+  return response.data;
+};
+
+export const createTicketEstudiante = async (
+  formData: FormData
+): Promise<unknown> => {
+  const token = localStorage.getItem("token");
+
+  const response = await api.post("/hd/ticket/est", formData, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "multipart/form-data",
+    },
+  });
+
   return response.data;
 };
