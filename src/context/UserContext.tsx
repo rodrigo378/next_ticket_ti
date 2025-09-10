@@ -196,54 +196,10 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [pathname, router]);
 
-  // useEffect(() => {
-  //   if (typeof window === "undefined") return;
-
-  //   // 1) Captura ?token=... (SSO) y limpia URL
-  //   const url = new URL(window.location.href);
-  //   const tokenFromUrl = url.searchParams.get("token");
-  //   if (tokenFromUrl) {
-  //     localStorage.setItem("token", tokenFromUrl);
-  //     url.searchParams.delete("token");
-  //     url.searchParams.delete("returnTo");
-  //     const qs = url.searchParams.toString();
-  //     window.history.replaceState({}, "", url.pathname + (qs ? `?${qs}` : ""));
-  //   }
-
-  //   // 2) Validación de token
-  //   const token = localStorage.getItem("token");
-  //   if (!token) {
-  //     setIam(null);
-  //     setReady(true);
-  //     setReadyIam(false);
-
-  //     if (!PUBLIC_ROUTES.includes(pathname)) {
-  //       router.replace("/login");
-  //     }
-  //     return;
-  //   }
-
-  //   // 3) Cargar IAM si hay token
-  //   let cancelled = false;
-  //   (async () => {
-  //     try {
-  //       await refreshIam();
-  //     } catch {
-  //       localStorage.removeItem("token");
-  //       if (!cancelled) setIam(null);
-  //     } finally {
-  //       if (!cancelled) setReady(true);
-  //     }
-  //   })();
-
-  //   return () => {
-  //     cancelled = true;
-  //   };
-  // }, [pathname, refreshIam, router]);
-
   useEffect(() => {
     if (typeof window === "undefined") return;
 
+    // 1) Captura ?token=... (SSO) y limpia URL
     const url = new URL(window.location.href);
     const tokenFromUrl = url.searchParams.get("token");
     if (tokenFromUrl) {
@@ -254,6 +210,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
       window.history.replaceState({}, "", url.pathname + (qs ? `?${qs}` : ""));
     }
 
+    // 2) Validación de token
     const token = localStorage.getItem("token");
     if (!token) {
       setIam(null);
@@ -266,20 +223,11 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
 
+    // 3) Cargar IAM si hay token
     let cancelled = false;
     (async () => {
       try {
         await refreshIam();
-
-        // 🚨 Redirección por rol
-        if (!cancelled) {
-          const rol = iam?.user?.rol?.nombre?.toLowerCase();
-          if (rol === "administrador") {
-            router.replace("/");
-          } else if (rol === "estudiante") {
-            router.replace("/hd/est/mis-tickets");
-          }
-        }
       } catch {
         localStorage.removeItem("token");
         if (!cancelled) setIam(null);
@@ -291,7 +239,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     return () => {
       cancelled = true;
     };
-  }, [pathname, refreshIam, router, iam?.user?.rol?.nombre]);
+  }, [pathname, refreshIam, router]);
 
   const usuario = iam?.user ?? null;
 
