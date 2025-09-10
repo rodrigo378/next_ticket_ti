@@ -58,12 +58,14 @@ export default function LoginClient() {
   // Si ya hay token, sal de /login
   useEffect(() => {
     if (typeof window === "undefined") return;
+    console.log("redireccionamiento 1");
     if (localStorage.getItem("token")) router.push("/");
   }, [router]);
 
   // Captura ?token=... y redirige
   useEffect(() => {
     const tokenFromUrl = searchParams.get("token");
+    console.log("redireccionamiento 1");
     const returnTo = searchParams.get("returnTo") || "/";
     if (typeof window === "undefined" || !tokenFromUrl) return;
 

@@ -4,8 +4,13 @@
 
 @layer base {
   :root {
+    /* Colores base (claro) */
     --background: #ffffff;
-    --foreground: #26ec30;
+    --foreground: #0f172a; /* texto neutro legible */
+
+    /* Acentos / marca */
+    --brand: #e91e63; /* reemplaza por el HEX corporativo UMA */
+    --muted: #475569;
 
     --font-ui: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial,
       "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
@@ -20,8 +25,10 @@
 
   @media (prefers-color-scheme: dark) {
     :root {
-      --background: #e600d2;
-      --foreground: #ffffff;
+      /* Paleta dark neutra */
+      --background: #0b1220;
+      --foreground: #e6e8ea;
+      --muted: #9aa4b2;
     }
   }
 
@@ -32,11 +39,8 @@
     font-size: var(--text-size);
     line-height: var(--line-height);
     height: 100%;
-  }
-
-  body {
-    color: var(--foreground);
     background: var(--background);
+    color: var(--foreground);
   }
 
   code,
@@ -48,19 +52,21 @@
     font-size: 0.95rem;
     line-height: 1.45;
   }
+
+  /* Selección adaptativa */
+  ::selection {
+    background: color-mix(in oklab, var(--brand) 18%, transparent);
+    color: var(--foreground);
+  }
 }
 
 @layer utilities {
   .text-balance {
-    text-wrap: balance;
+    text-wrap: balance; /* experimental */
   }
 }
 
-::selection {
-  background: rgba(51, 46, 46, 0.12);
-  color: inherit;
-}
-
+/* Respeto a reduce motion */
 @media (prefers-reduced-motion: reduce) {
   * {
     animation: none !important;

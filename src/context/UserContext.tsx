@@ -1,6 +1,8 @@
 "use client";
 
+import { Core_Rol } from "@/interface/core/core_rol";
 import { getIamContext } from "@/services/core/iam";
+import { Spin } from "antd";
 import { usePathname, useRouter } from "next/navigation";
 import {
   createContext,
@@ -27,7 +29,13 @@ type ModuleBase = {
 };
 type HdModule = ModuleBase & { code: "HD"; extras: HdExtras };
 type IamCtx = {
-  user: { id: number; nombre: string; apellidos: string; email: string };
+  user: {
+    id: number;
+    nombre: string;
+    apellidos: string;
+    email: string;
+    rol: Core_Rol;
+  };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   perfil_global: any;
   modules: ModuleBase[];
@@ -35,24 +43,126 @@ type IamCtx = {
 /* ===================================== */
 
 type UserContextType = {
-  /** identidad (derivada de iam.user) */
   usuario: IamCtx["user"] | null;
-  /** IAM completo (perfil_global, módulos, extras, etc.) */
   iam: IamCtx | null;
-  /** módulo HD resuelto (si existe) */
   hd?: HdModule;
-  /** listo para navegar (auth) */
   ready: boolean;
-  /** IAM cargado (áreas/rooms/roles) */
   readyIam: boolean;
-  /** recargar IAM */
   refreshIam: () => Promise<void>;
-  /** cerrar sesión */
   logout: () => void;
 };
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
 const PUBLIC_ROUTES = ["/login"];
+
+/* ---------------- Loader con branding UMA ---------------- */
+const Loader = () => {
+  return (
+    <div
+      style={{
+        display: "grid",
+        placeItems: "center",
+        width: "100dvw",
+        height: "100dvh",
+        background:
+          "linear-gradient(180deg, rgba(248,250,252,1) 0%, rgba(244,245,247,1) 100%)",
+      }}
+    >
+      <div
+        role="status"
+        aria-live="polite"
+        aria-label="Verificando sesión"
+        style={{
+          width: 380,
+          maxWidth: "92vw",
+          padding: 24,
+          borderRadius: 16,
+          backgroundColor: "#fff",
+          boxShadow:
+            "0 1px 2px rgba(16,24,40,.04), 0 8px 24px rgba(16,24,40,.08)",
+          textAlign: "center",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            marginBottom: 14,
+          }}
+        >
+          {/* <img
+            src="/logo-uma.svg"
+            alt="UMA"
+            width={48}
+            height={48}
+            onError={(e) => {
+              (e.currentTarget as HTMLImageElement).style.display = "none";
+            }}
+            style={{
+              filter: "drop-shadow(0 2px 6px rgba(233,30,99,.25))",
+            }}
+          /> */}
+        </div>
+
+        <div
+          style={{
+            fontSize: 16,
+            fontWeight: 700,
+            color: "#0F172A",
+            marginBottom: 6,
+            letterSpacing: 0.2,
+          }}
+        >
+          Verificando sesión…
+        </div>
+        <div style={{ fontSize: 13, color: "#475569", marginBottom: 16 }}>
+          Mesa de Ayuda UMA
+        </div>
+
+        <div style={{ display: "grid", gap: 12 }}>
+          <Spin size="large" />
+          <div
+            style={{
+              height: 6,
+              background:
+                "linear-gradient(90deg, #eef2f7 0%, #f5f7fb 50%, #eef2f7 100%)",
+              borderRadius: 999,
+              overflow: "hidden",
+              position: "relative",
+            }}
+          >
+            <div
+              className="uma-shimmer"
+              style={{
+                position: "absolute",
+                inset: 0,
+                transform: "translateX(-100%)",
+                background:
+                  "linear-gradient(90deg, rgba(233,30,99,0) 0%, rgba(233,30,99,.15) 50%, rgba(233,30,99,0) 100%)",
+                animation: "uma-slide 1.6s ease-in-out infinite",
+              }}
+            />
+          </div>
+        </div>
+
+        <div style={{ fontSize: 12, color: "#64748B", marginTop: 14 }}>
+          Por favor, espera un momento…
+        </div>
+      </div>
+
+      <style>{`
+        @keyframes uma-slide {
+          from { transform: translateX(-100%); }
+          to { transform: translateX(100%); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .uma-shimmer { animation: none !important; }
+        }
+      `}</style>
+    </div>
+  );
+};
+/* --------------------------------------------------------- */
 
 export const UserProvider = ({ children }: { children: ReactNode }) => {
   const [iam, setIam] = useState<IamCtx | null>(null);
@@ -62,17 +172,12 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   const pathname = usePathname();
   const router = useRouter();
 
-  const loginRedirect = useCallback(() => {
-    if (typeof window === "undefined") return;
-    if (window.location.pathname === "/login") return;
-    router.replace("/login");
-  }, [router]);
-
   const refreshIam = useCallback(async () => {
     setReadyIam(false);
     try {
       const ctx = await getIamContext();
       console.log("ctx => ", ctx);
+
       setIam(ctx);
     } finally {
       setReadyIam(true);
@@ -85,13 +190,60 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     setIam(null);
     setReady(false);
     setReadyIam(false);
-    loginRedirect();
-  }, [loginRedirect]);
+
+    if (!PUBLIC_ROUTES.includes(pathname)) {
+      router.replace("/login");
+    }
+  }, [pathname, router]);
+
+  // useEffect(() => {
+  //   if (typeof window === "undefined") return;
+
+  //   // 1) Captura ?token=... (SSO) y limpia URL
+  //   const url = new URL(window.location.href);
+  //   const tokenFromUrl = url.searchParams.get("token");
+  //   if (tokenFromUrl) {
+  //     localStorage.setItem("token", tokenFromUrl);
+  //     url.searchParams.delete("token");
+  //     url.searchParams.delete("returnTo");
+  //     const qs = url.searchParams.toString();
+  //     window.history.replaceState({}, "", url.pathname + (qs ? `?${qs}` : ""));
+  //   }
+
+  //   // 2) Validación de token
+  //   const token = localStorage.getItem("token");
+  //   if (!token) {
+  //     setIam(null);
+  //     setReady(true);
+  //     setReadyIam(false);
+
+  //     if (!PUBLIC_ROUTES.includes(pathname)) {
+  //       router.replace("/login");
+  //     }
+  //     return;
+  //   }
+
+  //   // 3) Cargar IAM si hay token
+  //   let cancelled = false;
+  //   (async () => {
+  //     try {
+  //       await refreshIam();
+  //     } catch {
+  //       localStorage.removeItem("token");
+  //       if (!cancelled) setIam(null);
+  //     } finally {
+  //       if (!cancelled) setReady(true);
+  //     }
+  //   })();
+
+  //   return () => {
+  //     cancelled = true;
+  //   };
+  // }, [pathname, refreshIam, router]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    // 1) Captura ?token=... y limpia la URL (SSO)
     const url = new URL(window.location.href);
     const tokenFromUrl = url.searchParams.get("token");
     if (tokenFromUrl) {
@@ -102,25 +254,35 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
       window.history.replaceState({}, "", url.pathname + (qs ? `?${qs}` : ""));
     }
 
-    // 2) Si no hay token -> redirigir si ruta privada
     const token = localStorage.getItem("token");
     if (!token) {
       setIam(null);
       setReady(true);
       setReadyIam(false);
-      if (!PUBLIC_ROUTES.includes(pathname)) loginRedirect();
+
+      if (!PUBLIC_ROUTES.includes(pathname)) {
+        router.replace("/login");
+      }
       return;
     }
 
-    // 3) Si hay token -> cargar SOLO IAM
     let cancelled = false;
     (async () => {
       try {
         await refreshIam();
+
+        // 🚨 Redirección por rol
+        if (!cancelled) {
+          const rol = iam?.user?.rol?.nombre?.toLowerCase();
+          if (rol === "administrador") {
+            router.replace("/");
+          } else if (rol === "estudiante") {
+            router.replace("/hd/est/mis-tickets");
+          }
+        }
       } catch {
         localStorage.removeItem("token");
         if (!cancelled) setIam(null);
-        // opcional: loginRedirect();
       } finally {
         if (!cancelled) setReady(true);
       }
@@ -129,12 +291,10 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     return () => {
       cancelled = true;
     };
-  }, [pathname, loginRedirect, refreshIam]);
+  }, [pathname, refreshIam, router, iam?.user?.rol?.nombre]);
 
-  // Derivar usuario desde IAM (no hay estado separado)
   const usuario = iam?.user ?? null;
 
-  // Resolver módulo HD ya tipado
   const hd = useMemo(() => {
     const mod = iam?.modules.find((m) => m.code === "HD");
     return mod ? ({ ...mod, code: "HD" } as HdModule) : undefined;
@@ -153,7 +313,14 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     [usuario, iam, hd, ready, readyIam, refreshIam, logout]
   );
 
-  return <UserContext.Provider value={value}>{children}</UserContext.Provider>;
+  /* Forzar loader activo para visualizar diseño */
+  const FORCE_LOADER = false;
+
+  return (
+    <UserContext.Provider value={value}>
+      {FORCE_LOADER ? <Loader /> : ready ? children : <Loader />}
+    </UserContext.Provider>
+  );
 };
 
 export const useUsuario = () => {
