@@ -28,10 +28,7 @@ export default function LoginClient() {
       el.remove();
       setStyled(ok);
     };
-    // 1er frame del cliente
     requestAnimationFrame(testStylesReady);
-
-    // Fallback por si algo se demora (no se queda “invisible”)
     const t = setTimeout(() => setStyled(true), 1500);
     return () => clearTimeout(t);
   }, []);
@@ -55,14 +52,14 @@ export default function LoginClient() {
     };
   }, []);
 
-  // Si ya hay token, sal de /login
+  // Si ya hay token, sal de /login (se mantiene tu lógica)
   useEffect(() => {
     if (typeof window === "undefined") return;
     console.log("redireccionamiento 1");
     if (localStorage.getItem("token")) router.push("/");
   }, [router]);
 
-  // Captura ?token=... y redirige
+  // Captura ?token=... y redirige (se mantiene tu lógica)
   useEffect(() => {
     const tokenFromUrl = searchParams.get("token");
     console.log("redireccionamiento 1");
@@ -108,134 +105,99 @@ export default function LoginClient() {
         </div>
       )}
 
-      {/* 🔒 Gate de estilos: oculto hasta que Tailwind esté listo */}
+      {/* 🔒 Gate de estilos */}
       <div
         style={{
           visibility: styled ? "visible" : "hidden",
-          minHeight: "100vh", // evita saltos de layout
+          minHeight: "100vh",
         }}
       >
-        <div className="relative min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-no-repeat bg-cover bg-center bg-[url('/assets/fondo_login.jfif')]">
-          <div className="absolute bg-black opacity-60 inset-0 z-0"></div>
-          <div className="max-w-md w-full space-y-8 p-10 bg-white rounded-xl z-10">
-            <div className="text-center">
-              <h2 className="text-[34px] text-[black]">Welcom Back!</h2>
-              <p className="mt-2 text-sm text-gray-600">
-                Please sign in to your account
-              </p>
-            </div>
+        {/* Fondo como Moodle: card a la derecha, tu imagen de fondo conservada */}
+        <div className="relative min-h-screen flex items-center justify-center bg-no-repeat bg-cover bg-center bg-[url('/assets/fondo_login.jfif')]">
+          {/* Overlay suave */}
+          <div
+            className="absolute inset-0 bg-black/50"
+            style={{ border: "0px solid white" }}
+          />
 
-            <div className="flex flex-row justify-center items-center space-x-3">
+          {/* Columna derecha con la tarjeta */}
+          <div
+            className="relative z-10 w-full max-w-xl px-6 py-10 sm:px-10"
+            style={{ border: "0px solid red", width: "100wv" }}
+          >
+            <div
+              className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-xl border border-white/60 p-8 sm:p-10"
+              style={{ border: "0px solid blue" }}
+            >
+              {/* Logo UMA */}
+              <div className="flex items-center gap-3 mb-6">
+                {/* <Image
+                  src="/logo-uma.svg"
+                  alt="UMA - Universidad María Auxiliadora"
+                  width={160}
+                  height={40}
+                  priority
+                /> */}
+              </div>
+
+              {/* Título y descripción al estilo Moodle */}
+              <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight text-center pb-4">
+                Ingrese con su correo institucional
+              </h1>
+              <p className="mt-2 text-sm sm:text-base text-slate-600 leading-relaxed">
+                Para el ingreso debe usar su cuenta <strong>@uma.edu.pe</strong>
+                . Haga clic en el botón para continuar con Microsoft.
+              </p>
+
+              {/* Botón grande Outlook */}
               <button
                 type="button"
                 onClick={handleMicrosoftLogin}
                 disabled={loading}
                 aria-busy={loading}
-                className="w-11 h-11 inline-flex items-center justify-center rounded-full bg-blue-600 hover:shadow-lg transition ease-in duration-200 disabled:opacity-80 disabled:cursor-not-allowed"
-                title="Continuar con Microsoft"
-                aria-label="Continuar con Microsoft"
+                className="mt-7 w-full h-14 rounded-full font-semibold tracking-wide
+                           bg-red-600 text-white shadow-lg hover:bg-red-700
+                           transition-colors disabled:opacity-80 disabled:cursor-not-allowed
+                           focus:outline-none focus:ring-2 focus:ring-red-300"
+                title="Ingresar con su correo institucional"
+                aria-label="Ingresar con su correo institucional"
               >
                 {loading ? (
                   <span
-                    className="block h-6 w-6 rounded-full border-2 border-white/70 border-t-transparent animate-spin"
+                    className="inline-block align-middle h-6 w-6 rounded-full border-2 border-white/70 border-t-transparent animate-spin"
                     aria-hidden="true"
                   />
                 ) : (
-                  <Image
-                    src="/svg/outlook.svg"
-                    alt="Microsoft"
-                    width={50}
-                    height={50}
-                    priority
-                  />
+                  <span className="inline-flex items-center justify-center gap-3">
+                    <Image
+                      src="/svg/outlook.svg"
+                      alt="Microsoft"
+                      width={28}
+                      height={28}
+                      priority
+                    />
+                    <span className="text-base sm:text-lg">
+                      Ingresar con su correo institucional
+                    </span>
+                  </span>
                 )}
               </button>
+
+              {/* Enlaces secundarios como en Moodle */}
+              <div className="mt-5 flex items-center justify-between text-sm text-slate-600">
+                <a href="#" className="hover:underline">
+                  Olvidé mi usuario
+                </a>
+                <a href="#" className="hover:underline">
+                  Ingresar con cuenta local
+                </a>
+              </div>
             </div>
 
-            <div className="flex items-center justify-center space-x-2">
-              <span className="h-px w-16 bg-gray-300"></span>
-              <span className="text-gray-500 font-normal">OR</span>
-              <span className="h-px w-16 bg-gray-300"></span>
+            {/* Pie simple opcional */}
+            <div className="mt-4 text-center text-xs text-white/80">
+              Mesa de Ayuda UMA
             </div>
-
-            {/* Form decorativo */}
-            <form
-              className="mt-8 space-y-6"
-              action="#"
-              method="POST"
-              onSubmit={(e) => e.preventDefault()}
-            >
-              <input type="hidden" name="remember" value="true" readOnly />
-              <div className="relative">
-                <div className="absolute right-0 mt-4">
-                  <svg
-                    className="h-6 w-6 text-green-500"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    aria-hidden="true"
-                  >
-                    <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                  </svg>
-                </div>
-                <label className="text-sm font-bold text-gray-700 tracking-wide">
-                  Email
-                </label>
-                <input
-                  type="text"
-                  className=" w-full text-base py-2 border-b border-gray-300 focus:outline-none focus:border-indigo-500"
-                  style={{ background: "white", color: "black" }}
-                  placeholder="mail@gmail.com"
-                  value="mail@gmail.com"
-                  readOnly
-                />
-              </div>
-              <div className="mt-8 content-center">
-                <label className="text-sm font-bold text-gray-700 tracking-wide">
-                  Password
-                </label>
-                <input
-                  type="text"
-                  className="w-full content-center text-base py-2 border-b border-gray-300 focus:outline-none focus:border-indigo-500"
-                  style={{ background: "white", color: "black" }}
-                  placeholder="Enter your password"
-                  value="*****"
-                  readOnly
-                />
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <input
-                    id="remember_me"
-                    name="remember_me"
-                    type="checkbox"
-                    className="h-4 w-4 bg-indigo-500 focus:ring-indigo-400 "
-                    style={{ border: "1px solid red !important" }}
-                    readOnly
-                  />
-                  <label className="ml-2 block text-sm text-gray-900">
-                    Remember me
-                  </label>
-                </div>
-                <div className="text-sm">
-                  <a
-                    href="#"
-                    className="font-medium text-indigo-500 hover:text-indigo-500"
-                  >
-                    Forgot your password?
-                  </a>
-                </div>
-              </div>
-              <div>
-                <button
-                  type="button"
-                  className="w-full flex justify-center bg-indigo-500 text-gray-100 p-4  rounded-full tracking-wide
-                                  font-semibold  focus:outline-none focus:shadow-outline hover:bg-indigo-600 shadow-lg cursor-pointer transition ease-in duration-300"
-                >
-                  Sign in
-                </button>
-              </div>
-            </form>
           </div>
         </div>
       </div>
