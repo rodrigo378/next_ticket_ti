@@ -11,7 +11,6 @@ import {
   Input,
   Select,
   Table,
-  Space,
   message,
   Empty,
 } from "antd";
@@ -27,9 +26,9 @@ import type { ColumnsType } from "antd/es/table";
 import dayjs from "dayjs";
 import { useRouter } from "next/navigation";
 import { getTicketsMe } from "@/features/hd/service/ticket_ti";
+import { HD_Ticket } from "@/interface/hd/hd_ticket";
 
 // ⬇️ USA TU INTERFAZ real (ajusta la ruta si es distinta)
-import type { core_Ticket } from "@/interface/hd/core_ticket";
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -85,7 +84,7 @@ export default function TicketListStudentView() {
   const [estado, setEstado] = useState<TicketEstado | undefined>(undefined);
 
   // datos crudos desde API (usando tu interfaz)
-  const [raw, setRaw] = useState<core_Ticket[]>([]);
+  const [raw, setRaw] = useState<HD_Ticket[]>([]);
 
   // paginación
   const [page, setPage] = useState(1);
@@ -95,7 +94,7 @@ export default function TicketListStudentView() {
     setLoading(true);
     try {
       const response = await getTicketsMe(); // <- devuelve core_Ticket[]
-      setRaw(response as core_Ticket[]);
+      setRaw(response as HD_Ticket[]);
     } catch {
       message.error("No se pudieron obtener tus tickets.");
     } finally {
@@ -130,7 +129,6 @@ export default function TicketListStudentView() {
 
       // Si tu core_Ticket incluye area?.nombre úsalo; si no, mostramos fallback por id
       const area_nombre =
-        // @ts-expect-error por si en tu interfaz existe `area`
         (t.area?.nombre as string | undefined) ?? `Área #${t.area_id}`;
 
       return {

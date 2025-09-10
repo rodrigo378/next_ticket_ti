@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
@@ -166,6 +167,7 @@ export default function TicketCreateStudentView() {
 
       const res = await createTicketEstudiante(fd);
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       if ((res as any)?.codigo) {
         message.success(
           <>
