@@ -1,9 +1,10 @@
+// src/context/UserContext.tsx
 "use client";
 
 import { Core_Rol } from "@/interface/core/core_rol";
 import { getIamContext } from "@/services/core/iam";
 import { Spin } from "antd";
-import { usePathname, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import {
   createContext,
   ReactNode,
@@ -53,7 +54,6 @@ type UserContextType = {
 };
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
-const PUBLIC_ROUTES = ["/login"];
 
 /* ---------------- Loader con branding UMA ---------------- */
 const Loader = () => {
@@ -89,21 +89,7 @@ const Loader = () => {
             justifyContent: "center",
             marginBottom: 14,
           }}
-        >
-          {/* <img
-            src="/logo-uma.svg"
-            alt="UMA"
-            width={48}
-            height={48}
-            onError={(e) => {
-              (e.currentTarget as HTMLImageElement).style.display = "none";
-            }}
-            style={{
-              filter: "drop-shadow(0 2px 6px rgba(233,30,99,.25))",
-            }}
-          /> */}
-        </div>
-
+        />
         <div
           style={{
             fontSize: 16,
@@ -169,77 +155,51 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   const [ready, setReady] = useState(false);
   const [readyIam, setReadyIam] = useState(false);
 
-  const pathname = usePathname();
   const router = useRouter();
 
   const refreshIam = useCallback(async () => {
     setReadyIam(false);
     try {
-      const ctx = await getIamContext();
-      console.log("ctx => ", ctx);
-
+      const ctx = await getIamContext(); // ← usa cookie HttpOnly (via axios withCredentials)
       setIam(ctx);
+    } catch {
+      // 401/403/etc → sin sesión
+      setIam(null);
     } finally {
       setReadyIam(true);
     }
   }, []);
 
   const logout = useCallback(() => {
-    if (typeof window === "undefined") return;
-    localStorage.removeItem("token");
-    setIam(null);
-    setReady(false);
-    setReadyIam(false);
-
-    if (!PUBLIC_ROUTES.includes(pathname)) {
-      router.replace("/login");
-    }
-  }, [pathname, router]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    // 1) Captura ?token=... (SSO) y limpia URL
-    const url = new URL(window.location.href);
-    const tokenFromUrl = url.searchParams.get("token");
-    if (tokenFromUrl) {
-      localStorage.setItem("token", tokenFromUrl);
-      url.searchParams.delete("token");
-      url.searchParams.delete("returnTo");
-      const qs = url.searchParams.toString();
-      window.history.replaceState({}, "", url.pathname + (qs ? `?${qs}` : ""));
-    }
-
-    // 2) Validación de token
-    const token = localStorage.getItem("token");
-    if (!token) {
+    (async () => {
+      try {
+        await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? ""}/logout`, {
+          method: "POST",
+          credentials: "include",
+        });
+      } catch {}
       setIam(null);
-      setReady(true);
+      setReady(false);
       setReadyIam(false);
+      router.replace("/login");
+    })();
+  }, [router]);
 
-      if (!PUBLIC_ROUTES.includes(pathname)) {
-        router.replace("/login");
-      }
-      return;
-    }
-
-    // 3) Cargar IAM si hay token
+  // Cargar IAM basado en cookie (sin localStorage ni ?token)
+  useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
         await refreshIam();
-      } catch {
-        localStorage.removeItem("token");
-        if (!cancelled) setIam(null);
       } finally {
         if (!cancelled) setReady(true);
       }
     })();
-
     return () => {
       cancelled = true;
     };
-  }, [pathname, refreshIam, router]);
+    // Si quieres refrescar al cambiar de ruta (opcional), incluye `pathname`:
+  }, [refreshIam /* , pathname */]);
 
   const usuario = iam?.user ?? null;
 
@@ -261,7 +221,6 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     [usuario, iam, hd, ready, readyIam, refreshIam, logout]
   );
 
-  /* Forzar loader activo para visualizar diseño */
   const FORCE_LOADER = false;
 
   return (

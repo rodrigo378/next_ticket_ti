@@ -1,7 +1,7 @@
 // src/services/api.ts
 import axios, { AxiosError, AxiosInstance } from "axios";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+const API_URL = process.env.NEXT_PUBLIC_API_URL!;
 
 export interface NormalizedError {
   status: number;
@@ -87,21 +87,23 @@ export function normalizeError(err: unknown): NormalizedError {
 
 export const api: AxiosInstance = axios.create({
   baseURL: API_URL,
-  withCredentials: false,
+  withCredentials: true, // ← envía la cookie HttpOnly (uma_auth)
 });
 
+// Ya no leemos localStorage ni agregamos Authorization
 api.interceptors.request.use((config) => {
-  if (typeof window !== "undefined") {
-    const token = localStorage.getItem("token");
-    if (token) {
-      config.headers = config.headers ?? {};
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-  }
+  config.withCredentials = true; // redundante, pero asegura que siempre vaya
   return config;
 });
 
 api.interceptors.response.use(
   (res) => res,
-  (error: unknown) => Promise.reject(normalizeError(error))
+  (error: unknown) => {
+    // (Opcional) Si expira la cookie y el API responde 401, redirige a /login
+    // if (typeof window !== "undefined" && axios.isAxiosError(error) && error.response?.status === 401) {
+    //   const rt = window.location.pathname + window.location.search;
+    //   window.location.href = `/login?returnTo=${encodeURIComponent(rt)}`;
+    // }
+    return Promise.reject(normalizeError(error));
+  }
 );
