@@ -1,26 +1,19 @@
 "use client";
 
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
-export default function TokenSaver({
-  token,
-  returnTo,
-}: {
-  token: string;
-  returnTo: string;
-}) {
+export default function TokenSaver() {
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   useEffect(() => {
-    try {
-      localStorage.setItem("token", token);
-    } catch {}
-    // Redirige sin pintar el login
-    router.replace(returnTo || "/");
-  }, [router, token, returnTo]);
+    // Si el middleware te envió ?returnTo=..., úsalo; si no, al home.
+    const returnTo = searchParams.get("returnTo") || "/";
+    router.replace(returnTo);
+  }, [router, searchParams]);
 
-  // Loader inline, sin Tailwind (para no depender de CSS aún)
+  // Loader simple
   return (
     <div
       style={{

@@ -4,16 +4,7 @@ import { HD_Ticket } from "@/interface/hd/hd_ticket";
 import { HD_CalificacionTicket } from "@/interface/hd/hd_calificacionTicket";
 
 export const createTicketTi = async (formData: FormData): Promise<unknown> => {
-  const token = localStorage.getItem("token");
-
-  const response = await api.post("/hd/ticket", formData, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-      // 👇 NO pongas Content-Type aquí. Axios lo pone automáticamente con boundary
-      "Content-Type": "multipart/form-data",
-    },
-  });
-
+  const response = await api.post("/hd/ticket", formData);
   return response.data;
 };
 
@@ -21,16 +12,7 @@ export const getTickets = async (filtros?: {
   me?: string;
   estados_id?: string[];
 }): Promise<HD_Ticket[]> => {
-  const token = localStorage.getItem("token");
-  // const params = new URLSearchParams();
-
-  // if (filtros.me) params.append("me", filtros.me);
-  // if (filtros.estado_id) params.append("estado_id", filtros.estado_id);
-
   const response: AxiosResponse<HD_Ticket[]> = await api.get(`/hd/ticket`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
     params: filtros,
     paramsSerializer: {
       indexes: null,
@@ -40,13 +22,7 @@ export const getTickets = async (filtros?: {
 };
 
 export const getTicketsMe = async (): Promise<HD_Ticket[]> => {
-  const token = localStorage.getItem("token");
-
-  const response = await api.get("/hd/ticket/me", {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+  const response = await api.get("/hd/ticket/me");
 
   return response.data;
 };
@@ -63,12 +39,7 @@ export const createMensaje = async (data: {
   ticket_id: number;
   contenido: string;
 }) => {
-  const token = localStorage.getItem("token");
-  const response = await api.post("/hd/ticket/mensaje", data, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+  const response = await api.post("/hd/ticket/mensaje", data);
   return response.data;
 };
 
@@ -76,12 +47,7 @@ export const derivarTicket = async (
   ticket_id: number,
   data: { a_area_id: number; motivo: string }
 ) => {
-  const token = localStorage.getItem("token");
-  const response = await api.post(`/hd/ticket/derivar/${ticket_id}`, data, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+  const response = await api.post(`/hd/ticket/derivar/${ticket_id}`, data);
 
   return response.data;
 };
@@ -97,12 +63,7 @@ export const asignarTicket = async (
 export const createCalificacion = async (
   data: Partial<HD_CalificacionTicket>
 ) => {
-  const token = localStorage.getItem("token");
-  const response = await api.post("/hd/ticket/calificacion", data, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+  const response = await api.post("/hd/ticket/calificacion", data);
 
   return response.data;
 };
@@ -123,11 +84,8 @@ export const getSoporte = async (area_id: number) => {
 export const createTicketEstudiante = async (
   formData: FormData
 ): Promise<unknown> => {
-  const token = localStorage.getItem("token");
-
   const response = await api.post("/hd/ticket/est", formData, {
     headers: {
-      Authorization: `Bearer ${token}`,
       "Content-Type": "multipart/form-data",
     },
   });

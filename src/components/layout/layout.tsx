@@ -14,6 +14,7 @@ import {
   IamMenuModule,
 } from "@/interface/core/layout";
 import { getFullMenu } from "@/services/core/iam";
+import { logout } from "@/services/core/auth";
 
 const { Header, Sider, Content } = Layout;
 
@@ -115,14 +116,14 @@ function toAntdItems(
               onNavigateStart={opts?.onNavigateStart}
             />
           ),
-          icon: DefaultBullet, // <- solo bullet
+          icon: DefaultBullet,
         })) || [];
 
       if (children.length) {
         items.push({
           key: g.key,
           label: <span className="text-white font-bold">{g.label}</span>,
-          icon: DefaultBullet, // <- solo bullet
+          icon: DefaultBullet,
           children,
         } as never);
       }
@@ -144,7 +145,7 @@ export default function MainLayout({
   const [collapsed, setCollapsed] = useState(false);
   const [modules, setModules] = useState<IamMenuModule[]>([]);
   const [openKeys, setOpenKeys] = useState<string[]>([]);
-  const [navigating, setNavigating] = useState(false); // Loader de navegación
+  const [navigating, setNavigating] = useState(false);
 
   const findGroupKeyByPath = (mods: IamMenuModule[], path: string) => {
     for (const m of mods) {
@@ -171,7 +172,7 @@ export default function MainLayout({
   useEffect(() => {
     (async () => {
       try {
-        const data: IamMenuModule[] = await getFullMenu();
+        const data: IamMenuModule[] = await getFullMenu(); // axios withCredentials ya envía cookie
         setModules(data);
       } catch (err) {
         console.error("Error menú:", err);
@@ -194,15 +195,27 @@ export default function MainLayout({
     setOpenKeys(latest ? [latest as string] : []);
   };
 
-  const userMenu = {
+  const onLogout = async () => {
+    try {
+      // await api.post("/logout"); // ← limpia cookie HTTP-only en el backend
+      await logout();
+      console.log("se trato de deslogear");
+    } catch (e) {
+      // si falla, igual seguimos el flujo
+      console.warn("logout error (continuamos):", e);
+    } finally {
+      message.success("Sesión cerrada");
+      router.push("/login");
+      router.refresh();
+    }
+  };
+
+  const userMenu: MenuProps = {
     items: [
       {
         key: "logout",
         label: "Cerrar sesión",
-        onClick: () => {
-          localStorage.removeItem("token");
-          router.push("/login");
-        },
+        onClick: onLogout,
       },
     ],
   };
@@ -243,7 +256,6 @@ export default function MainLayout({
             onClick={() => setCollapsed(!collapsed)}
             icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
           />
-
           <Dropdown menu={userMenu} placement="bottomRight" trigger={["click"]}>
             <Button className="text-left">
               <span className="block font-semibold">

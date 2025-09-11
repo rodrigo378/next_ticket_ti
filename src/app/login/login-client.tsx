@@ -11,13 +11,10 @@ export default function LoginClient() {
   const searchParams = useSearchParams();
 
   const [loading, setLoading] = useState(false);
-
-  // Slider superior (loader)
   const [booting, setBooting] = useState(true);
   const [progress, setProgress] = useState(0);
-
-  // Gate de estilos: no mostramos UI hasta que Tailwind esté cargado
   const [styled, setStyled] = useState(false);
+
   useEffect(() => {
     const testStylesReady = () => {
       const el = document.createElement("div");
@@ -54,10 +51,9 @@ export default function LoginClient() {
     if (loading) return;
     setLoading(true);
 
-    // El middleware ya puso ?returnTo=... cuando te mandó a /login
     const rt = searchParams.get("returnTo") || "/";
     const url = `${API_BASE}/auth/login?returnTo=${encodeURIComponent(rt)}`;
-    window.location.href = url; // → backend hace OAuth, setea cookie y redirige al front
+    window.location.href = url;
   };
 
   return (
@@ -83,12 +79,24 @@ export default function LoginClient() {
       >
         {/* Fondo */}
         <div className="relative min-h-screen flex items-center justify-center bg-no-repeat bg-cover bg-center bg-[url('/assets/fondo_login.jfif')]">
-          {/* Overlay */}
-          <div className="absolute inset-0 bg-black/50" />
+          {/* Overlay (ahora con blur) */}
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
 
           {/* Card centrada */}
           <div className="relative z-10 w-full max-w-xl px-6 py-10 sm:px-10">
-            <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-xl border border-white/60 p-8 sm:p-10">
+            {/* Acento lateral sutil (glow) */}
+            <div
+              aria-hidden
+              className="pointer-events-none absolute right-3 top-8 h-[78%] w-12
+                         rounded-2xl bg-gradient-to-b from-[#e91e63]/35 via-[#e91e63]/12 to-transparent
+                         blur-xl"
+            />
+            <div
+              className="relative bg-white/90 backdrop-blur-xl rounded-2xl
+                         border border-white/60 ring-1 ring-white/40
+                         shadow-[0_18px_60px_rgba(15,23,42,.28)]
+                         p-8 sm:p-10"
+            >
               <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight text-center pb-4">
                 Ingrese con su correo institucional
               </h1>
@@ -97,16 +105,16 @@ export default function LoginClient() {
                 para continuar con Microsoft.
               </p>
 
-              {/* Botón grande Outlook */}
+              {/* Botón grande Outlook (sin cambios de iconos) */}
               <button
                 type="button"
                 onClick={handleMicrosoftLogin}
                 disabled={loading}
                 aria-busy={loading}
                 className="mt-7 w-full h-14 rounded-full font-semibold tracking-wide
-                           bg-red-600 text-white shadow-lg hover:bg-red-700
-                           transition-colors disabled:opacity-80 disabled:cursor-not-allowed
-                           focus:outline-none focus:ring-2 focus:ring-red-300"
+                            bg-[#e40d5e] text-white shadow-lg hover:bg-red-700
+                  transition-colors disabled:opacity-80 disabled:cursor-not-allowed
+                  focus:outline-none focus:ring-2 focus:ring-red-300"
                 title="Ingresar con su correo institucional"
                 aria-label="Ingresar con su correo institucional"
               >
@@ -130,23 +138,16 @@ export default function LoginClient() {
                   </span>
                 )}
               </button>
-
-              <div className="mt-5 flex items-center justify-between text-sm text-slate-600">
-                <span />
-                <a href="#" className="hover:underline">
-                  Ingresar con cuenta local
-                </a>
-              </div>
             </div>
 
             <div className="mt-4 text-center text-xs text-white/80">
-              Mesa de Ayuda UMA
+              Gestión UMA
             </div>
           </div>
         </div>
       </div>
 
-      {/* Fallback ultra simple (por si styled=false unos ms) */}
+      {/* Fallback ultra simple */}
       {!styled && (
         <div
           style={{

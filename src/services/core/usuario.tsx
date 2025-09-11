@@ -2,12 +2,7 @@ import { Core_Usuario } from "@/interface/core/core_usuario";
 import { api } from "../api";
 
 export const getMe = async (): Promise<Core_Usuario> => {
-  const token = localStorage.getItem("token");
-  const response = await api.get<Core_Usuario>(`/core/usuario/me`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+  const response = await api.get<Core_Usuario>(`/core/usuario/me`);
   return response.data;
 };
 

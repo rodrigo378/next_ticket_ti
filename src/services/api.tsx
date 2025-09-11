@@ -90,7 +90,6 @@ export const api: AxiosInstance = axios.create({
   withCredentials: true, // ← envía la cookie HttpOnly (uma_auth)
 });
 
-// Ya no leemos localStorage ni agregamos Authorization
 api.interceptors.request.use((config) => {
   config.withCredentials = true; // redundante, pero asegura que siempre vaya
   return config;

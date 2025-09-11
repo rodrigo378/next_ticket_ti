@@ -185,7 +185,6 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     })();
   }, [router]);
 
-  // Cargar IAM basado en cookie (sin localStorage ni ?token)
   useEffect(() => {
     let cancelled = false;
     (async () => {

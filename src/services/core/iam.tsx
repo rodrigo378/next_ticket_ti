@@ -1,21 +1,11 @@
 import { api } from "../api";
 
 export const getFullMenu = async () => {
-  const token = localStorage.getItem("token");
-  const response = await api.get("/core/iam/menu", {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+  const response = await api.get("/core/iam/menu");
   return response.data;
 };
 
 export const getIamContext = async () => {
-  const token = localStorage.getItem("token");
-  const response = await api.get("/core/iam/context", {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+  const response = await api.get("/core/iam/context");
   return response.data;
 };
