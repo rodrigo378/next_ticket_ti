@@ -13,6 +13,10 @@ import {
   Table,
   message,
   Empty,
+  Tabs,
+  theme,
+  Space,
+  Rate,
 } from "antd";
 import {
   SearchOutlined,
@@ -21,6 +25,7 @@ import {
   InfoCircleOutlined,
   FieldTimeOutlined,
   FilterOutlined,
+  ExclamationCircleOutlined,
 } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import dayjs from "dayjs";
@@ -28,21 +33,23 @@ import { useRouter } from "next/navigation";
 import { getTicketsMe } from "@/features/hd/service/ticket_ti";
 import { HD_Ticket } from "@/interface/hd/hd_ticket";
 
-// ⬇️ USA TU INTERFAZ real (ajusta la ruta si es distinta)
+const { Title, Text } = Typography;
+const { Option } = Select;
+const fmt = (iso: string) => dayjs(iso).format("DD/MM/YYYY HH:mm");
 
-const { Title, Text, Paragraph } = Typography;
+// IDs de estado
+export const ESTADO_ID = {
+  ABIERTO: 1,
+  ASIGNADO: 2,
+  EN_PROCESO: 3,
+  RESUELTO: 4,
+  REABIERTO: 5,
+  CANCELADO: 6,
+  DERIVADO: 7,
+} as const;
 
-/** ===== Estados según tu seed ===== */
-type TicketEstado =
-  | "ABIERTO"
-  | "ASIGNADO"
-  | "EN_PROCESO"
-  | "RESUELTO"
-  | "REABIERTO"
-  | "CANCELADO"
-  | "DERIVADO";
-
-const ESTADO_META: Record<TicketEstado, { label: string; color: string }> = {
+// Meta para tags
+const ESTADO_META: Record<string, { label: string; color: string }> = {
   ABIERTO: { label: "Abierto", color: "blue" },
   ASIGNADO: { label: "Asignado", color: "purple" },
   EN_PROCESO: { label: "En proceso", color: "gold" },
@@ -52,98 +59,112 @@ const ESTADO_META: Record<TicketEstado, { label: string; color: string }> = {
   DERIVADO: { label: "Derivado", color: "geekblue" },
 };
 
-const estadosOptions = [
-  { label: "Abierto", value: "ABIERTO" },
-  { label: "Asignado", value: "ASIGNADO" },
-  { label: "En proceso", value: "EN_PROCESO" },
-  { label: "Resuelto", value: "RESUELTO" },
-  { label: "Reabierto", value: "REABIERTO" },
-  { label: "Cancelado", value: "CANCELADO" },
-  { label: "Derivado", value: "DERIVADO" },
-];
-
-const fmt = (iso: string) => dayjs(iso).format("DD/MM/YYYY HH:mm");
-
-/** Filas UI (no cambiamos tu modelo, solo proyectamos lo necesario para la tabla) */
 type RowUI = {
   id: number;
   codigo: string;
   area_nombre: string;
   descripcion: string;
-  estadoCodigo: TicketEstado;
+  estadoCodigo: string;
   estadoNombre: string;
   creado_en: string;
+  calificacion?: number | null;
 };
 
 export default function TicketListStudentView() {
   const router = useRouter();
+  const { token } = theme.useToken();
+
   const [loading, setLoading] = useState(false);
-
-  // filtros minimal
   const [q, setQ] = useState<string>("");
-  const [estado, setEstado] = useState<TicketEstado | undefined>(undefined);
-
-  // datos crudos desde API (usando tu interfaz)
+  const [estado, setEstado] = useState<string | undefined>(undefined);
   const [raw, setRaw] = useState<HD_Ticket[]>([]);
 
-  // paginación
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(5);
+  const [activePage, setActivePage] = useState(1);
+  const [finalPage, setFinalPage] = useState(1);
+  const [pageSize, setPageSize] = useState(8);
 
-  const fetchTickets = async () => {
+  const [tabKey, setTabKey] = useState<"activos" | "finalizados">("activos");
+
+  // contador de resueltos sin calificación (para el tab)
+  const [pendientesFinalizados, setPendientesFinalizados] = useState<number>(0);
+
+  const fetchTickets = async (estados_id: string[]) => {
     setLoading(true);
     try {
-      const response = await getTicketsMe(); // <- devuelve core_Ticket[]
+      const response = await getTicketsMe({ estados_id });
       setRaw(response as HD_Ticket[]);
-    } catch {
+
+      // contar pendientes cuando se traen resueltos
+      if (estados_id.includes(String(ESTADO_ID.RESUELTO))) {
+        const count = (response as HD_Ticket[]).filter(
+          (t) => !t?.calificacionTicket?.calificacion
+        ).length;
+        setPendientesFinalizados(count);
+      }
+    } catch (err) {
+      console.log("err => ", err);
       message.error("No se pudieron obtener tus tickets.");
     } finally {
       setLoading(false);
     }
   };
 
+  // Precarga: activos (1) y conteo de resueltos (4) para el badge del tab
   useEffect(() => {
-    fetchTickets();
+    // datos de la tab por defecto
+    fetchTickets([String(ESTADO_ID.ABIERTO)]);
+    // solo calcular pendientes sin pisar la tabla actual
+    (async () => {
+      try {
+        const resp = await getTicketsMe({
+          estados_id: [String(ESTADO_ID.RESUELTO)],
+        });
+        const count = (resp as HD_Ticket[]).filter(
+          (t) => !t?.calificacionTicket?.calificacion
+        ).length;
+        setPendientesFinalizados(count);
+      } catch {}
+    })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // map a UI
+  // Llamar según tab seleccionada
+  useEffect(() => {
+    if (tabKey === "activos") {
+      setActivePage(1);
+      fetchTickets([String(ESTADO_ID.ABIERTO)]); // 1
+    } else {
+      setFinalPage(1);
+      fetchTickets([String(ESTADO_ID.RESUELTO)]); // 4
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tabKey]);
+
+  // Map a UI
   const rowsAll: RowUI[] = useMemo(() => {
     return (raw || []).map((t) => {
-      const codigoEstado = (
-        t.estado?.codigo || "ABIERTO"
-      ).toUpperCase() as TicketEstado;
-      const estadoCodigo: TicketEstado = (
-        [
-          "ABIERTO",
-          "ASIGNADO",
-          "EN_PROCESO",
-          "RESUELTO",
-          "REABIERTO",
-          "CANCELADO",
-          "DERIVADO",
-        ] as const
-      ).includes(codigoEstado)
-        ? codigoEstado
-        : "ABIERTO";
-
-      // Si tu core_Ticket incluye area?.nombre úsalo; si no, mostramos fallback por id
+      const codigo = (t.estado?.codigo || "ABIERTO").toUpperCase();
       const area_nombre =
         (t.area?.nombre as string | undefined) ?? `Área #${t.area_id}`;
+      const calif =
+        t?.calificacionTicket?.calificacion != null
+          ? Number(t.calificacionTicket.calificacion)
+          : null;
 
       return {
         id: t.id,
         codigo: t.codigo,
         area_nombre,
         descripcion: t.descripcion ?? "",
-        estadoCodigo,
-        estadoNombre: t.estado?.nombre ?? ESTADO_META[estadoCodigo].label,
-        creado_en: t.createdAt as unknown as string, // tu API trae createdAt ISO
+        estadoCodigo: codigo,
+        estadoNombre: t.estado?.nombre ?? ESTADO_META[codigo]?.label ?? codigo,
+        creado_en: t.createdAt as unknown as string,
+        calificacion: calif,
       };
     });
   }, [raw]);
 
-  // filtros locales (q, estado)
+  // Búsqueda local + orden
   const rowsFiltered = useMemo(() => {
     let data = rowsAll;
     if (q.trim()) {
@@ -155,68 +176,92 @@ export default function TicketListStudentView() {
           r.area_nombre.toLowerCase().includes(qq)
       );
     }
-    if (estado) data = data.filter((r) => r.estadoCodigo === estado);
-    // orden por creado desc (como antes)
-    data = data
+    return data
       .slice()
       .sort(
         (a, b) => dayjs(b.creado_en).valueOf() - dayjs(a.creado_en).valueOf()
       );
-    return data;
-  }, [rowsAll, q, estado]);
+  }, [rowsAll, q]);
 
-  // paginar en cliente
-  const total = rowsFiltered.length;
-  const data = useMemo(() => {
-    const start = (page - 1) * pageSize;
+  // Paginación por tab
+  const dataActivos = useMemo(() => {
+    const start = (activePage - 1) * pageSize;
     return rowsFiltered.slice(start, start + pageSize);
-  }, [rowsFiltered, page, pageSize]);
+  }, [rowsFiltered, activePage, pageSize]);
+
+  const dataFinalizados = useMemo(() => {
+    const start = (finalPage - 1) * pageSize;
+    return rowsFiltered.slice(start, start + pageSize);
+  }, [rowsFiltered, finalPage, pageSize]);
 
   const onBuscar = () => {
-    setPage(1);
-    // no pega al backend: filtramos localmente
+    setActivePage(1);
+    setFinalPage(1);
   };
 
   const onVer = (row: RowUI) => {
     router.push(`/hd/est/${row.id}`);
   };
 
-  const columns: ColumnsType<RowUI> = [
+  // Columnas (Área con ancho fijo + ellipsis dentro del Tag; Descripción con 2 líneas)
+  const baseColumns: ColumnsType<RowUI> = [
     {
-      title: "Código",
+      title: <span className="whitespace-nowrap">Código</span>,
       dataIndex: "codigo",
       key: "codigo",
-      width: 160,
+      width: 120,
       render: (v) => <Text strong>{v}</Text>,
-      fixed: "left",
       onCell: () => ({ className: "whitespace-nowrap" }),
     },
     {
-      title: "Área",
+      title: <span className="whitespace-nowrap">Área</span>,
       dataIndex: "area_nombre",
       key: "area",
-      width: 210,
-      render: (v) => <Tag>{v}</Tag>,
-    },
-    {
-      title: "Descripción",
-      dataIndex: "descripcion",
-      key: "descripcion",
+      width: 220,
       ellipsis: true,
-      render: (v: string) => (
+      render: (v) => (
         <Tooltip title={v}>
-          <Paragraph className="!mb-0" ellipsis={{ rows: 2 }}>
+          <Tag
+            style={{
+              background: token.colorFillQuaternary,
+              borderColor: token.colorBorderSecondary,
+              color: token.colorText,
+              maxWidth: 200,
+              display: "inline-block",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+              verticalAlign: "middle",
+            }}
+          >
             {v}
-          </Paragraph>
+          </Tag>
         </Tooltip>
       ),
     },
+    // {
+    //   title: <span className="whitespace-nowrap">Descripción</span>,
+    //   dataIndex: "descripcion",
+    //   key: "descripcion",
+    //   // width: 420, // ancho generoso para evitar colapso
+    //   ellipsis: true,
+    //   render: (v: string) => (
+    //     <Tooltip title={v}>
+    //       <Paragraph className="!mb-0" ellipsis={{ rows: 2 }}>
+    //         {v}
+    //       </Paragraph>
+    //     </Tooltip>
+    //   ),
+    // },
     {
-      title: "Estado",
+      title: <span className="whitespace-nowrap">Estado</span>,
       key: "estado",
-      width: 160,
+      width: 150,
       render: (_, row) => {
-        const meta = ESTADO_META[row.estadoCodigo];
+        const meta = ESTADO_META[row.estadoCodigo] || {
+          label: row.estadoCodigo,
+          color: "default",
+        };
         return (
           <Tooltip title={row.estadoNombre}>
             <Tag color={meta.color}>{meta.label}</Tag>
@@ -225,7 +270,7 @@ export default function TicketListStudentView() {
       },
     },
     {
-      title: "Creado",
+      title: <span className="whitespace-nowrap">Creado</span>,
       dataIndex: "creado_en",
       key: "creado_en",
       width: 180,
@@ -239,25 +284,64 @@ export default function TicketListStudentView() {
         dayjs(a.creado_en).valueOf() - dayjs(b.creado_en).valueOf(),
       defaultSortOrder: "descend",
     },
-    {
-      title: "Acciones",
-      key: "acciones",
-      width: 110,
-      fixed: "right",
-      render: (_, row) => (
-        <Button icon={<EyeOutlined />} onClick={() => onVer(row)}>
-          Ver
-        </Button>
-      ),
-    },
   ];
+
+  // Columna de calificación (solo Finalizados)
+  const calificacionCol = {
+    title: <span className="whitespace-nowrap">Calificación</span>,
+    key: "calificacion",
+    width: 180,
+    render: (row: RowUI) => {
+      const calif = row.calificacion;
+      return calif != null ? (
+        <Rate allowHalf disabled value={Number(calif)} />
+      ) : (
+        <Tag icon={<ExclamationCircleOutlined />} color="gold">
+          Pendiente
+        </Tag>
+      );
+    },
+  };
+
+  const accionesCol = {
+    title: <span className="whitespace-nowrap">Acciones</span>,
+    key: "acciones",
+    width: 110,
+    render: (_: unknown, row: RowUI) => (
+      <Button icon={<EyeOutlined />} onClick={() => onVer(row)}>
+        Ver
+      </Button>
+    ),
+  };
+
+  const columnsActivos: ColumnsType<RowUI> = [...baseColumns, accionesCol];
+  const columnsFinalizados: ColumnsType<RowUI> = [
+    ...baseColumns,
+    calificacionCol,
+    accionesCol,
+  ];
+
+  const FinalizadosLabel = () => (
+    <span className="inline-flex items-center gap-2">
+      Finalizados
+      <Tag color={pendientesFinalizados > 0 ? "gold" : "default"}>
+        Pendientes: {pendientesFinalizados}
+      </Tag>
+    </span>
+  );
 
   return (
     <div className="min-h-[100dvh] bg-gradient-to-b from-sky-50 via-white to-white">
       {/* HERO */}
       <div className="mx-auto max-w-7xl px-4 pt-8">
-        <div className="rounded-2xl bg-gradient-to-r from-sky-600 via-indigo-600 to-violet-600 p-[1px] shadow-lg">
-          <div className="rounded-2xl bg-white/80 backdrop-blur-md px-6 py-6 md:px-10">
+        <div
+          className="rounded-2xl p-[1px] shadow-lg"
+          style={{
+            background:
+              "linear-gradient(135deg, rgba(56,189,248,.9), rgba(99,102,241,.9) 60%, rgba(139,92,246,.9))",
+          }}
+        >
+          <div className="rounded-2xl bg-white/85 backdrop-blur-md px-6 py-6 md:px-10">
             <div className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
               <div>
                 <Title level={3} className="m-0 !text-slate-900">
@@ -282,7 +366,7 @@ export default function TicketListStudentView() {
               showIcon
               message={
                 <span className="text-[13px]">
-                  <InfoCircleOutlined /> Recibirás avisos por tu correo
+                  <InfoCircleOutlined /> Recibirás avisos en tu correo
                   institucional UMA cuando tu ticket cambie de estado.
                 </span>
               }
@@ -293,77 +377,148 @@ export default function TicketListStudentView() {
 
       {/* CONTENIDO */}
       <div className="mx-auto max-w-7xl px-4 py-8">
-        <Card className="rounded-2xl border-slate-200 shadow-sm">
-          {/* Filtros mínimos */}
-          <div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-12">
-            <div className="md:col-span-8">
+        <Card
+          className="rounded-2xl border-slate-200 shadow-sm"
+          style={{ borderColor: token.colorBorderSecondary }}
+        >
+          {/* Filtros */}
+          <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <Space.Compact className="w-full md:max-w-[520px]">
               <Input
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
-                placeholder="Buscar por código o descripción"
+                placeholder="Buscar por código, área o descripción"
                 allowClear
                 prefix={<SearchOutlined />}
                 onPressEnter={onBuscar}
               />
-            </div>
-            <div className="md:col-span-4">
+              <Button
+                type="primary"
+                icon={<SearchOutlined />}
+                onClick={onBuscar}
+                loading={loading}
+              >
+                Buscar
+              </Button>
+            </Space.Compact>
+
+            <div className="flex gap-2 w-full md:w-auto">
               <Select
-                placeholder="Estado"
+                placeholder="Estado (opcional)"
                 allowClear
                 value={estado}
                 onChange={(v) => {
-                  setEstado(v as TicketEstado | undefined);
-                  setPage(1);
-                  setTimeout(onBuscar, 0);
+                  setEstado(v as string | undefined);
                 }}
-                options={estadosOptions}
-                className="w-full"
+                className="w-full md:w-64"
                 suffixIcon={<FilterOutlined />}
-              />
+              >
+                {Object.keys(ESTADO_ID).map((code) => (
+                  <Option key={code} value={code}>
+                    {ESTADO_META[code]?.label ?? code}
+                  </Option>
+                ))}
+              </Select>
             </div>
           </div>
 
-          {/* Botón único de búsqueda */}
-          <div className="mb-4">
-            <Button
-              type="primary"
-              icon={<SearchOutlined />}
-              onClick={onBuscar}
-              loading={loading}
-            >
-              Buscar
-            </Button>
-          </div>
-
-          {/* Tabla */}
-          <Table<RowUI>
-            rowKey="id"
-            columns={columns}
-            dataSource={data}
-            loading={loading}
-            pagination={{
-              current: page,
-              pageSize,
-              total,
-              showSizeChanger: true,
-              onChange: (p, ps) => {
-                setPage(p);
-                setPageSize(ps);
+          {/* Tabs: Activos / Finalizados */}
+          <Tabs
+            activeKey={tabKey}
+            onChange={(k) => setTabKey(k as typeof tabKey)}
+            items={[
+              {
+                key: "activos",
+                label: "Activos",
+                children: (
+                  <Table<RowUI>
+                    rowKey="id"
+                    columns={columnsActivos}
+                    dataSource={dataActivos}
+                    loading={loading}
+                    pagination={{
+                      current: activePage,
+                      pageSize,
+                      total: rowsFiltered.length,
+                      showSizeChanger: true,
+                      onChange: (p, ps) => {
+                        setActivePage(p);
+                        setPageSize(ps);
+                      },
+                      showTotal: (t) => `${t} ticket(s) activos`,
+                    }}
+                    locale={{
+                      emptyText: (
+                        <Empty
+                          image={Empty.PRESENTED_IMAGE_SIMPLE}
+                          description="No hay tickets activos"
+                        />
+                      ),
+                    }}
+                    tableLayout="fixed"
+                    className="tabla-activos"
+                  />
+                ),
               },
-              showTotal: (t) => `${t} ticket(s)`,
-            }}
-            locale={{
-              emptyText: (
-                <Empty
-                  image={Empty.PRESENTED_IMAGE_SIMPLE}
-                  description="No se encontraron tickets"
-                />
-              ),
-            }}
-            scroll={{ x: 900 }}
+              {
+                key: "finalizados",
+                label: <FinalizadosLabel />,
+                children: (
+                  <Table<RowUI>
+                    rowKey="id"
+                    columns={columnsFinalizados}
+                    dataSource={dataFinalizados}
+                    loading={loading}
+                    pagination={{
+                      current: finalPage,
+                      pageSize,
+                      total: rowsFiltered.length,
+                      showSizeChanger: true,
+                      onChange: (p, ps) => {
+                        setFinalPage(p);
+                        setPageSize(ps);
+                      },
+                      showTotal: (t) => `${t} ticket(s) finalizados`,
+                    }}
+                    locale={{
+                      emptyText: (
+                        <Empty
+                          image={Empty.PRESENTED_IMAGE_SIMPLE}
+                          description="No hay tickets finalizados"
+                        />
+                      ),
+                    }}
+                    tableLayout="fixed"
+                    className="tabla-finalizados"
+                    rowClassName={(row) =>
+                      row.calificacion == null ? "bg-yellow-50" : ""
+                    }
+                  />
+                ),
+              },
+            ]}
+            tabBarGutter={10}
+            className="mb-1"
           />
         </Card>
       </div>
+
+      {/* Estilos sutiles para headers / zebra */}
+      <style jsx global>{`
+        .tabla-activos .ant-table-thead > tr > th,
+        .tabla-finalizados .ant-table-thead > tr > th {
+          background: ${token.colorFillSecondary};
+          white-space: nowrap;
+        }
+        .tabla-activos .ant-table-tbody > tr:nth-child(odd) > td,
+        .tabla-finalizados .ant-table-tbody > tr:nth-child(odd) > td {
+          background: ${token.colorFillQuaternary};
+        }
+        .tabla-activos .ant-table-tbody > tr:hover > td,
+        .tabla-finalizados .ant-table-tbody > tr:hover > td {
+          background: ${token.controlItemBgHover} !important;
+        }
+      `}</style>
     </div>
   );
 }

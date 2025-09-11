@@ -2,19 +2,24 @@
 "use client";
 
 import Image from "next/image";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useUsuario } from "@/context/UserContext";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL!;
 
 export default function LoginClient() {
   const searchParams = useSearchParams();
+  const router = useRouter();
+
+  const { iam, readyIam } = useUsuario(); // 👈 { user, modules, ... }
 
   const [loading, setLoading] = useState(false);
   const [booting, setBooting] = useState(true);
   const [progress, setProgress] = useState(0);
   const [styled, setStyled] = useState(false);
 
+  // Gate visual para confirmar que Tailwind/estilos cargaron
   useEffect(() => {
     const testStylesReady = () => {
       const el = document.createElement("div");
@@ -29,6 +34,7 @@ export default function LoginClient() {
     return () => clearTimeout(t);
   }, []);
 
+  // Barra superior de carga hasta que el documento termine de cargar
   useEffect(() => {
     let p = 0;
     const id = setInterval(() => {
@@ -46,6 +52,40 @@ export default function LoginClient() {
       window.removeEventListener("load", finish);
     };
   }, []);
+
+  // 🔐 Redirección automática tras login, según rol (Estudiante → /hd/est/mis-tickets)
+  useEffect(() => {
+    // Esperamos a que el contexto esté listo
+    if (!readyIam) return;
+
+    // Si no hay sesión, no redirigimos (se queda en login)
+    if (!iam?.user) return;
+
+    const roleName = iam.user.rol?.nombre?.toString().toLowerCase() ?? "";
+
+    // Destino por defecto para NO estudiantes
+    const qsReturnTo = searchParams.get("returnTo") || "/";
+    // Evita bucle si returnTo apunta a /login
+    const safeReturnTo = qsReturnTo.startsWith("/login") ? "/" : qsReturnTo;
+
+    if (roleName === "estudiante" || roleName === "alumno") {
+      // ✔️ Estudiante: siempre a su bandeja
+      if (
+        typeof window !== "undefined" &&
+        window.location.pathname !== "/hd/est/mis-tickets"
+      ) {
+        router.replace("/hd/est/mis-tickets");
+      }
+    } else {
+      // Otros roles: respeta returnTo o manda a home
+      if (
+        typeof window !== "undefined" &&
+        window.location.pathname !== safeReturnTo
+      ) {
+        router.replace(safeReturnTo);
+      }
+    }
+  }, [iam, readyIam, searchParams, router]);
 
   const handleMicrosoftLogin = () => {
     if (loading) return;
@@ -79,7 +119,7 @@ export default function LoginClient() {
       >
         {/* Fondo */}
         <div className="relative min-h-screen flex items-center justify-center bg-no-repeat bg-cover bg-center bg-[url('/assets/fondo_login.jfif')]">
-          {/* Overlay (ahora con blur) */}
+          {/* Overlay (con blur) */}
           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
 
           {/* Card centrada */}
@@ -88,14 +128,14 @@ export default function LoginClient() {
             <div
               aria-hidden
               className="pointer-events-none absolute right-3 top-8 h-[78%] w-12
-                         rounded-2xl bg-gradient-to-b from-[#e91e63]/35 via-[#e91e63]/12 to-transparent
-                         blur-xl"
+                        rounded-2xl bg-gradient-to-b from-[#e91e63]/35 via-[#e91e63]/12 to-transparent
+                        blur-xl"
             />
             <div
               className="relative bg-white/90 backdrop-blur-xl rounded-2xl
-                         border border-white/60 ring-1 ring-white/40
-                         shadow-[0_18px_60px_rgba(15,23,42,.28)]
-                         p-8 sm:p-10"
+                        border border-white/60 ring-1 ring-white/40
+                        shadow-[0_18px_60px_rgba(15,23,42,.28)]
+                        p-8 sm:p-10"
             >
               <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight text-center pb-4">
                 Ingrese con su correo institucional
@@ -105,7 +145,7 @@ export default function LoginClient() {
                 para continuar con Microsoft.
               </p>
 
-              {/* Botón grande Outlook (sin cambios de iconos) */}
+              {/* Botón grande Outlook */}
               <button
                 type="button"
                 onClick={handleMicrosoftLogin}

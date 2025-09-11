@@ -1,3 +1,4 @@
+// src/app/(tu-layout)/MainLayout.tsx
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
@@ -15,15 +16,13 @@ import {
 } from "@/interface/core/layout";
 import { getFullMenu } from "@/services/core/iam";
 import { logout } from "@/services/core/auth";
+import { useTheme } from "next-themes";
+import ThemeToggle from "@/components/ThemeToggle";
 
 const { Header, Sider, Content } = Layout;
 
 const DefaultBullet = (
-  <svg
-    viewBox="0 0 8 8"
-    aria-hidden="true"
-    className="h-1.5 w-1.5 text-white/90"
-  >
+  <svg viewBox="0 0 8 8" aria-hidden="true" className="h-1.5 w-1.5">
     <circle cx="4" cy="4" r="3" fill="currentColor" />
   </svg>
 );
@@ -45,12 +44,12 @@ const ItemLabel = ({
       href={href}
       prefetch
       onClick={onNavigateStart}
-      className="block text-white font-bold whitespace-normal leading-tight"
+      className="block font-semibold whitespace-normal leading-tight"
     >
       {text}
     </Link>
   ) : (
-    <span className="text-white font-bold whitespace-normal leading-tight">
+    <span className="font-semibold whitespace-normal leading-tight">
       {text}
     </span>
   );
@@ -59,14 +58,14 @@ function renderModuleIcon(icon?: string, className?: string): React.ReactNode {
   if (!icon) return DefaultBullet;
   const s = icon.trim();
   if (!s.toLowerCase().endsWith(".svg")) return DefaultBullet;
-  const src = s.startsWith("/") ? s : `/${s}`; // debe existir en /public
+  const src = s.startsWith("/") ? s : `/${s}`;
   return (
     <Image
       src={src}
       alt=""
       width={1}
       height={1}
-      className={className ?? "h-4 w-4 object-contain invert"}
+      className={className ?? "h-4 w-4 object-contain dark:invert"}
       priority={false}
     />
   );
@@ -88,10 +87,10 @@ function toAntdItems(
       items.push({
         key: `${mod.key}__section`,
         label: (
-          <span className="flex items-center gap-2 px-3 pt-2 pb-1 text-[11px] font-bold tracking-wide uppercase text-white select-none">
+          <span className="flex items-center gap-2 px-3 pt-2 pb-1 text-[11px] font-bold tracking-wide uppercase select-none text-foreground/80">
             {renderModuleIcon(
               modIcon,
-              "h-[1.2rem] w-[1.2rem] object-contain invert"
+              "h-[1.2rem] w-[1.2rem] object-contain dark:invert"
             )}
             <span>{mod.label}</span>
           </span>
@@ -122,7 +121,7 @@ function toAntdItems(
       if (children.length) {
         items.push({
           key: g.key,
-          label: <span className="text-white font-bold">{g.label}</span>,
+          label: <span className="font-bold">{g.label}</span>,
           icon: DefaultBullet,
           children,
         } as never);
@@ -133,6 +132,17 @@ function toAntdItems(
   return items;
 }
 
+/* ------------------- NUEVO: mapeo de rutas hijas → clave de menú ------------------- */
+const routeMap: Array<{ test: RegExp; key: string }> = [
+  { test: /^\/hd\/ticket\/\d+$/, key: "/hd/ticket" }, // detalle de ticket -> Mis Tickets
+];
+
+function mapPathToMenuKey(pathname: string): string {
+  const hit = routeMap.find((r) => r.test.test(pathname));
+  return hit?.key ?? pathname;
+}
+/* ----------------------------------------------------------------------------------- */
+
 export default function MainLayout({
   children,
 }: {
@@ -141,6 +151,8 @@ export default function MainLayout({
   const router = useRouter();
   const pathname = usePathname();
   const { usuario } = useUsuario();
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === "dark";
 
   const [collapsed, setCollapsed] = useState(false);
   const [modules, setModules] = useState<IamMenuModule[]>([]);
@@ -169,10 +181,13 @@ export default function MainLayout({
     [modules, collapsed]
   );
 
+  /* usar la clave mapeada como "selectedKey" efectiva */
+  const selectedKey = useMemo(() => mapPathToMenuKey(pathname), [pathname]);
+
   useEffect(() => {
     (async () => {
       try {
-        const data: IamMenuModule[] = await getFullMenu(); // axios withCredentials ya envía cookie
+        const data: IamMenuModule[] = await getFullMenu();
         setModules(data);
       } catch (err) {
         console.error("Error menú:", err);
@@ -181,14 +196,15 @@ export default function MainLayout({
     })();
   }, [usuario]);
 
+  /* abrir el grupo correcto en base a la clave efectiva (no el pathname crudo) */
   useEffect(() => {
-    const k = findGroupKeyByPath(modules, pathname);
+    const k = findGroupKeyByPath(modules, selectedKey);
     setOpenKeys(k ? [k] : []);
     if (navigating) {
       const t = setTimeout(() => setNavigating(false), 100);
       return () => clearTimeout(t);
     }
-  }, [modules, pathname, navigating]);
+  }, [modules, selectedKey, navigating]);
 
   const onOpenChange: MenuProps["onOpenChange"] = (keys) => {
     const latest = keys.find((k) => !openKeys.includes(k as string));
@@ -197,11 +213,8 @@ export default function MainLayout({
 
   const onLogout = async () => {
     try {
-      // await api.post("/logout"); // ← limpia cookie HTTP-only en el backend
       await logout();
-      console.log("se trato de deslogear");
     } catch (e) {
-      // si falla, igual seguimos el flujo
       console.warn("logout error (continuamos):", e);
     } finally {
       message.success("Sesión cerrada");
@@ -221,52 +234,60 @@ export default function MainLayout({
   };
 
   return (
-    <Layout className="min-h-screen">
+    <Layout className="min-h-screen bg-background text-foreground">
       <Sider
-        theme="dark"
+        theme={isDark ? "dark" : "light"}
         collapsed={collapsed}
         onCollapse={setCollapsed}
         width={270}
         collapsedWidth={76}
-        className="bg-[#1e2939] border-r border-black text-white"
+        className="border-r border-black/5 dark:border-white/10"
       >
-        <div className="flex items-center justify-center gap-2 py-4 text-white">
+        <div className="flex items-center justify-center gap-2 py-4">
           {!collapsed && (
             <div className="text-lg font-bold leading-none">Gestión UMA</div>
           )}
         </div>
 
         <Menu
-          theme="dark"
+          theme={isDark ? "dark" : "light"}
           mode="inline"
           items={items}
-          selectedKeys={[pathname]}
+          selectedKeys={[selectedKey]}
           openKeys={collapsed ? [] : openKeys}
           onOpenChange={onOpenChange}
           inlineIndent={14}
           inlineCollapsed={collapsed}
-          className="bg-transparent text-[14px] px-2 pb-3"
+          className="px-2 pb-3"
         />
       </Sider>
 
       <Layout>
-        <Header className="bg-white px-4 flex justify-between items-center shadow-sm">
+        <Header className="bg-background text-foreground px-4 flex justify-between items-center shadow-sm">
           <Button
             type="text"
             onClick={() => setCollapsed(!collapsed)}
             icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
           />
-          <Dropdown menu={userMenu} placement="bottomRight" trigger={["click"]}>
-            <Button className="text-left">
-              <span className="block font-semibold">
-                {usuario?.email ?? "Usuario"}
-              </span>
-            </Button>
-          </Dropdown>
+
+          <div className="flex items-center gap-3">
+            <ThemeToggle />
+            <Dropdown
+              menu={userMenu}
+              placement="bottomRight"
+              trigger={["click"]}
+            >
+              <Button className="text-left">
+                <span className="block font-semibold">
+                  {usuario?.email ?? "Usuario"}
+                </span>
+              </Button>
+            </Dropdown>
+          </div>
         </Header>
 
         <Spin spinning={navigating} size="large">
-          <Content className="m-4 p-4 bg-white rounded-lg shadow-sm min-h-[60vh]">
+          <Content className="m-4 p-4 bg-background rounded-lg shadow-sm min-h-[60vh]">
             {children}
           </Content>
         </Spin>

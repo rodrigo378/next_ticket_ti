@@ -161,6 +161,8 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     setReadyIam(false);
     try {
       const ctx = await getIamContext(); // ← usa cookie HttpOnly (via axios withCredentials)
+      console.log("ctx => ", ctx);
+
       setIam(ctx);
     } catch {
       // 401/403/etc → sin sesión

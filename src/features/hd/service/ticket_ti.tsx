@@ -21,9 +21,13 @@ export const getTickets = async (filtros?: {
   return response.data;
 };
 
-export const getTicketsMe = async (): Promise<HD_Ticket[]> => {
-  const response = await api.get("/hd/ticket/me");
-
+export const getTicketsMe = async (filtros: {
+  estados_id?: string[];
+}): Promise<HD_Ticket[]> => {
+  const response = await api.get("/hd/ticket/me", {
+    params: filtros,
+    paramsSerializer: { indexes: null },
+  });
   return response.data;
 };
 

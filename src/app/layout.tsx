@@ -1,11 +1,12 @@
+// src/app/layout.tsx
 import type { Metadata, Viewport } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
+import { ThemeProvider } from "next-themes";
 
-// IMPORTA PRIMERO EL RESET DE ANTD
 import "antd/dist/reset.css";
-// LUEGO TUS ESTILOS GLOBALES
 import "./globals.css";
 
+import ClientAntdTheme from "./ClientAntdTheme";
 import { UserProvider } from "@/context/UserContext";
 
 const inter = Inter({
@@ -22,26 +23,27 @@ const jbMono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "Mesa de Ayuda UMA",
   description: "Gestión de tickets y SLA",
-  // Opcional: ícono y metadatos adicionales
-  icons: [{ rel: "icon", url: "/favicon.ico" }],
 };
-
-export const viewport: Viewport = {
-  width: "device-width",
-  initialScale: 1,
-  // themeColor: [
-  //   { media: "(prefers-color-scheme: light)", color: "#ffffff" },
-  //   { media: "(prefers-color-scheme: dark)", color: "#0a0a0a" },
-  // ],
-};
+export const viewport: Viewport = { width: "device-width", initialScale: 1 };
 
 export default function RootLayout({
   children,
-}: Readonly<{ children: React.ReactNode }>) {
+}: {
+  children: React.ReactNode;
+}) {
   return (
-    <html lang="es-PE">
+    <html lang="es-PE" suppressHydrationWarning>
       <body className={`${inter.variable} ${jbMono.variable} antialiased`}>
-        <UserProvider>{children}</UserProvider>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="light"
+          enableSystem={false}
+          disableTransitionOnChange
+        >
+          <ClientAntdTheme>
+            <UserProvider>{children}</UserProvider>
+          </ClientAntdTheme>
+        </ThemeProvider>
       </body>
     </html>
   );

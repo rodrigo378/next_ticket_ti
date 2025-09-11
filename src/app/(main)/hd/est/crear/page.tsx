@@ -28,6 +28,10 @@ import {
 } from "@ant-design/icons";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createTicketEstudiante } from "@/features/hd/service/ticket_ti";
+import { applyFormErrors } from "@/utils/applyFormErrors";
+import { NormalizedError } from "@/services/api";
+import { handleApiError } from "@/utils/handleApiError";
+import { hdErrorMap } from "@/features/hd/utils/errorMap.hd";
 
 const { Title, Text, Paragraph } = Typography;
 const { TextArea } = Input;
@@ -187,12 +191,16 @@ export default function TicketCreateStudentView() {
       } else {
         message.error("No se pudo crear el ticket. Inténtalo nuevamente.");
       }
-    } catch (err: any) {
-      if (err?.errorFields) {
-        message.warning("Revisa los campos obligatorios.");
-      } else {
-        message.error("Ocurrió un error al crear el ticket.");
-      }
+    } catch (e) {
+      const err = e as NormalizedError;
+      const painted = applyFormErrors(form, err);
+      if (!painted) handleApiError(err, hdErrorMap);
+
+      // if (err?.errorFields) {
+      //   message.warning("Revisa los campos obligatorios.");
+      // } else {
+      //   message.error("Ocurrió un error al crear el ticket.");
+      // }
     } finally {
       setLoading(false);
     }

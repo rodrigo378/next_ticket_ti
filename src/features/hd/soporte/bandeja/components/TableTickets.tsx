@@ -1,10 +1,13 @@
+"use client";
 import { HD_Ticket } from "@/interface/hd/hd_ticket";
 import {
-  CheckCircleTwoTone,
-  CloseCircleTwoTone,
+  CheckCircleFilled,
+  CloseCircleFilled,
   EyeOutlined,
+  ExclamationCircleFilled,
+  PushpinOutlined,
 } from "@ant-design/icons";
-import { Button, Space, Table, Tag, Tooltip } from "antd";
+import { Button, Space, Table, Tag, Tooltip, theme } from "antd";
 import Link from "next/link";
 
 interface Props {
@@ -15,21 +18,35 @@ interface Props {
 }
 
 export default function TableTickets({ usuario, tickets, loading }: Props) {
+  const { token } = theme.useToken();
+
+  const prioridadColor: Record<string, string> = {
+    Alta: token.colorError,
+    Media: token.colorWarning,
+    Baja: token.colorSuccess,
+  };
+  const prioridadBg: Record<string, string> = {
+    Alta: token.colorErrorBg,
+    Media: token.colorWarningBg,
+    Baja: token.colorSuccessBg,
+  };
+
+  const iconStyle = { fontSize: 16, lineHeight: 1 };
+
   const columns = [
-    {
-      title: "Código",
-      dataIndex: "codigo",
-      key: "codigo",
-    },
+    { title: "Código", dataIndex: "codigo", key: "codigo" },
     {
       title: "Tipo",
       key: "tipo",
       render: (record: HD_Ticket) => {
         const tipo = record.categoria?.incidencia?.tipo;
-        const icon = tipo === "requerimiento" ? "📌" : "⚠️";
+        const isReq = tipo === "requerimiento";
+        const Icono = isReq ? PushpinOutlined : ExclamationCircleFilled;
+        const color = isReq ? token.colorTextSecondary : token.colorWarning;
         return (
-          <span>
-            {icon} {tipo}
+          <span style={{ color: token.colorText }}>
+            <Icono style={{ ...iconStyle, color, marginRight: 6 }} />
+            {tipo}
           </span>
         );
       },
@@ -37,27 +54,25 @@ export default function TableTickets({ usuario, tickets, loading }: Props) {
     {
       title: "Clasificación",
       key: "clasificacion",
-      render: (record: HD_Ticket) => {
-        return (
-          <span>
-            {record.categoria?.incidencia?.nombre} /{" "}
-            <b>{record.categoria?.nombre}</b>
-          </span>
-        );
-      },
+      render: (record: HD_Ticket) => (
+        <span style={{ color: token.colorTextSecondary }}>
+          {record.categoria?.incidencia?.nombre} /{" "}
+          <b style={{ color: token.colorText }}>{record.categoria?.nombre}</b>
+        </span>
+      ),
     },
     {
       title: "Prioridad",
       dataIndex: ["prioridad", "nombre"],
       key: "prioridad",
       render: (prioridad: string) => {
-        const color =
-          prioridad === "Alta"
-            ? "red"
-            : prioridad === "Media"
-            ? "orange"
-            : "green";
-        return <Tag color={color}>{prioridad}</Tag>;
+        const color = prioridadColor[prioridad] ?? token.colorText;
+        const bg = prioridadBg[prioridad] ?? token.colorFillTertiary;
+        return (
+          <Tag style={{ color, background: bg, borderColor: color }}>
+            {prioridad ?? "—"}
+          </Tag>
+        );
       },
     },
     {
@@ -68,11 +83,25 @@ export default function TableTickets({ usuario, tickets, loading }: Props) {
         return (
           <Space>
             {asignado ? (
-              <CheckCircleTwoTone twoToneColor="#52c41a" />
+              <CheckCircleFilled
+                style={{ ...iconStyle, color: token.colorSuccess }}
+                aria-label="Asignado a mí"
+              />
             ) : (
-              <CloseCircleTwoTone twoToneColor="#ff4d4f" />
+              <CloseCircleFilled
+                style={{ ...iconStyle, color: token.colorError }} // 👈 rojo sólido, legible en dark
+                aria-label="No asignado a mí"
+              />
             )}
-            <Tag color="blue">{record.estado?.nombre || "Sin estado"}</Tag>
+            <Tag
+              style={{
+                color: token.colorInfoText,
+                background: token.colorInfoBg,
+                borderColor: token.colorInfo,
+              }}
+            >
+              {record.estado?.nombre || "Sin estado"}
+            </Tag>
           </Space>
         );
       },
@@ -89,6 +118,7 @@ export default function TableTickets({ usuario, tickets, loading }: Props) {
               whiteSpace: "nowrap",
               overflow: "hidden",
               textOverflow: "ellipsis",
+              color: token.colorText,
             }}
           >
             {record.descripcion}
@@ -101,25 +131,19 @@ export default function TableTickets({ usuario, tickets, loading }: Props) {
       key: "acciones",
       render: (record: HD_Ticket) => {
         const estaAsignado = record.asignado_id === usuario?.id;
-
         return estaAsignado ? (
           <Link href={`/hd/bandeja/${record.id}`}>
             <Button
               type="link"
               icon={<EyeOutlined />}
-              className="text-blue-600"
+              style={{ color: token.colorLink }}
             >
               Ver
             </Button>
           </Link>
         ) : (
           <Tooltip title="Solo el técnico asignado puede ver este ticket">
-            <Button
-              type="link"
-              icon={<EyeOutlined />}
-              className="text-gray-400"
-              disabled
-            >
+            <Button type="link" icon={<EyeOutlined />} disabled>
               Ver
             </Button>
           </Tooltip>
@@ -137,11 +161,13 @@ export default function TableTickets({ usuario, tickets, loading }: Props) {
         loading={loading}
         pagination={{ pageSize: 5 }}
         scroll={{ x: 1000 }}
-        rowClassName={(record) => {
-          const prioridad = record.prioridad?.nombre;
-          if (prioridad === "Alta") return "bg-red-100 text-black";
-          if (prioridad === "Media") return "bg-yellow-100 text-black";
-          return "";
+        onRow={(record) => {
+          const p = record.prioridad?.nombre;
+          let bg: string | undefined;
+          if (p === "Alta") bg = token.colorErrorBg;
+          else if (p === "Media") bg = token.colorWarningBg;
+          else if (p === "Baja") bg = token.colorSuccessBg;
+          return bg ? { style: { background: bg } } : {};
         }}
       />
     </div>

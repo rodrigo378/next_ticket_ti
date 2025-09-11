@@ -2,38 +2,31 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ================= BASE ================= */
+/* ================= THEMING ================= */
 @layer base {
+  /* Tema claro (por defecto) */
   :root {
-    /* Colores base (modo claro) */
-    --background: #ffffff;
-    --foreground: #0f172a; /* texto neutro legible */
-
-    /* Marca UMA */
-    --brand: #e91e63; /* magenta UMA */
-    --muted: #475569;
-
-    /* Tipografías */
+    /* tokens neutrales */
     --font-ui: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial,
       "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
     --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
       "Liberation Mono", monospace;
-
-    /* Métricas */
     --text-size: 16px;
     --line-height: 1.5;
 
-    /* Si usas dark mode preferencial del SO */
-    /* color-scheme: light dark; */
+    /* tokens de color (light) */
+    --background: #ffffff;
+    --foreground: #0f172a;
+    --brand: #e91e63;
+    --muted: #475569;
   }
 
-  @media (prefers-color-scheme: dark) {
-    :root {
-      /* Paleta dark neutra */
-      --background: #0b1220;
-      --foreground: #e6e8ea;
-      --muted: #9aa4b2;
-    }
+  /* Tema oscuro (activado con <html class="dark">) */
+  .dark {
+    --background: #0b1220;
+    --foreground: #e6e8ea;
+    --brand: #e91e63; /* cambia si quieres variante dark */
+    --muted: #9aa4b2;
   }
 
   html,
@@ -50,6 +43,7 @@
     text-rendering: optimizeLegibility;
   }
 
+  /* Opcional: monospace para bloques de código */
   code,
   pre,
   kbd,
@@ -60,28 +54,13 @@
     line-height: 1.45;
   }
 
-  /* ===== Selección de texto =====
-     Mantiene el color actual del texto (negro u original)
-     y solo aplica un fondo suave de marca. */
-  ::selection {
-    /* Fallback */
-    background-color: rgba(
-      30,
-      233,
-      155,
-      0.16
-    ) !important; /* magenta UMA suave */
-    color: #000000 !important; /* TEXTO rojo */
-
-    /* Si el navegador soporta color-mix, se verá aún más parejo */
-    background: color-mix(in srgb, var(--brand) 16%, transparent) !important;
-  }
+  /* Opcional: selección dependiente del tema */
+  ::selection,
   ::-moz-selection {
-    background-color: rgba(233, 30, 99, 0.16) !important;
-    color: currentColor !important;
+    background-color: color-mix(in srgb, var(--brand) 18%, transparent);
+    color: var(--foreground);
   }
 
-  /* Evita el highlight rosado en tap (móvil) */
   a,
   button {
     -webkit-tap-highlight-color: transparent;
@@ -91,7 +70,7 @@
 /* =============== UTILITIES =============== */
 @layer utilities {
   .text-balance {
-    text-wrap: balance; /* experimental */
+    text-wrap: balance;
   }
 }
 

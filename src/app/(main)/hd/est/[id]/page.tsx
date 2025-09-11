@@ -1,7 +1,7 @@
 // app/hd/est/[id]/page.tsx
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Card,
   Typography,
@@ -16,6 +16,8 @@ import {
   Divider,
   Upload,
   message,
+  Rate,
+  Input,
 } from "antd";
 import {
   ArrowLeftOutlined,
@@ -32,7 +34,17 @@ import {
 import TextArea from "antd/es/input/TextArea";
 import type { UploadFile } from "antd/es/upload/interface";
 import { useParams, useRouter } from "next/navigation";
+
+import { createCalificacion } from "@/features/hd/service/ticket_ti";
+
 import dayjs from "dayjs";
+import relativeTime from "dayjs/plugin/relativeTime";
+import "dayjs/locale/es";
+
+dayjs.extend(relativeTime);
+dayjs.locale("es");
+
+const { Title, Text, Paragraph } = Typography;
 
 // ====== Tipos mínimos (solo lo que usa estudiante) ======
 type TicketEstado =
@@ -58,80 +70,23 @@ type HD_MensajeTicket = {
 type Area = { nombre?: string };
 type Estado = { nombre?: string };
 
+type CalificacionTicket = {
+  calificacion: number | string;
+  comentario?: string;
+  createdAt?: string;
+};
+
 type HD_Ticket = {
   id: number;
   codigo?: string;
-  estado?: Estado; // estado.nombre
-  area?: Area; // area.nombre
+  estado?: Estado;
+  estado_id?: number;
+  area?: Area;
   descripcion?: string;
   createdAt?: string;
   mensajes?: HD_MensajeTicket[];
   chatBloqueado?: boolean;
-};
-
-// ====== DATA ESTÁTICA (demo) ======
-const DATA_STATIC: Record<number, HD_Ticket> = {
-  1: {
-    id: 1,
-    codigo: "TCK-2025-0001",
-    estado: { nombre: "EN_PROCESO" },
-    area: { nombre: "Mesa de Ayuda - TI" },
-    descripcion:
-      "No puedo acceder al aula virtual (error 403) desde anoche. Probé con Chrome y Edge.",
-    createdAt: "2025-09-03T10:30:00Z",
-    chatBloqueado: false,
-    mensajes: [
-      {
-        id: 101,
-        createdAt: "2025-09-03T10:31:00Z",
-        contenido: "Hola, necesito ayuda. Me sale error 403.",
-        emisor: {
-          nombre: "Juan",
-          apellidos: "Pérez",
-          rol: { nombre: "Estudiante" },
-        },
-      },
-      {
-        id: 102,
-        createdAt: "2025-09-03T11:10:00Z",
-        contenido:
-          "¡Hola Juan! Somos Soporte. ¿Podrías confirmar si te pasa en ventana de incógnito?",
-        emisor: { nombre: "Soporte TI", rol: { nombre: "Soporte" } },
-      },
-      {
-        id: 103,
-        createdAt: "2025-09-03T11:20:00Z",
-        contenido: "Sí, también me pasa en incógnito.",
-        emisor: {
-          nombre: "Juan",
-          apellidos: "Pérez",
-          rol: { nombre: "Estudiante" },
-        },
-      },
-    ],
-  },
-  2: {
-    id: 2,
-    codigo: "TCK-2025-0002",
-    estado: { nombre: "ASIGNADO" },
-    area: { nombre: "OSAR" },
-    descripcion: "Consulta sobre constancia de matrícula.",
-    createdAt: "2025-09-05T09:10:00Z",
-    chatBloqueado: false,
-    mensajes: [
-      {
-        id: 201,
-        createdAt: "2025-09-05T09:11:00Z",
-        contenido: "Buenas, mi constancia muestra ciclo anterior.",
-        emisor: {
-          nombre: "Ana",
-          apellidos: "Rojas",
-          rol: { nombre: "Estudiante" },
-        },
-      },
-      // Sin respuesta de soporte → estudiante NO puede escribir
-    ],
-  },
+  calificacionTicket?: CalificacionTicket | null;
 };
 
 // ====== Helpers UI ======
@@ -147,6 +102,109 @@ const ESTADO_META: Record<TicketEstado, { label: string; color: string }> = {
 const fmt = (iso?: string) =>
   iso ? dayjs(iso).format("DD/MM/YYYY HH:mm") : "—";
 
+const API = process.env.NEXT_PUBLIC_API_URL ?? "";
+
+// ====== Calificación (inline) ======
+function CardCalificacionInline({
+  ticket,
+  onCrear,
+}: {
+  ticket: HD_Ticket;
+  onCrear: (value: number, comentario?: string) => Promise<void>;
+}) {
+  const yaTiene = Boolean(ticket?.calificacionTicket);
+  const [rating, setRating] = useState<number>(0);
+  const [comentario, setComentario] = useState<string>("");
+  const [enviando, setEnviando] = useState(false);
+
+  const valorExistente = ticket?.calificacionTicket?.calificacion
+    ? Number(ticket.calificacionTicket.calificacion)
+    : 0;
+
+  const handleEnviar = async () => {
+    if (rating <= 0) return;
+    try {
+      setEnviando(true);
+      await onCrear(rating, comentario.trim() || undefined);
+      message.success("¡Gracias por tu calificación!");
+      setRating(0);
+      setComentario("");
+    } catch {
+      message.error("No se pudo registrar la calificación.");
+    } finally {
+      setEnviando(false);
+    }
+  };
+
+  return (
+    <Card className="mb-6" title="📝 Califica tu experiencia">
+      {yaTiene ? (
+        <div className="text-center">
+          <Text strong>Tu calificación</Text>
+          <div className="my-3">
+            <Rate
+              allowHalf
+              disabled
+              defaultValue={valorExistente}
+              style={{ fontSize: 28 }}
+            />
+          </div>
+          {ticket?.calificacionTicket?.comentario ? (
+            <Text type="secondary" italic>
+              “{ticket.calificacionTicket.comentario}”
+            </Text>
+          ) : (
+            <Text type="secondary" italic>
+              Gracias por tu evaluación.
+            </Text>
+          )}
+          <div className="mt-2 text-xs text-gray-500">
+            {ticket?.calificacionTicket?.createdAt
+              ? dayjs(ticket.calificacionTicket.createdAt).fromNow()
+              : ""}
+          </div>
+        </div>
+      ) : (
+        <>
+          <Text strong>¿Cómo calificarías la atención recibida?</Text>
+          <div className="my-4 flex justify-center">
+            <Rate
+              allowClear
+              allowHalf
+              value={rating}
+              onChange={setRating}
+              style={{ fontSize: 34 }}
+            />
+          </div>
+          <Input.TextArea
+            rows={4}
+            placeholder="Cuéntanos brevemente tu experiencia (opcional)…"
+            value={comentario}
+            onChange={(e) => setComentario(e.target.value)}
+            className="my-3"
+          />
+          <div className="mt-2 flex justify-center">
+            <Button
+              type="primary"
+              size="large"
+              onClick={handleEnviar}
+              disabled={rating === 0}
+              loading={enviando}
+            >
+              Enviar calificación
+            </Button>
+          </div>
+          <div className="mt-3">
+            <Text type="secondary" italic>
+              Tu opinión nos ayuda a mejorar nuestro servicio de soporte.
+            </Text>
+          </div>
+        </>
+      )}
+    </Card>
+  );
+}
+
 // ====== Chat (estudiante) ======
 function CardChatEstudiante({
   ticket,
@@ -160,16 +218,17 @@ function CardChatEstudiante({
   const [fileList, setFileList] = useState<UploadFile[]>([]);
   const [sending, setSending] = useState(false);
 
-  // Estado del ticket
   const estadoNom = (ticket?.estado?.nombre || "").toUpperCase() as
     | TicketEstado
     | string;
   const enProceso = estadoNom === "EN_PROCESO";
   const esAsignado = estadoNom === "ASIGNADO";
   const esCancelado = estadoNom === "CANCELADO";
-  const esFinalizado = estadoNom === "FINALIZADO" || estadoNom === "CERRADO";
+  const esFinalizado =
+    estadoNom === "FINALIZADO" ||
+    estadoNom === "CERRADO" ||
+    estadoNom === "RESUELTO";
 
-  // ¿Soporte ya escribió?
   const soporteHaEscrito = useMemo(
     () =>
       (mensajes || []).some(
@@ -178,10 +237,6 @@ function CardChatEstudiante({
     [mensajes]
   );
 
-  // Reglas:
-  // - NO escribir si ASIGNADO
-  // - Solo escribir si EN_PROCESO y soporte ya escribió
-  // - Bloqueos por cancelado/finalizado/bloqueado
   const inputsDisabled =
     !ticket ||
     esCancelado ||
@@ -199,7 +254,7 @@ function CardChatEstudiante({
     if (esCancelado)
       return "El ticket fue CANCELADO; no se pueden enviar mensajes.";
     if (esFinalizado)
-      return "El ticket fue FINALIZADO/CERRADO; la conversación está cerrada.";
+      return "El ticket ha sido resuelto/cerrado; la conversación está cerrada.";
     if (!enProceso)
       return "La conversación se habilita cuando el ticket está EN PROCESO.";
     if (!soporteHaEscrito)
@@ -236,7 +291,7 @@ function CardChatEstudiante({
 
   return (
     <Card
-      className="mb-6 rounded-xl shadow-sm"
+      className="mb-6 rounded-2xl border-slate-200 shadow-sm"
       title={
         <Space>
           <MessageOutlined />
@@ -244,7 +299,7 @@ function CardChatEstudiante({
         </Space>
       }
     >
-      {/* Hilo de mensajes */}
+      {/* Hilo */}
       <div
         className="mb-4 max-h-96 overflow-y-auto pr-2 space-y-4"
         id="hilo-ticket-est"
@@ -279,11 +334,9 @@ function CardChatEstudiante({
                   </div>
                   <div className="mt-1 rounded-lg border border-gray-100 bg-white p-3 shadow-sm">
                     {m.contenido && (
-                      <Typography.Paragraph
-                        style={{ margin: 0, whiteSpace: "pre-wrap" }}
-                      >
+                      <Paragraph style={{ margin: 0, whiteSpace: "pre-wrap" }}>
                         {m.contenido}
-                      </Typography.Paragraph>
+                      </Paragraph>
                     )}
                     {m.url && (
                       <div className="mt-2">
@@ -314,9 +367,9 @@ function CardChatEstudiante({
         <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 p-3">
           <Space>
             <InfoCircleOutlined />
-            <Typography.Text type="secondary" className="text-xs">
+            <Text type="secondary" className="text-xs">
               {disabledReason}
-            </Typography.Text>
+            </Text>
           </Space>
         </div>
       )}
@@ -371,9 +424,9 @@ function CardChatEstudiante({
           </Space>
         </div>
 
-        <Typography.Text type="secondary" className="text-xs">
+        <Text type="secondary" className="text-xs">
           Nota: evita compartir información sensible.
-        </Typography.Text>
+        </Text>
       </div>
     </Card>
   );
@@ -385,21 +438,70 @@ export default function TicketDetailStudentPage() {
   const params = useParams<{ id: string }>();
   const idNum = Number(params?.id);
 
-  const ticket: HD_Ticket | undefined = !Number.isNaN(idNum)
-    ? DATA_STATIC[idNum]
-    : undefined;
+  const [ticket, setTicket] = useState<HD_Ticket | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  // handler demo (simula envío)
-  const handleSend = async (texto: string, archivos: UploadFile[]) => {
-    console.log("ENVIAR >>>", { texto, archivos });
-    // Integración real: crear mensaje + subir adjuntos + refrescar hilo
-    await new Promise((r) => setTimeout(r, 400));
+  const estadoActual =
+    ((ticket?.estado?.nombre || "ABIERTO").toUpperCase() as TicketEstado) ||
+    "ABIERTO";
+  const estadoMeta = ESTADO_META[estadoActual] || ESTADO_META.ABIERTO;
+
+  const fetchTicket = async () => {
+    if (Number.isNaN(idNum)) return;
+    try {
+      setLoading(true);
+      const res = await fetch(`${API}/hd/ticket/${idNum}`, {
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Error al cargar ticket");
+      const data = (await res.json()) as HD_Ticket;
+      setTicket(data);
+    } catch (e) {
+      console.log("e => ", e);
+
+      message.error("No se pudo cargar el ticket.");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const estadoActual = (
-    ticket?.estado?.nombre || "ABIERTO"
-  ).toUpperCase() as TicketEstado;
-  const estadoMeta = ESTADO_META[estadoActual] || ESTADO_META.ABIERTO;
+  useEffect(() => {
+    fetchTicket();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [idNum]);
+
+  const handleSend = async (texto: string, archivos: UploadFile[]) => {
+    if (Number.isNaN(idNum)) return;
+    const fd = new FormData();
+    if (texto) fd.append("contenido", texto);
+    (archivos || []).forEach((f) => {
+      if (f.originFileObj) fd.append("archivos", f.originFileObj as File);
+    });
+
+    const res = await fetch(`${API}/hd/ticket/${idNum}/mensaje`, {
+      method: "POST",
+      body: fd,
+      credentials: "include",
+    });
+    if (!res.ok) throw new Error("Error al enviar mensaje");
+    await fetchTicket();
+  };
+
+  const crearCalificacion = async (value: number, comentario?: string) => {
+    if (Number.isNaN(idNum)) return;
+    try {
+      await createCalificacion({
+        ticket_id: idNum,
+        calificacion: value,
+        comentario,
+      });
+      await fetchTicket();
+      message.success("¡Gracias por tu calificación!");
+    } catch (err) {
+      console.error(err);
+      message.error("Error al calificar");
+    }
+  };
 
   return (
     <div className="min-h-[100dvh] bg-gradient-to-b from-sky-50 via-white to-white">
@@ -408,7 +510,7 @@ export default function TicketDetailStudentPage() {
         <div className="rounded-2xl bg-gradient-to-r from-sky-600 via-indigo-600 to-violet-600 p-[1px] shadow-lg">
           <div className="rounded-2xl bg-white/80 backdrop-blur-md px-6 py-6 md:px-10">
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-              <div className="flex items中心 gap-3">
+              <div className="flex items-center gap-3">
                 <Button
                   icon={<ArrowLeftOutlined />}
                   onClick={() => router.push("/hd/est/mis-tickets")}
@@ -416,12 +518,12 @@ export default function TicketDetailStudentPage() {
                   Mis Tickets
                 </Button>
                 <div>
-                  <Typography.Title level={3} className="m-0 !text-slate-900">
+                  <Title level={3} className="m-0 !text-slate-900">
                     📄 Detalle de Ticket
-                  </Typography.Title>
-                  <Typography.Text type="secondary">
+                  </Title>
+                  <Text type="secondary">
                     Revisa el estado y conversa con Soporte.
-                  </Typography.Text>
+                  </Text>
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -451,7 +553,10 @@ export default function TicketDetailStudentPage() {
       {/* CONTENIDO */}
       <div className="mx-auto max-w-7xl px-4 py-8">
         {!ticket ? (
-          <Card className="rounded-2xl border-slate-200 shadow-sm">
+          <Card
+            className="rounded-2xl border-slate-200 shadow-sm"
+            loading={loading}
+          >
             <Empty description="No se encontró el ticket solicitado" />
             <div className="mt-4">
               <Button onClick={() => router.push("/hd/est/mis-tickets")}>
@@ -461,18 +566,33 @@ export default function TicketDetailStudentPage() {
           </Card>
         ) : (
           <>
-            <Card className="rounded-2xl border-slate-200 shadow-sm mb-6">
+            <Card
+              className="rounded-2xl border-slate-200 shadow-sm mb-6"
+              loading={loading}
+            >
               <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
                 <div className="flex flex-col">
-                  <Typography.Text type="secondary" className="text-xs">
+                  <Text type="secondary" className="text-xs">
                     Código
-                  </Typography.Text>
-                  <Typography.Text className="text-base font-semibold">
+                  </Text>
+                  <Text className="text-base font-semibold">
                     {ticket.codigo || `T-${ticket.id}`}
-                  </Typography.Text>
+                  </Text>
                 </div>
                 <Space>
-                  <Tag color={estadoMeta.color}>{estadoMeta.label}</Tag>
+                  <Tag
+                    color={
+                      ESTADO_META[
+                        (ticket.estado?.nombre || "ABIERTO") as TicketEstado
+                      ]?.color || "default"
+                    }
+                  >
+                    {ESTADO_META[
+                      (ticket.estado?.nombre || "ABIERTO") as TicketEstado
+                    ]?.label ||
+                      ticket.estado?.nombre ||
+                      "—"}
+                  </Tag>
                   <Tag>{ticket.area?.nombre ?? "—"}</Tag>
                 </Space>
               </div>
@@ -487,9 +607,9 @@ export default function TicketDetailStudentPage() {
                   <Tag>{ticket.area?.nombre ?? "—"}</Tag>
                 </Descriptions.Item>
                 <Descriptions.Item label="Descripción">
-                  <Typography.Paragraph className="!mb-0 whitespace-pre-wrap">
+                  <Paragraph className="!mb-0 whitespace-pre-wrap">
                     {ticket.descripcion ?? "—"}
-                  </Typography.Paragraph>
+                  </Paragraph>
                 </Descriptions.Item>
                 <Descriptions.Item label="Creado">
                   <FieldTimeOutlined className="mr-1" />
@@ -497,6 +617,15 @@ export default function TicketDetailStudentPage() {
                 </Descriptions.Item>
               </Descriptions>
             </Card>
+
+            {/* Calificación si RESUELTO (por nombre o id 4) */}
+            {(ticket.estado?.nombre?.toUpperCase() === "RESUELTO" ||
+              ticket.estado_id === 4) && (
+              <CardCalificacionInline
+                ticket={ticket}
+                onCrear={crearCalificacion}
+              />
+            )}
 
             {/* Chat con reglas para estudiante */}
             <CardChatEstudiante ticket={ticket} onSend={handleSend} />
