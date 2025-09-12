@@ -18,7 +18,7 @@ export default function ActionBar({
   onSubmit,
 }: Props) {
   return (
-    <div className="sticky bottom-0 bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60 py-3">
+    <div className="sticky bottom-0  backdrop-blur  py-3">
       <div className="flex justify-between">
         {current > 0 ? (
           <Button onClick={onPrev} disabled={loading}>

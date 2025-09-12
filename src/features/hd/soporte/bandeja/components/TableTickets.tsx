@@ -153,7 +153,7 @@ export default function TableTickets({ usuario, tickets, loading }: Props) {
   ];
 
   return (
-    <div className="bg-white rounded-lg shadow p-4">
+    <div className="rounded-lg shadow p-4">
       <Table
         columns={columns}
         dataSource={tickets}

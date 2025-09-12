@@ -60,7 +60,7 @@ export default function Page() {
   const guardarEdicion = async (values: object) => {
     if (!slaSeleccionado) return;
     try {
-      await updateSla(Number(slaSeleccionado.id), values); // debes tener esta función en tu servicio
+      await updateSla(Number(slaSeleccionado.id), values);
       message.success("SLA actualizado correctamente");
       setOpenDrawer(false);
       setSlaSeleccionado(null);
@@ -119,7 +119,7 @@ export default function Page() {
   );
 
   return (
-    <div className="p-6 max-w-6xl mx-auto bg-white rounded-xl shadow">
+    <div className="p-6 max-w-6xl mx-auto rounded-xl shadow">
       <div className="flex justify-between items-center mb-6">
         <div>
           <Title level={4}>Configuración SLA</Title>

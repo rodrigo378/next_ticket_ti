@@ -16,6 +16,7 @@ import {
   Tooltip,
   Alert,
   Modal,
+  theme,
 } from "antd";
 import type { UploadFile } from "antd/es/upload/interface";
 import {
@@ -37,11 +38,9 @@ const { Title, Text, Paragraph } = Typography;
 const { TextArea } = Input;
 const { Dragger } = Upload;
 
-// ====== Tipos / Mocks (cámbialos por tus servicios reales) ======
+// ====== Tipos / Mocks ======
 export type AreaOption = { id: number; nombre: string };
-
-// import { getAreas } from "@/features/hd/service/area";
-// import { createTicketEstudiante } from "@/features/hd/service/ticket";
+// Reemplaza por tu servicio real getAreas()
 async function getAreasMock(): Promise<AreaOption[]> {
   return [
     { id: 1, nombre: "Tecnologías de la Información (TI)" },
@@ -76,6 +75,7 @@ const isValidDesc = (v?: string) =>
 
 export default function TicketCreateStudentView() {
   const router = useRouter();
+  const { token } = theme.useToken();
 
   const [form] = Form.useForm();
   const [areas, setAreas] = useState<AreaOption[]>([]);
@@ -104,9 +104,7 @@ export default function TicketCreateStudentView() {
     if (areaParam) {
       const id = Number(areaParam);
       const exists = areas.some((a) => a.id === id);
-      if (exists) {
-        form.setFieldsValue({ area_id: id });
-      }
+      if (exists) form.setFieldsValue({ area_id: id });
     }
   }, [areas, searchParams, form]);
 
@@ -158,12 +156,6 @@ export default function TicketCreateStudentView() {
       const files = getRawFiles();
       setLoading(true);
 
-      console.log("Ticket a crear:", {
-        area_id: Number(values.area_id),
-        descripcion: String(values.descripcion || "").trim(),
-        files,
-      });
-
       const fd = new FormData();
       fd.append("area_id", String(values.area_id));
       fd.append("descripcion", String(values.descripcion || "").trim());
@@ -184,10 +176,7 @@ export default function TicketCreateStudentView() {
         setFileList([]);
         setTouched(false);
 
-        // 👇 redirigir luego de un pequeño delay opcional
-        setTimeout(() => {
-          router.push("/hd/est/mis-tickets");
-        }, 1000);
+        setTimeout(() => router.push("/hd/est/mis-tickets"), 1000);
       } else {
         message.error("No se pudo crear el ticket. Inténtalo nuevamente.");
       }
@@ -195,12 +184,6 @@ export default function TicketCreateStudentView() {
       const err = e as NormalizedError;
       const painted = applyFormErrors(form, err);
       if (!painted) handleApiError(err, hdErrorMap);
-
-      // if (err?.errorFields) {
-      //   message.warning("Revisa los campos obligatorios.");
-      // } else {
-      //   message.error("Ocurrió un error al crear el ticket.");
-      // }
     } finally {
       setLoading(false);
     }
@@ -210,7 +193,6 @@ export default function TicketCreateStudentView() {
   const descValue: string = Form.useWatch("descripcion", form) || "";
   const descCount = descValue.length;
 
-  // Habilita/deshabilita "Crear Ticket"
   const canSubmit = !!selectedArea && isValidDesc(descValue) && !loading;
 
   // Detectar cambios para confirmar limpieza
@@ -238,25 +220,45 @@ export default function TicketCreateStudentView() {
     });
   };
 
-  // Enviar con Enter (si válido)
-  // const onKeyDownForm: React.KeyboardEventHandler<HTMLDivElement> = (e) => {
-  //   if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
-  //     if (canSubmit) onSubmit();
-  //   }
-  // };
+  // ====== Estilos con tokens ======
+  const wrapperStyle: React.CSSProperties = {
+    // background: `linear-gradient(90deg, ${token.colorPrimary} 0%, ${token.colorPrimaryHover} 50%, ${token.colorPrimaryActive} 100%)`,
+  };
+  const heroInnerStyle: React.CSSProperties = {
+    background: token.colorBgContainer,
+    border: `1px solid ${token.colorBorderSecondary}`,
+  };
+  const cardStyle: React.CSSProperties = {
+    background: token.colorBgContainer,
+    border: `1px solid ${token.colorBorderSecondary}`,
+  };
+  const titleColor = token.colorText;
+  const secondaryText = token.colorTextSecondary;
 
   return (
-    <div className="min-h-[100dvh] bg-gradient-to-b from-sky-50 via-white to-white">
+    <div
+      className="min-h-[100dvh]"
+      style={{
+        background: `linear-gradient(to bottom, ${token.colorFillTertiary}, ${token.colorBgLayout})`,
+      }}
+    >
       {/* HERO / ENCABEZADO */}
       <div className="mx-auto max-w-7xl px-4 pt-8">
-        <div className="rounded-2xl bg-gradient-to-r from-sky-600 via-indigo-600 to-violet-600 p-[1px] shadow-lg">
-          <div className="rounded-2xl bg-white/80 backdrop-blur-md px-6 py-6 md:px-10">
+        <div className="rounded-2xl p-[1px] shadow-lg" style={wrapperStyle}>
+          <div
+            className="rounded-2xl backdrop-blur-md px-6 py-6 md:px-10"
+            style={heroInnerStyle}
+          >
             <div className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
               <div>
-                <Title level={3} className="m-0 !text-slate-900">
+                <Title
+                  level={3}
+                  className="m-0"
+                  style={{ color: titleColor, margin: 0 }}
+                >
                   🎫 Crear Ticket — Estudiante
                 </Title>
-                <Text type="secondary">
+                <Text style={{ color: secondaryText }}>
                   Registra tu solicitud en pocos pasos. Nuestro equipo te
                   contactará por correo institucional.
                 </Text>
@@ -277,7 +279,7 @@ export default function TicketCreateStudentView() {
                   Atención Estudiante
                 </Tag>
                 <Tooltip title="Tus datos están protegidos">
-                  <SafetyCertificateTwoTone twoToneColor="#22c55e" />
+                  <SafetyCertificateTwoTone twoToneColor={token.colorSuccess} />
                 </Tooltip>
               </div>
             </div>
@@ -301,21 +303,22 @@ export default function TicketCreateStudentView() {
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
           {/* Columna principal */}
           <div className="lg:col-span-8 space-y-6">
-            <Card className="rounded-2xl border-slate-200 shadow-sm">
+            <Card className="rounded-2xl shadow-sm" style={cardStyle}>
               <Form
                 form={form}
                 layout="vertical"
                 requiredMark="optional"
                 initialValues={{ area_id: undefined, descripcion: "" }}
               >
-                {/* Área (label con justify-between funcionando) */}
+                {/* Área */}
                 <Form.Item
                   label={
                     <span className="flex w-full items-center justify-between">
-                      <span className="block" style={{ display: "block" }}>
-                        Área
-                      </span>
-                      <Text type="secondary" className="text-xs ps-2">
+                      <span>Área</span>
+                      <Text
+                        style={{ color: secondaryText }}
+                        className="text-xs ps-2"
+                      >
                         (Selecciona el destino de tu solicitud)
                       </Text>
                     </span>
@@ -358,16 +361,17 @@ export default function TicketCreateStudentView() {
                   ]}
                   extra={
                     <div className="mt-1 flex items-center justify-between text-xs">
-                      <span className="text-slate-500">
+                      <span style={{ color: secondaryText }}>
                         Sé claro y específico (ej. “no puedo acceder al aula
                         virtual”).
                       </span>
                       <span
-                        className={`${
-                          descCount > MAX_DESC * 0.9
-                            ? "text-rose-500"
-                            : "text-slate-400"
-                        }`}
+                        style={{
+                          color:
+                            descCount > MAX_DESC * 0.9
+                              ? token.colorError
+                              : token.colorTextQuaternary,
+                        }}
                       >
                         {descCount}/{MAX_DESC}
                       </span>
@@ -382,11 +386,11 @@ export default function TicketCreateStudentView() {
                   />
                 </Form.Item>
 
-                {/* Adjuntos (texto auxiliar movido a extra) */}
+                {/* Adjuntos */}
                 <Form.Item
                   label="Adjuntos"
                   extra={
-                    <Text type="secondary" className="text-xs">
+                    <Text style={{ color: secondaryText }} className="text-xs">
                       Opcional — {MAX_FILES} máx., {MAX_SIZE_MB} MB c/u
                     </Text>
                   }
@@ -411,7 +415,10 @@ export default function TicketCreateStudentView() {
                       PDF, imágenes, Word, Excel, TXT. Prioriza capturas que
                       ayuden a entender el problema.
                     </p>
-                    <p className="m-0 text-xs text-slate-500">
+                    <p
+                      className="m-0 text-xs"
+                      style={{ color: token.colorTextQuaternary }}
+                    >
                       {fileList.length}/{MAX_FILES} archivos seleccionados
                     </p>
                   </Dragger>
@@ -421,11 +428,22 @@ export default function TicketCreateStudentView() {
 
                 {/* Barra de acción sticky */}
                 <div className="sticky bottom-2 z-10">
-                  <div className="rounded-xl border border-slate-200 bg-white/90 p-3 shadow-sm backdrop-blur">
+                  <div
+                    className="rounded-xl p-3 shadow-sm backdrop-blur"
+                    style={{
+                      background: token.colorBgContainer,
+                      border: `1px solid ${token.colorBorderSecondary}`,
+                    }}
+                  >
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                       <div className="flex items-center gap-2">
-                        <FileProtectOutlined className="text-slate-400" />
-                        <Text type="secondary" className="text-xs">
+                        <FileProtectOutlined
+                          style={{ color: token.colorTextQuaternary }}
+                        />
+                        <Text
+                          style={{ color: secondaryText }}
+                          className="text-xs"
+                        >
                           Verifica que tus datos sean correctos antes de enviar.
                         </Text>
                       </div>
@@ -458,25 +476,35 @@ export default function TicketCreateStudentView() {
 
             {/* PREVIEW compacto */}
             <Card
-              className="rounded-2xl border-slate-200 shadow-sm"
+              className="rounded-2xl shadow-sm"
+              style={cardStyle}
               title="Vista previa"
             >
               <div className="space-y-2 text-sm">
                 <div className="flex items-start gap-2">
-                  <Text className="w-28 text-slate-500">Área:</Text>
-                  <Text strong>
+                  <Text style={{ color: secondaryText }} className="w-28">
+                    Área:
+                  </Text>
+                  <Text strong style={{ color: token.colorText }}>
                     {getSelectedAreaLabel(selectedArea) || "—"}
                   </Text>
                 </div>
                 <div className="flex items-start gap-2">
-                  <Text className="w-28 text-slate-500">Descripción:</Text>
-                  <Paragraph className="m-0 whitespace-pre-wrap">
+                  <Text style={{ color: secondaryText }} className="w-28">
+                    Descripción:
+                  </Text>
+                  <Paragraph
+                    className="m-0 whitespace-pre-wrap"
+                    style={{ color: token.colorText }}
+                  >
                     {descValue || "—"}
                   </Paragraph>
                 </div>
                 <div className="flex items-start gap-2">
-                  <Text className="w-28 text-slate-500">Adjuntos:</Text>
-                  <Text>
+                  <Text style={{ color: secondaryText }} className="w-28">
+                    Adjuntos:
+                  </Text>
+                  <Text style={{ color: token.colorText }}>
                     {fileList.length ? `${fileList.length} archivo(s)` : "—"}
                   </Text>
                 </div>
@@ -484,13 +512,16 @@ export default function TicketCreateStudentView() {
             </Card>
           </div>
 
-          {/* Columna lateral (tips / ayuda) */}
+          {/* Columna lateral */}
           <div className="lg:col-span-4 space-y-6">
-            <Card className="rounded-2xl border-slate-200 shadow-sm">
-              <Title level={5} className="m-0">
+            <Card className="rounded-2xl shadow-sm" style={cardStyle}>
+              <Title level={5} className="m-0" style={{ color: titleColor }}>
                 Consejos para un ticket efectivo
               </Title>
-              <ul className="mt-3 list-disc space-y-2 pl-5 text-sm text-slate-600">
+              <ul
+                className="mt-3 list-disc space-y-2 pl-5 text-sm"
+                style={{ color: secondaryText }}
+              >
                 <li>Indica el contexto: curso, plataforma, sección, etc.</li>
                 <li>
                   Señala el <strong>error exacto</strong> que observas (copia el
@@ -503,11 +534,14 @@ export default function TicketCreateStudentView() {
               </ul>
             </Card>
 
-            <Card className="rounded-2xl border-slate-200 shadow-sm">
-              <Title level={5} className="m-0">
+            <Card className="rounded-2xl shadow-sm" style={cardStyle}>
+              <Title level={5} className="m-0" style={{ color: titleColor }}>
                 Estado y seguimiento
               </Title>
-              <div className="mt-3 space-y-2 text-sm text-slate-600">
+              <div
+                className="mt-3 space-y-2 text-sm"
+                style={{ color: secondaryText }}
+              >
                 <p>
                   Recibirás notificaciones al correo institucional UMA con cada
                   actualización.

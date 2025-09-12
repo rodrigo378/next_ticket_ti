@@ -81,7 +81,7 @@ export default function Page() {
   ];
 
   return (
-    <div className="p-6 max-w-4xl mx-auto bg-white rounded-xl shadow">
+    <div className="p-6 max-w-4xl mx-auto rounded-xl shadow">
       <div className="flex justify-between items-center mb-6">
         <div>
           <Title level={4}>Gestión de Prioridades</Title>

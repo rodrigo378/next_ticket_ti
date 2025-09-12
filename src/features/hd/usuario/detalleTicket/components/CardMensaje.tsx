@@ -120,7 +120,7 @@ export default function CardMensajeUsuario({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lastSupportIdx, mensajesOrdenados]);
 
-  const LIMITE_REPLIES = 2;
+  const LIMITE_REPLIES = 3;
   const excedioCupoUsuario =
     lastSupportIdx >= 0 && userReplyCountSinceSupport >= LIMITE_REPLIES;
 

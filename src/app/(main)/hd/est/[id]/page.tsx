@@ -1,7 +1,7 @@
 // app/hd/est/[id]/page.tsx
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Card,
   Typography,
@@ -14,10 +14,10 @@ import {
   Empty,
   Space,
   Divider,
-  Upload,
   message,
   Rate,
   Input,
+  theme,
 } from "antd";
 import {
   ArrowLeftOutlined,
@@ -26,27 +26,29 @@ import {
   FieldTimeOutlined,
   UserOutlined,
   TeamOutlined,
-  PaperClipOutlined,
-  SendOutlined,
   DownloadOutlined,
   MessageOutlined,
 } from "@ant-design/icons";
 import TextArea from "antd/es/input/TextArea";
-import type { UploadFile } from "antd/es/upload/interface";
 import { useParams, useRouter } from "next/navigation";
 
-import { createCalificacion } from "@/features/hd/service/ticket_ti";
+import {
+  createCalificacion,
+  createMensaje,
+} from "@/features/hd/service/ticket_ti";
 
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import "dayjs/locale/es";
+
+import { HD_Ticket } from "@/interface/hd/hd_ticket";
+import { HD_MensajeTicket } from "@/interface/hd/hd_mensajeTicket";
 
 dayjs.extend(relativeTime);
 dayjs.locale("es");
 
 const { Title, Text, Paragraph } = Typography;
 
-// ====== Tipos mínimos (solo lo que usa estudiante) ======
 type TicketEstado =
   | "ABIERTO"
   | "ASIGNADO"
@@ -55,41 +57,6 @@ type TicketEstado =
   | "CERRADO"
   | "OBSERVADO";
 
-type Rol = { nombre: string };
-type Usuario = { nombre?: string; apellidos?: string; rol?: Rol };
-
-type HD_MensajeTicket = {
-  id: number;
-  contenido?: string;
-  url?: string;
-  nombre?: string;
-  createdAt: string; // ISO
-  emisor?: Usuario;
-};
-
-type Area = { nombre?: string };
-type Estado = { nombre?: string };
-
-type CalificacionTicket = {
-  calificacion: number | string;
-  comentario?: string;
-  createdAt?: string;
-};
-
-type HD_Ticket = {
-  id: number;
-  codigo?: string;
-  estado?: Estado;
-  estado_id?: number;
-  area?: Area;
-  descripcion?: string;
-  createdAt?: string;
-  mensajes?: HD_MensajeTicket[];
-  chatBloqueado?: boolean;
-  calificacionTicket?: CalificacionTicket | null;
-};
-
-// ====== Helpers UI ======
 const ESTADO_META: Record<TicketEstado, { label: string; color: string }> = {
   ABIERTO: { label: "Abierto", color: "blue" },
   ASIGNADO: { label: "Asignado", color: "purple" },
@@ -104,7 +71,16 @@ const fmt = (iso?: string) =>
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? "";
 
-// ====== Calificación (inline) ======
+// Normaliza claves de estado ("EN PROCESO" -> "EN_PROCESO")
+const toEstadoKey = (v?: string): TicketEstado => {
+  const key = (v || "ABIERTO").toUpperCase().replace(/\s+/g, "_");
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (ESTADO_META as any)[key] ? (key as TicketEstado) : "ABIERTO";
+};
+
+/* =========================
+   Calificación (inline)
+========================= */
 function CardCalificacionInline({
   ticket,
   onCrear,
@@ -158,9 +134,9 @@ function CardCalificacionInline({
               Gracias por tu evaluación.
             </Text>
           )}
-          <div className="mt-2 text-xs text-gray-500">
+          <div className="mt-2 text-xs" style={{ color: "#64748b" }}>
             {ticket?.calificacionTicket?.createdAt
-              ? dayjs(ticket.calificacionTicket.createdAt).fromNow()
+              ? dayjs(String(ticket.calificacionTicket.createdAt)).fromNow()
               : ""}
           </div>
         </div>
@@ -205,37 +181,93 @@ function CardCalificacionInline({
   );
 }
 
-// ====== Chat (estudiante) ======
+/* =========================
+   Chat del Estudiante
+   - Solo EN_PROCESO
+   - Debe existir un mensaje previo de Soporte/Administrativo
+   - Máx 3 respuestas del alumno desde el último mensaje de soporte
+========================= */
 function CardChatEstudiante({
   ticket,
   onSend,
 }: {
   ticket: HD_Ticket;
-  onSend: (texto: string, archivos: UploadFile[]) => Promise<void> | void;
+  onSend: (texto: string) => Promise<void> | void;
 }) {
   const mensajes = useMemo(() => ticket.mensajes ?? [], [ticket.mensajes]);
   const [nuevoMensaje, setNuevoMensaje] = useState<string>("");
-  const [fileList, setFileList] = useState<UploadFile[]>([]);
   const [sending, setSending] = useState(false);
 
-  const estadoNom = (ticket?.estado?.nombre || "").toUpperCase() as
-    | TicketEstado
-    | string;
-  const enProceso = estadoNom === "EN_PROCESO";
-  const esAsignado = estadoNom === "ASIGNADO";
-  const esCancelado = estadoNom === "CANCELADO";
-  const esFinalizado =
-    estadoNom === "FINALIZADO" ||
-    estadoNom === "CERRADO" ||
-    estadoNom === "RESUELTO";
+  const code = toEstadoKey(ticket?.estado?.codigo);
+  const nameKey = toEstadoKey(ticket?.estado?.nombre);
 
-  const soporteHaEscrito = useMemo(
-    () =>
-      (mensajes || []).some(
-        (m) => m.emisor?.rol?.nombre?.toLowerCase() === "soporte"
-      ),
-    [mensajes]
+  const enProceso =
+    ticket.estado_id === 3 || code === "EN_PROCESO" || nameKey === "EN_PROCESO";
+  const esAsignado = code === "ASIGNADO" || nameKey === "ASIGNADO";
+  const esCancelado = code === "CERRADO" || nameKey === "CERRADO"; // si además tienes CANCELADO por id/código, ajusta aquí
+  const esFinalizado =
+    ticket.estado_id === 4 ||
+    code === "RESUELTO" ||
+    nameKey === "RESUELTO" ||
+    code === "CERRADO" ||
+    nameKey === "CERRADO";
+
+  // Detectar si un mensaje es de Soporte/Administrativo (no estudiante)
+  const esDeSoporte = useCallback(
+    (m: HD_MensajeTicket) => {
+      const rol = m?.emisor?.rol?.nombre?.toLowerCase?.() ?? "";
+      const soporteTokens = [
+        "soporte",
+        "administrativo",
+        "admin",
+        "mesa",
+        "ti",
+        "n1",
+        "n2",
+        "n3",
+        "n4",
+        "n5",
+        "operador",
+      ];
+      if (rol && soporteTokens.some((tok) => rol.includes(tok))) return true;
+      // fallback: cualquier emisor distinto del creador del ticket se considera "soporte"
+      return m.emisor_id !== ticket.creado_id;
+    },
+    [ticket.creado_id]
   );
+
+  // Orden cronológico
+  const mensajesOrdenados = useMemo(() => {
+    const arr = [...(mensajes || [])];
+    return arr.sort(
+      (a, b) =>
+        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+    );
+  }, [mensajes]);
+
+  // Índice del último mensaje de soporte
+  const lastSupportIdx = useMemo(() => {
+    for (let i = mensajesOrdenados.length - 1; i >= 0; i--) {
+      if (esDeSoporte(mensajesOrdenados[i])) return i;
+    }
+    return -1;
+  }, [mensajesOrdenados, esDeSoporte]);
+
+  const soporteHaEscrito = lastSupportIdx !== -1;
+
+  // Contar respuestas del alumno desde el último soporte
+  const userReplyCountSinceSupport = useMemo(() => {
+    if (lastSupportIdx === -1) return 0;
+    let c = 0;
+    for (let i = lastSupportIdx + 1; i < mensajesOrdenados.length; i++) {
+      if (!esDeSoporte(mensajesOrdenados[i])) c++;
+    }
+    return c;
+  }, [lastSupportIdx, mensajesOrdenados, esDeSoporte]);
+
+  const LIMITE_REPLIES = 3;
+  const excedioCupoUsuario =
+    lastSupportIdx >= 0 && userReplyCountSinceSupport >= LIMITE_REPLIES;
 
   const inputsDisabled =
     !ticket ||
@@ -244,11 +276,10 @@ function CardChatEstudiante({
     esAsignado ||
     !enProceso ||
     !soporteHaEscrito ||
-    ticket.chatBloqueado === true;
+    excedioCupoUsuario;
 
   const disabledReason = (() => {
     if (!ticket) return "El ticket no está disponible.";
-    if (ticket.chatBloqueado) return "El chat está bloqueado por Soporte.";
     if (esAsignado)
       return "No puedes escribir: el ticket está ASIGNADO. Espera a que Soporte te contacte.";
     if (esCancelado)
@@ -258,29 +289,22 @@ function CardChatEstudiante({
     if (!enProceso)
       return "La conversación se habilita cuando el ticket está EN PROCESO.";
     if (!soporteHaEscrito)
-      return "Espera el primer mensaje de Soporte para continuar la conversación.";
+      return "Espera el primer mensaje de Soporte para poder escribir.";
+    if (excedioCupoUsuario)
+      return `Has alcanzado el máximo de ${LIMITE_REPLIES} respuestas. Espera una respuesta del Soporte para continuar.`;
     return null;
   })();
 
-  const mensajesOrdenados = useMemo(() => {
-    const arr = [...(mensajes || [])];
-    return arr.sort(
-      (a, b) =>
-        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-    );
-  }, [mensajes]);
-
   const handleSend = async () => {
     if (inputsDisabled) return;
-    if (!nuevoMensaje.trim() && fileList.length === 0) {
-      message.info("Escribe un mensaje o adjunta un archivo.");
+    if (!nuevoMensaje.trim()) {
+      message.info("Escribe un mensaje.");
       return;
     }
     try {
       setSending(true);
-      await onSend(nuevoMensaje.trim(), fileList);
+      await onSend(nuevoMensaje.trim());
       setNuevoMensaje("");
-      setFileList([]);
       message.success("Mensaje enviado.");
     } catch {
       message.error("No se pudo enviar el mensaje.");
@@ -289,17 +313,37 @@ function CardChatEstudiante({
     }
   };
 
+  const mensajesRestantes =
+    LIMITE_REPLIES -
+    Math.min(
+      lastSupportIdx === -1 ? 0 : userReplyCountSinceSupport,
+      LIMITE_REPLIES
+    );
+
   return (
     <Card
-      className="mb-6 rounded-2xl border-slate-200 shadow-sm"
+      className="mb-6 rounded-2xl shadow-sm"
       title={
         <Space>
           <MessageOutlined />
           <span>Conversación</span>
+          <Tag
+            color={
+              !soporteHaEscrito
+                ? "default"
+                : excedioCupoUsuario
+                ? "red"
+                : "blue"
+            }
+          >
+            {(!soporteHaEscrito && "Esperando respuesta de Soporte") ||
+              (excedioCupoUsuario
+                ? "Límite alcanzado"
+                : `Te quedan ${mensajesRestantes} mensaje(s)`)}
+          </Tag>
         </Space>
       }
     >
-      {/* Hilo */}
       <div
         className="mb-4 max-h-96 overflow-y-auto pr-2 space-y-4"
         id="hilo-ticket-est"
@@ -308,8 +352,7 @@ function CardChatEstudiante({
           <Empty description="Sin mensajes en este ticket" />
         ) : (
           mensajesOrdenados.map((m) => {
-            const deSoporte =
-              m.emisor?.rol?.nombre?.toLowerCase() === "soporte";
+            const deSoporte = esDeSoporte(m);
             const nombre =
               [m.emisor?.nombre, m.emisor?.apellidos]
                 .filter(Boolean)
@@ -329,7 +372,7 @@ function CardChatEstudiante({
                   <div className="flex items-center justify-between">
                     <Typography.Text strong>{nombre}</Typography.Text>
                     <Typography.Text type="secondary" className="text-xs">
-                      {dayjs(m.createdAt).format("DD/MM/YYYY HH:mm")}
+                      {dayjs(String(m.createdAt)).format("DD/MM/YYYY HH:mm")}
                     </Typography.Text>
                   </div>
                   <div className="mt-1 rounded-lg border border-gray-100 bg-white p-3 shadow-sm">
@@ -374,7 +417,7 @@ function CardChatEstudiante({
         </div>
       )}
 
-      {/* Redactor */}
+      {/* Redactor (solo texto; adjuntos no soportados en createMensaje) */}
       <div className="flex flex-col gap-3">
         <TextArea
           rows={4}
@@ -391,59 +434,41 @@ function CardChatEstudiante({
           disabled={inputsDisabled}
         />
 
-        <Upload.Dragger
-          className="mb-3 mt-1"
-          multiple
-          fileList={fileList}
-          onChange={(info) => setFileList(info.fileList)}
-          beforeUpload={() => false}
-          itemRender={(originNode) => originNode}
-          disabled={inputsDisabled}
-        >
-          <p className="ant-upload-drag-icon">
-            <PaperClipOutlined />
-          </p>
-          <p className="ant-upload-text">Adjuntar archivos</p>
-          <p className="ant-upload-hint">PDF, imágenes, docs. Máx. 10MB c/u.</p>
-        </Upload.Dragger>
-
-        <div className="flex justify-end items-center">
+        <div className="flex justify-between items-center">
+          <Text type="secondary" className="text-xs">
+            * Adjuntar archivos no está disponible en esta vista.
+          </Text>
           <Space>
             <Button
               type="primary"
-              icon={<SendOutlined />}
               onClick={handleSend}
               loading={sending}
-              disabled={
-                inputsDisabled ||
-                (!nuevoMensaje.trim() && fileList.length === 0)
-              }
+              disabled={inputsDisabled || !nuevoMensaje.trim()}
             >
               Enviar
             </Button>
           </Space>
         </div>
-
-        <Text type="secondary" className="text-xs">
-          Nota: evita compartir información sensible.
-        </Text>
       </div>
     </Card>
   );
 }
 
-// ====== Página de Detalle (Estudiante) ======
+/* =========================
+   Página de Detalle (Estudiante)
+========================= */
 export default function TicketDetailStudentPage() {
   const router = useRouter();
   const params = useParams<{ id: string }>();
   const idNum = Number(params?.id);
+  const { token } = theme.useToken();
 
   const [ticket, setTicket] = useState<HD_Ticket | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const estadoActual =
-    ((ticket?.estado?.nombre || "ABIERTO").toUpperCase() as TicketEstado) ||
-    "ABIERTO";
+  const estadoActual = toEstadoKey(
+    ticket?.estado?.codigo || ticket?.estado?.nombre || "ABIERTO"
+  );
   const estadoMeta = ESTADO_META[estadoActual] || ESTADO_META.ABIERTO;
 
   const fetchTicket = async () => {
@@ -456,9 +481,7 @@ export default function TicketDetailStudentPage() {
       if (!res.ok) throw new Error("Error al cargar ticket");
       const data = (await res.json()) as HD_Ticket;
       setTicket(data);
-    } catch (e) {
-      console.log("e => ", e);
-
+    } catch {
       message.error("No se pudo cargar el ticket.");
     } finally {
       setLoading(false);
@@ -470,23 +493,14 @@ export default function TicketDetailStudentPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [idNum]);
 
-  const handleSend = async (texto: string, archivos: UploadFile[]) => {
-    if (Number.isNaN(idNum)) return;
-    const fd = new FormData();
-    if (texto) fd.append("contenido", texto);
-    (archivos || []).forEach((f) => {
-      if (f.originFileObj) fd.append("archivos", f.originFileObj as File);
-    });
-
-    const res = await fetch(`${API}/hd/ticket/${idNum}/mensaje`, {
-      method: "POST",
-      body: fd,
-      credentials: "include",
-    });
-    if (!res.ok) throw new Error("Error al enviar mensaje");
+  // Enviar mensaje usando el servicio createMensaje (solo texto)
+  const handleSend = async (texto: string) => {
+    if (Number.isNaN(idNum) || !texto.trim()) return;
+    await createMensaje({ ticket_id: idNum, contenido: texto.trim() });
     await fetchTicket();
   };
 
+  // Crear calificación usando el servicio createCalificacion
   const crearCalificacion = async (value: number, comentario?: string) => {
     if (Number.isNaN(idNum)) return;
     try {
@@ -497,18 +511,35 @@ export default function TicketDetailStudentPage() {
       });
       await fetchTicket();
       message.success("¡Gracias por tu calificación!");
-    } catch (err) {
-      console.error(err);
+    } catch {
       message.error("Error al calificar");
     }
   };
 
   return (
-    <div className="min-h-[100dvh] bg-gradient-to-b from-sky-50 via-white to-white">
+    <div
+      className="min-h-[100dvh]"
+      style={{
+        background: `linear-gradient(to bottom, ${token.colorFillTertiary}, ${token.colorBgLayout})`,
+      }}
+    >
       {/* HERO */}
       <div className="mx-auto max-w-7xl px-4 pt-8">
-        <div className="rounded-2xl bg-gradient-to-r from-sky-600 via-indigo-600 to-violet-600 p-[1px] shadow-lg">
-          <div className="rounded-2xl bg-white/80 backdrop-blur-md px-6 py-6 md:px-10">
+        <div
+          className="rounded-2xl p-[1px] shadow-lg"
+          style={
+            {
+              // background: `linear-gradient(135deg, ${token.colorPrimary}CC, ${token.colorPrimaryHover}CC 60%, ${token.colorPrimaryActive}CC)`,
+            }
+          }
+        >
+          <div
+            className="rounded-2xl backdrop-blur-md px-6 py-6 md:px-10"
+            style={{
+              background: token.colorBgContainer,
+              border: `1px solid ${token.colorBorderSecondary}`,
+            }}
+          >
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div className="flex items-center gap-3">
                 <Button
@@ -518,17 +549,21 @@ export default function TicketDetailStudentPage() {
                   Mis Tickets
                 </Button>
                 <div>
-                  <Title level={3} className="m-0 !text-slate-900">
+                  <Title
+                    level={3}
+                    className="m-0"
+                    style={{ color: token.colorText }}
+                  >
                     📄 Detalle de Ticket
                   </Title>
-                  <Text type="secondary">
+                  <Text style={{ color: token.colorTextSecondary }}>
                     Revisa el estado y conversa con Soporte.
                   </Text>
                 </div>
               </div>
               <div className="flex items-center gap-2">
                 <Tooltip title="Tus datos están protegidos">
-                  <SafetyCertificateTwoTone twoToneColor="#22c55e" />
+                  <SafetyCertificateTwoTone twoToneColor={token.colorSuccess} />
                 </Tooltip>
                 <Tag color={estadoMeta.color}>{estadoMeta.label}</Tag>
                 <Tag color="blue">{ticket?.area?.nombre ?? "—"}</Tag>
@@ -554,8 +589,12 @@ export default function TicketDetailStudentPage() {
       <div className="mx-auto max-w-7xl px-4 py-8">
         {!ticket ? (
           <Card
-            className="rounded-2xl border-slate-200 shadow-sm"
+            className="rounded-2xl shadow-sm"
             loading={loading}
+            style={{
+              background: token.colorBgContainer,
+              border: `1px solid ${token.colorBorderSecondary}`,
+            }}
           >
             <Empty description="No se encontró el ticket solicitado" />
             <div className="mt-4">
@@ -567,8 +606,12 @@ export default function TicketDetailStudentPage() {
         ) : (
           <>
             <Card
-              className="rounded-2xl border-slate-200 shadow-sm mb-6"
+              className="rounded-2xl shadow-sm mb-6"
               loading={loading}
+              style={{
+                background: token.colorBgContainer,
+                border: `1px solid ${token.colorBorderSecondary}`,
+              }}
             >
               <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
                 <div className="flex flex-col">
@@ -580,19 +623,7 @@ export default function TicketDetailStudentPage() {
                   </Text>
                 </div>
                 <Space>
-                  <Tag
-                    color={
-                      ESTADO_META[
-                        (ticket.estado?.nombre || "ABIERTO") as TicketEstado
-                      ]?.color || "default"
-                    }
-                  >
-                    {ESTADO_META[
-                      (ticket.estado?.nombre || "ABIERTO") as TicketEstado
-                    ]?.label ||
-                      ticket.estado?.nombre ||
-                      "—"}
-                  </Tag>
+                  <Tag color={estadoMeta.color}>{estadoMeta.label}</Tag>
                   <Tag>{ticket.area?.nombre ?? "—"}</Tag>
                 </Space>
               </div>
@@ -613,21 +644,25 @@ export default function TicketDetailStudentPage() {
                 </Descriptions.Item>
                 <Descriptions.Item label="Creado">
                   <FieldTimeOutlined className="mr-1" />
-                  {fmt(ticket.createdAt)}
+                  {fmt(
+                    ticket?.createdAt ? String(ticket.createdAt) : undefined
+                  )}
                 </Descriptions.Item>
               </Descriptions>
             </Card>
 
-            {/* Calificación si RESUELTO (por nombre o id 4) */}
-            {(ticket.estado?.nombre?.toUpperCase() === "RESUELTO" ||
-              ticket.estado_id === 4) && (
-              <CardCalificacionInline
-                ticket={ticket}
-                onCrear={crearCalificacion}
-              />
-            )}
+            {/* Calificación si RESUELTO */}
+            {ticket &&
+              (ticket.estado_id === 4 ||
+                toEstadoKey(ticket.estado?.codigo) === "RESUELTO" ||
+                toEstadoKey(ticket.estado?.nombre) === "RESUELTO") && (
+                <CardCalificacionInline
+                  ticket={ticket}
+                  onCrear={crearCalificacion}
+                />
+              )}
 
-            {/* Chat con reglas para estudiante */}
+            {/* Chat */}
             <CardChatEstudiante ticket={ticket} onSend={handleSend} />
           </>
         )}

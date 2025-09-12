@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   Button,
   Card,
@@ -36,8 +36,6 @@ interface Props {
   loadingMensaje: boolean;
   setNuevoMensaje: React.Dispatch<React.SetStateAction<string>>;
   handleEnviarMensaje: (opts?: { archivos?: UploadFile[] }) => void;
-
-  /** Persistir bloqueo en backend (opcional) */
   onToggleBloqueo?: (blocked: boolean) => void;
 }
 
@@ -52,9 +50,9 @@ export default function CardMensajeSoporte({
   const mensajes = useMemo(() => ticket?.mensajes ?? [], [ticket?.mensajes]);
   const [fileList, setFileList] = useState<UploadFile[]>([]);
 
-  // ====== Estado/bloqueo ======
+  // ====== Estado general del ticket ======
   const estadoNombre = (ticket?.estado?.nombre || "").toLowerCase();
-  const estadoCodigo = (ticket?.estado?.nombre || "").toUpperCase();
+  const estadoCodigo = (ticket?.estado?.codigo || "").toUpperCase();
   const esAbierto =
     estadoNombre.includes("abierto") || estadoCodigo === "ABIERTO";
   const enProceso =
@@ -67,15 +65,12 @@ export default function CardMensajeSoporte({
     estadoCodigo === "FINALIZADO" ||
     estadoCodigo === "CERRADO";
 
-  const [bloquearUsuario, setBloquearUsuario] = useState<boolean>(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    Boolean((ticket as any)?.chatBloqueado ?? false)
-  );
+  const [bloquearUsuario, setBloquearUsuario] = useState<boolean>(false);
 
   const baseEstadoDisabled =
     !ticket || esAbierto || esCancelado || esFinalizado ? true : !enProceso;
 
-  // Soporte NUNCA está limitado por la regla de 2; solo por estado
+  // Soporte no está limitado por la regla de 2; solo por estado
   const inputsDisabled = baseEstadoDisabled;
 
   const disabledReason = (() => {
@@ -90,49 +85,69 @@ export default function CardMensajeSoporte({
     return null;
   })();
 
-  // ====== Regla de 2 mensajes (solo para visualización en soporte) ======
-  const esMensajeDeSoporte = (m: HD_MensajeTicket) => {
-    const rol = m?.emisor?.rol?.nombre?.toLowerCase?.() ?? "";
-    return rol.includes("soporte");
-  };
+  // ====== ¿Mensaje del EQUIPO o del SOLICITANTE? ======
+  // “Solicitante” = el creador del ticket, sin importar su rol (puede ser administrativo).
+  // “Equipo/Soporte” = cualquier emisor distinto del creador; se prioriza el asignado.
+  const esMensajeDelEquipo = useCallback(
+    (m: HD_MensajeTicket) => {
+      if (!ticket) return false;
+      if (m.emisor_id === ticket.creado_id) return false; // solicitante
+      if (ticket.asignado_id && m.emisor_id === ticket.asignado_id) return true;
+      // Heurística adicional por rol (opcional)
+      const rol = m?.emisor?.rol?.nombre?.toLowerCase?.() ?? "";
+      const tokens = [
+        "soporte",
+        "administrativo",
+        "ti",
+        "mesa",
+        "operador",
+        "analista",
+        "especialista",
+      ];
+      if (tokens.some((t) => rol.includes(t))) return true;
+      // Fallback: cualquier NO-creador lo tratamos como equipo
+      return true;
+    },
+    [ticket]
+  );
 
+  // Orden cronológico
   const mensajesOrdenados = useMemo(() => {
     const arr = [...mensajes];
     return arr.sort(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (a: any, b: any) =>
+      (a, b) =>
         new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
     );
   }, [mensajes]);
 
-  const lastSupportIdx = useMemo(() => {
+  // Último mensaje del equipo
+  const lastEquipoIdx = useMemo(() => {
     for (let i = mensajesOrdenados.length - 1; i >= 0; i--) {
-      if (esMensajeDeSoporte(mensajesOrdenados[i])) return i;
+      if (esMensajeDelEquipo(mensajesOrdenados[i])) return i;
     }
     return -1;
-  }, [mensajesOrdenados]);
+  }, [mensajesOrdenados, esMensajeDelEquipo]);
 
-  const userReplyCountSinceSupport = useMemo(() => {
-    if (lastSupportIdx === -1) return 0;
+  // Respuestas del solicitante DESPUÉS del último mensaje del equipo
+  const repliesSolicitanteDesdeUltimoEquipo = useMemo(() => {
+    if (lastEquipoIdx === -1) return 0;
     let c = 0;
-    for (let i = lastSupportIdx + 1; i < mensajesOrdenados.length; i++) {
-      if (!esMensajeDeSoporte(mensajesOrdenados[i])) c++;
+    for (let i = lastEquipoIdx + 1; i < mensajesOrdenados.length; i++) {
+      const m = mensajesOrdenados[i];
+      if (!esMensajeDelEquipo(m)) c++;
     }
     return c;
-  }, [lastSupportIdx, mensajesOrdenados]);
+  }, [lastEquipoIdx, mensajesOrdenados, esMensajeDelEquipo]);
 
-  const LIMITE_REPLIES = 2;
+  const LIMITE_REPLIES = 3;
   const tagColor =
-    lastSupportIdx === -1
+    lastEquipoIdx === -1
       ? "default"
-      : userReplyCountSinceSupport >= LIMITE_REPLIES
+      : repliesSolicitanteDesdeUltimoEquipo >= LIMITE_REPLIES
       ? "red"
       : "blue";
 
   // ====== Enviar ======
-  // const puedeEnviar =
-  //   !inputsDisabled && (nuevoMensaje.trim().length > 0 || fileList.length > 0);
-
   const onEnviar = async () => {
     await handleEnviarMensaje({ archivos: fileList });
     setNuevoMensaje("");
@@ -145,15 +160,15 @@ export default function CardMensajeSoporte({
         <div className="flex items-center gap-2">
           <span>📨 Conversación (Soporte)</span>
           <Tag color={tagColor}>
-            {lastSupportIdx === -1
+            {lastEquipoIdx === -1
               ? "Aún no has enviado el primer mensaje"
-              : `Usuario: ${userReplyCountSinceSupport}/${LIMITE_REPLIES} desde tu último mensaje`}
+              : `Solicitante: ${repliesSolicitanteDesdeUltimoEquipo}/${LIMITE_REPLIES} desde tu último mensaje`}
           </Tag>
         </div>
       }
       extra={
         <Space>
-          <Tooltip title="Si está marcado, el usuario no podrá escribir.">
+          <Tooltip title="Si está marcado, el solicitante no podrá escribir.">
             <Checkbox
               checked={bloquearUsuario}
               onChange={(e) => {
@@ -177,53 +192,54 @@ export default function CardMensajeSoporte({
         {mensajesOrdenados.length === 0 ? (
           <Empty description="Sin mensajes en este ticket" />
         ) : (
-          mensajesOrdenados.map((m: HD_MensajeTicket) => (
-            <div key={m.id} className="flex gap-3 items-start">
-              <Avatar
-                size="large"
-                icon={
-                  esMensajeDeSoporte(m) ? <TeamOutlined /> : <UserOutlined />
-                }
-                className={
-                  esMensajeDeSoporte(m)
-                    ? "bg-blue-100 text-blue-600 me-3"
-                    : "bg-gray-100 text-gray-600 me-3"
-                }
-              />
-              <div className="flex-1" style={{ paddingLeft: 10 }}>
-                <div className="flex items-center justify-between">
-                  <Typography.Text strong>
-                    {m?.emisor?.nombre ?? "—"}
-                  </Typography.Text>
-                  <Typography.Text type="secondary" className="text-xs">
-                    {dayjs(m.createdAt).format("DD/MM/YYYY HH:mm")}
-                  </Typography.Text>
-                </div>
-                <div className="mt-1 rounded-lg border border-gray-100 bg-white p-3 shadow-sm">
-                  {m.contenido && (
-                    <Typography.Paragraph
-                      style={{ margin: 0, whiteSpace: "pre-wrap" }}
-                    >
-                      {m.contenido}
-                    </Typography.Paragraph>
-                  )}
-                  {m.url && (
-                    <div className="mt-2">
-                      <Button
-                        size="small"
-                        type="link"
-                        icon={<DownloadOutlined />}
-                        href={m.url}
-                        target="_blank"
+          mensajesOrdenados.map((m: HD_MensajeTicket) => {
+            const delEquipo = esMensajeDelEquipo(m);
+            return (
+              <div key={m.id} className="flex gap-3 items-start">
+                <Avatar
+                  size="large"
+                  icon={delEquipo ? <TeamOutlined /> : <UserOutlined />}
+                  className={
+                    delEquipo
+                      ? "bg-blue-100 text-blue-600 me-3"
+                      : "bg-gray-100 text-gray-600 me-3"
+                  }
+                />
+                <div className="flex-1" style={{ paddingLeft: 10 }}>
+                  <div className="flex items-center justify-between">
+                    <Typography.Text strong>
+                      {m?.emisor?.nombre ?? "—"}
+                    </Typography.Text>
+                    <Typography.Text type="secondary" className="text-xs">
+                      {dayjs(m.createdAt).format("DD/MM/YYYY HH:mm")}
+                    </Typography.Text>
+                  </div>
+                  <div className="mt-1 rounded-lg border border-gray-100 bg-white p-3 shadow-sm">
+                    {m.contenido && (
+                      <Typography.Paragraph
+                        style={{ margin: 0, whiteSpace: "pre-wrap" }}
                       >
-                        {m.nombre ?? "archivo"}
-                      </Button>
-                    </div>
-                  )}
+                        {m.contenido}
+                      </Typography.Paragraph>
+                    )}
+                    {m.url && (
+                      <div className="mt-2">
+                        <Button
+                          size="small"
+                          type="link"
+                          icon={<DownloadOutlined />}
+                          href={m.url}
+                          target="_blank"
+                        >
+                          {m.nombre ?? "archivo"}
+                        </Button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
 

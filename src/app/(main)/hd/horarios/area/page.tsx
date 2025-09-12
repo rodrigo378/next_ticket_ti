@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import { theme } from "antd";
 import { HD_Area } from "@/interface/hd/hd_area";
 import {
   getAreas,
@@ -8,21 +9,26 @@ import {
   updateHorario,
   createHorario,
 } from "@/features/hd/service/area";
-// import { createHorario, updateHorario } from "@/services/hd/horario"; // <-- tus funciones
 
-/* =============== UI mínimas (Tailwind) =============== */
+/* =============== UI mínimas (con tokens de AntD) =============== */
 function Card({
   children,
   className = "",
 }: React.PropsWithChildren<{ className?: string }>) {
+  const { token } = theme.useToken();
   return (
     <div
-      className={`rounded-2xl border border-slate-200 bg-white shadow-sm ${className}`}
+      className={`rounded-2xl shadow-sm ${className}`}
+      style={{
+        background: token.colorBgContainer,
+        border: `1px solid ${token.colorBorderSecondary}`,
+      }}
     >
       {children}
     </div>
   );
 }
+
 function CardHeader({
   title,
   description,
@@ -32,51 +38,102 @@ function CardHeader({
   description?: string;
   right?: React.ReactNode;
 }) {
+  const { token } = theme.useToken();
   return (
-    <div className="flex items-start justify-between gap-4 border-b border-slate-100 p-5">
+    <div
+      className="flex items-start justify-between gap-4 p-5"
+      style={{ borderBottom: `1px solid ${token.colorSplit}` }}
+    >
       <div>
-        <h2 className="text-lg font-semibold tracking-tight text-slate-800">
+        <h2
+          className="text-lg font-semibold tracking-tight"
+          style={{ color: token.colorText }}
+        >
           {title}
         </h2>
         {description && (
-          <p className="mt-1 text-sm text-slate-500">{description}</p>
+          <p
+            className="mt-1 text-sm"
+            style={{ color: token.colorTextSecondary }}
+          >
+            {description}
+          </p>
         )}
       </div>
       {right}
     </div>
   );
 }
+
 function Label({ children }: { children: React.ReactNode }) {
+  const { token } = theme.useToken();
   return (
-    <label className="mb-1 block text-sm font-medium text-slate-700">
+    <label
+      className="mb-1 block text-sm font-medium"
+      style={{ color: token.colorText }}
+    >
       {children}
     </label>
   );
 }
+
 function Input(props: React.InputHTMLAttributes<HTMLInputElement>) {
+  const { token } = theme.useToken();
+  const { className, style, ...rest } = props;
   return (
     <input
-      {...props}
-      className={`h-10 w-full rounded-lg border border-slate-300 px-3 text-sm outline-none transition
-        focus:border-sky-500 focus:ring-2 focus:ring-sky-100 ${
-          props.className || ""
-        }`}
+      {...rest}
+      className={`h-10 w-full rounded-lg px-3 text-sm outline-none transition hover:opacity-95 ${
+        className || ""
+      }`}
+      style={{
+        background: token.colorBgContainer,
+        color: token.colorText,
+        border: `1px solid ${token.colorBorder}`,
+        boxShadow: "none",
+        ...style,
+      }}
+      onFocus={(e) => {
+        e.currentTarget.style.borderColor = token.colorPrimary;
+        e.currentTarget.style.boxShadow = `0 0 0 2px ${token.colorPrimaryBorder}`;
+      }}
+      onBlur={(e) => {
+        e.currentTarget.style.borderColor = token.colorBorder;
+        e.currentTarget.style.boxShadow = "none";
+      }}
     />
   );
 }
+
 function Select({
   options,
+  className,
+  style,
   ...rest
 }: {
   options: { value: string; label: string }[];
 } & React.SelectHTMLAttributes<HTMLSelectElement>) {
+  const { token } = theme.useToken();
   return (
     <select
       {...rest}
-      className={`h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm outline-none transition
-        focus:border-sky-500 focus:ring-2 focus:ring-sky-100 ${
-          rest.className || ""
-        }`}
+      className={`h-10 w-full rounded-lg px-3 text-sm outline-none transition hover:opacity-95 ${
+        className || ""
+      }`}
+      style={{
+        background: token.colorBgContainer,
+        color: token.colorText,
+        border: `1px solid ${token.colorBorder}`,
+        ...style,
+      }}
+      onFocus={(e) => {
+        e.currentTarget.style.borderColor = token.colorPrimary;
+        e.currentTarget.style.boxShadow = `0 0 0 2px ${token.colorPrimaryBorder}`;
+      }}
+      onBlur={(e) => {
+        e.currentTarget.style.borderColor = token.colorBorder;
+        e.currentTarget.style.boxShadow = "none";
+      }}
     >
       {options.map((o) => (
         <option key={o.value} value={o.value}>
@@ -86,29 +143,47 @@ function Select({
     </select>
   );
 }
+
 function Button({
   children,
   variant = "primary",
   className = "",
+  style,
   ...rest
 }: React.ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: "primary" | "ghost" | "outline";
 }) {
+  const { token } = theme.useToken();
   const base =
-    "inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition";
-  const variants: Record<string, string> = {
-    primary:
-      "bg-sky-600 text-white hover:bg-sky-700 focus:ring-2 focus:ring-sky-300",
-    ghost: "bg-transparent text-slate-700 hover:bg-slate-100",
-    outline:
-      "border border-slate-300 bg-white text-slate-700 hover:bg-slate-50",
+    "inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition active:scale-[.98]";
+  const stylesByVariant: Record<string, React.CSSProperties> = {
+    primary: {
+      background: token.colorPrimary,
+      color: token.colorTextLightSolid,
+      border: `1px solid ${token.colorPrimaryBorder}`,
+    },
+    ghost: {
+      background: "transparent",
+      color: token.colorText,
+      border: `1px solid transparent`,
+    },
+    outline: {
+      background: token.colorBgContainer,
+      color: token.colorText,
+      border: `1px solid ${token.colorBorder}`,
+    },
   };
   return (
-    <button {...rest} className={`${base} ${variants[variant]} ${className}`}>
+    <button
+      {...rest}
+      className={`${base} hover:opacity-90 ${className}`}
+      style={{ ...stylesByVariant[variant], ...style }}
+    >
       {children}
     </button>
   );
 }
+
 function Toggle({
   checked,
   onChange,
@@ -116,19 +191,27 @@ function Toggle({
   checked: boolean;
   onChange: (v: boolean) => void;
 }) {
+  const { token } = theme.useToken();
   return (
     <button
       type="button"
       onClick={() => onChange(!checked)}
-      className={`relative h-6 w-11 rounded-full transition ${
-        checked ? "bg-sky-600" : "bg-slate-300"
-      }`}
+      className="relative h-6 w-11 rounded-full transition"
+      style={{
+        background: checked ? token.colorPrimary : token.colorFillSecondary,
+        border: `1px solid ${
+          checked ? token.colorPrimaryBorder : token.colorBorderSecondary
+        }`,
+      }}
       aria-pressed={checked}
     >
       <span
-        className={`absolute top-[2px] h-5 w-5 rounded-full bg-white transition ${
-          checked ? "left-[22px]" : "left-[2px]"
-        }`}
+        className="absolute top-[2px] h-5 w-5 rounded-full transition"
+        style={{
+          left: checked ? 22 : 2,
+          background: token.colorBgContainer,
+          boxShadow: token.boxShadowTertiary,
+        }}
       />
     </button>
   );
@@ -179,17 +262,16 @@ const keyToDayApi: Record<
   vie: "VIERNES",
   sab: "SABADO",
 };
-/** "HH:mm" → "HH:mm:00" */
 const toHHMMSS = (t: string) => (t?.length === 5 ? `${t}:00` : t || "");
-/** Normaliza "HH:mm[:ss]" a "HH:mm" para UI */
 const toHHMM = (t: string) => (t?.length >= 5 ? t.slice(0, 5) : t || "");
 
 /* =============== Page =============== */
 export default function Page() {
-  const [areas, setAreas] = useState<HD_Area[]>([]);
-  const [areaId, setAreaId] = useState<number | "">(""); // vacío al inicio
+  const { token } = theme.useToken();
 
-  // Semana UI + foto original para hacer diff al guardar
+  const [areas, setAreas] = useState<HD_Area[]>([]);
+  const [areaId, setAreaId] = useState<number | "">("");
+
   const [week, setWeek] = useState<WeekSchedule>({
     lun: emptyDay(),
     mar: emptyDay(),
@@ -258,31 +340,24 @@ export default function Page() {
         });
       }
 
-      // si algún día quedó sin rangos, mostrar uno por defecto desactivado
       (Object.keys(next) as DayKey[]).forEach((k) => {
         if (!next[k].enabled) next[k] = emptyDay();
       });
 
       setWeek(next);
-      setOriginalWeek(cloneWeek(next)); // snapshot para diff
+      setOriginalWeek(cloneWeek(next));
     } catch (e) {
       console.error("getArea error:", e);
-      setWeek({
+      const empty = {
         lun: emptyDay(),
         mar: emptyDay(),
         mie: emptyDay(),
         jue: emptyDay(),
         vie: emptyDay(),
         sab: emptyDay(),
-      });
-      setOriginalWeek({
-        lun: emptyDay(),
-        mar: emptyDay(),
-        mie: emptyDay(),
-        jue: emptyDay(),
-        vie: emptyDay(),
-        sab: emptyDay(),
-      });
+      };
+      setWeek(empty);
+      setOriginalWeek(empty);
     }
   };
 
@@ -343,7 +418,6 @@ export default function Page() {
 
     setStatus({ type: "saving", msg: "Guardando..." });
     try {
-      // 1) Mapear originales por id para encontrar borrados/cambios
       const originalById = new Map<
         number,
         { day: DayKey; start: string; end: string }
@@ -354,76 +428,47 @@ export default function Page() {
         });
       });
 
-      // 2) Recorrer UI actual
       const seenIds = new Set<number>();
       for (const day of Object.keys(week) as DayKey[]) {
         const uiDay = week[day];
 
         if (!uiDay.enabled) {
-          // OPCIONAL: log/desactivar todos los originales de ese día
           originalWeek[day].ranges.forEach(async (r) => {
-            if (r.id) {
-              console.log("DISABLE horario (día OFF)", {
-                id: r.id,
-                area_id: Number(areaId),
-                dia: keyToDayApi[day],
-              });
-              await updateHorario(r.id, { activo: false });
-            }
+            if (r.id) await updateHorario(r.id, { activo: false });
           });
           continue;
         }
 
         for (const r of uiDay.ranges) {
           if (r.id) {
-            // posible UPDATE
             seenIds.add(r.id);
             const orig = originalById.get(r.id);
             if (!orig) continue;
-
             if (orig.start !== r.start || orig.end !== r.end) {
-              const payload = {
+              await updateHorario(r.id, {
                 h_inicio: toHHMMSS(r.start),
                 h_fin: toHHMMSS(r.end),
-              };
-              console.log("UPDATE horario", {
-                id: r.id,
-                area_id: Number(areaId),
-                dia: keyToDayApi[day],
-                ...payload,
               });
-              await updateHorario(r.id, payload);
             }
           } else {
-            // CREATE
-            const payload = {
+            await createHorario({
               area_id: Number(areaId),
               dia: keyToDayApi[day],
               h_inicio: toHHMMSS(r.start),
               h_fin: toHHMMSS(r.end),
-            };
-            console.log("CREATE horario", payload);
-            await createHorario(payload);
+            });
           }
         }
       }
 
-      // 3) Borrados: originales que no aparecieron en la UI actual
       for (const [id, { day }] of originalById.entries()) {
         if (seenIds.has(id)) continue;
         if (week[day].enabled) {
-          // OPCIONAL: log al desactivar por eliminación en UI
-          console.log("DISABLE horario (eliminado en UI)", {
-            id,
-            area_id: Number(areaId),
-            dia: keyToDayApi[day],
-          });
           await updateHorario(id, { activo: false });
         }
       }
 
       setStatus({ type: "ok", msg: "Cambios guardados correctamente." });
-      // refrescar originales con el estado actual
       setOriginalWeek(cloneWeek(week));
     } catch (e) {
       console.error("error => ", e);
@@ -434,15 +479,42 @@ export default function Page() {
     }
   };
 
+  const statusStyles: Record<"saving" | "ok" | "error", React.CSSProperties> = {
+    saving: {
+      color: token.colorInfoText,
+      background: token.colorInfoBg,
+      border: `1px solid ${token.colorInfoBorder}`,
+    },
+    ok: {
+      color: token.colorSuccessText,
+      background: token.colorSuccessBg,
+      border: `1px solid ${token.colorSuccessBorder}`,
+    },
+    error: {
+      color: token.colorErrorText,
+      background: token.colorErrorBg,
+      border: `1px solid ${token.colorErrorBorder}`,
+    },
+  };
+
   return (
-    <div className="mx-auto max-w-7xl px-5 py-8">
+    <div
+      className="mx-auto max-w-7xl px-5 py-8"
+      style={{ color: token.colorText }}
+    >
       {/* Header */}
       <div className="mb-3 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+          <h1
+            className="text-2xl font-bold tracking-tight"
+            style={{ color: token.colorText }}
+          >
             Horario de atención por área
           </h1>
-          <p className="mt-1 text-sm text-slate-600">
+          <p
+            className="mt-1 text-sm"
+            style={{ color: token.colorTextSecondary }}
+          >
             Define rangos por día (ej. emisión de tickets/ventanilla) para el
             área seleccionada.
           </p>
@@ -461,13 +533,10 @@ export default function Page() {
       {/* Banner de estado */}
       {status.type !== "idle" && (
         <div
-          className={`mb-4 rounded-lg border px-3 py-2 text-sm ${
-            status.type === "ok"
-              ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-              : status.type === "error"
-              ? "border-rose-200 bg-rose-50 text-rose-700"
-              : "border-sky-200 bg-sky-50 text-sky-700"
-          }`}
+          className="mb-4 rounded-lg px-3 py-2 text-sm"
+          style={
+            statusStyles[status.type === "saving" ? "saving" : status.type]
+          }
         >
           {status.msg}
         </div>
@@ -507,13 +576,18 @@ export default function Page() {
             <div className="p-5 space-y-2">
               {DIAS.map((d) => (
                 <div key={d.key} className="text-sm">
-                  <span className="inline-block w-28 font-medium text-slate-700">
+                  <span
+                    className="inline-block w-28 font-medium"
+                    style={{ color: token.colorText }}
+                  >
                     {d.label}
                   </span>
                   {!week[d.key].enabled ? (
-                    <span className="text-slate-400">Cerrado</span>
+                    <span style={{ color: token.colorTextQuaternary }}>
+                      Cerrado
+                    </span>
                   ) : (
-                    <span className="text-slate-800">
+                    <span style={{ color: token.colorText }}>
                       {week[d.key].ranges.map(prettyRange).join("  •  ")}
                     </span>
                   )}
@@ -540,7 +614,7 @@ export default function Page() {
                 </div>
               }
             />
-            <div className="divide-y divide-slate-100">
+            <div className="divide-y" style={{ borderColor: token.colorSplit }}>
               {DIAS.map((d) => (
                 <div
                   key={d.key}
@@ -551,7 +625,10 @@ export default function Page() {
                       checked={week[d.key].enabled}
                       onChange={(v) => setDayEnabled(d.key, v)}
                     />
-                    <div className="min-w-28 text-sm font-medium text-slate-800">
+                    <div
+                      className="min-w-28 text-sm font-medium"
+                      style={{ color: token.colorText }}
+                    >
                       {d.label}
                     </div>
                   </div>
@@ -560,7 +637,11 @@ export default function Page() {
                     {week[d.key].ranges.map((r, idx) => (
                       <div
                         key={idx}
-                        className="flex items-center gap-2 rounded-lg bg-white px-2 py-1 shadow-sm"
+                        className="flex items-center gap-2 rounded-lg px-2 py-1 shadow-sm"
+                        style={{
+                          background: token.colorBgElevated,
+                          border: `1px solid ${token.colorBorderSecondary}`,
+                        }}
                       >
                         <Input
                           type="time"
@@ -571,7 +652,9 @@ export default function Page() {
                           className="w-24 sm:w-28"
                           disabled={!week[d.key].enabled}
                         />
-                        <span className="text-slate-400">—</span>
+                        <span style={{ color: token.colorTextQuaternary }}>
+                          —
+                        </span>
                         <Input
                           type="time"
                           value={r.end}
@@ -585,7 +668,12 @@ export default function Page() {
                           type="button"
                           onClick={() => removeRange(d.key, idx)}
                           disabled={!week[d.key].enabled}
-                          className="ml-1 inline-flex h-7 w-7 items-center justify-center rounded-md text-slate-500 hover:bg-slate-100 hover:text-rose-600"
+                          className="ml-1 inline-flex h-7 w-7 items-center justify-center rounded-md"
+                          style={{
+                            color: token.colorTextSecondary,
+                            border: `1px solid ${token.colorBorder}`,
+                            background: token.colorBgContainer,
+                          }}
                           aria-label="Eliminar rango"
                           title="Eliminar"
                         >

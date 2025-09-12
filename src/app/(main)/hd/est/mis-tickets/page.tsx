@@ -35,10 +35,11 @@ import { HD_Ticket } from "@/interface/hd/hd_ticket";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
+
 const fmt = (iso: string) => dayjs(iso).format("DD/MM/YYYY HH:mm");
 
 // IDs de estado
-export const ESTADO_ID = {
+const ESTADO_ID = {
   ABIERTO: 1,
   ASIGNADO: 2,
   EN_PROCESO: 3,
@@ -94,7 +95,6 @@ export default function TicketListStudentView() {
       const response = await getTicketsMe({ estados_id });
       setRaw(response as HD_Ticket[]);
 
-      // contar pendientes cuando se traen resueltos
       if (estados_id.includes(String(ESTADO_ID.RESUELTO))) {
         const count = (response as HD_Ticket[]).filter(
           (t) => !t?.calificacionTicket?.calificacion
@@ -103,17 +103,16 @@ export default function TicketListStudentView() {
       }
     } catch (err) {
       console.log("err => ", err);
+
       message.error("No se pudieron obtener tus tickets.");
     } finally {
       setLoading(false);
     }
   };
 
-  // Precarga: activos (1) y conteo de resueltos (4) para el badge del tab
+  // Precarga: activos (1) + conteo de resueltos (4)
   useEffect(() => {
-    // datos de la tab por defecto
     fetchTickets([String(ESTADO_ID.ABIERTO)]);
-    // solo calcular pendientes sin pisar la tabla actual
     (async () => {
       try {
         const resp = await getTicketsMe({
@@ -128,14 +127,14 @@ export default function TicketListStudentView() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Llamar según tab seleccionada
+  // Cambiar dataset por tab
   useEffect(() => {
     if (tabKey === "activos") {
       setActivePage(1);
-      fetchTickets([String(ESTADO_ID.ABIERTO)]); // 1
+      fetchTickets([String(ESTADO_ID.ABIERTO)]);
     } else {
       setFinalPage(1);
-      fetchTickets([String(ESTADO_ID.RESUELTO)]); // 4
+      fetchTickets([String(ESTADO_ID.RESUELTO)]);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tabKey]);
@@ -164,7 +163,7 @@ export default function TicketListStudentView() {
     });
   }, [raw]);
 
-  // Búsqueda local + orden
+  // Filtros locales (texto + estado)
   const rowsFiltered = useMemo(() => {
     let data = rowsAll;
     if (q.trim()) {
@@ -176,12 +175,15 @@ export default function TicketListStudentView() {
           r.area_nombre.toLowerCase().includes(qq)
       );
     }
+    if (estado) {
+      data = data.filter((r) => r.estadoCodigo === estado);
+    }
     return data
       .slice()
       .sort(
         (a, b) => dayjs(b.creado_en).valueOf() - dayjs(a.creado_en).valueOf()
       );
-  }, [rowsAll, q]);
+  }, [rowsAll, q, estado]);
 
   // Paginación por tab
   const dataActivos = useMemo(() => {
@@ -203,7 +205,7 @@ export default function TicketListStudentView() {
     router.push(`/hd/est/${row.id}`);
   };
 
-  // Columnas (Área con ancho fijo + ellipsis dentro del Tag; Descripción con 2 líneas)
+  // Columnas
   const baseColumns: ColumnsType<RowUI> = [
     {
       title: <span className="whitespace-nowrap">Código</span>,
@@ -239,20 +241,6 @@ export default function TicketListStudentView() {
         </Tooltip>
       ),
     },
-    // {
-    //   title: <span className="whitespace-nowrap">Descripción</span>,
-    //   dataIndex: "descripcion",
-    //   key: "descripcion",
-    //   // width: 420, // ancho generoso para evitar colapso
-    //   ellipsis: true,
-    //   render: (v: string) => (
-    //     <Tooltip title={v}>
-    //       <Paragraph className="!mb-0" ellipsis={{ rows: 2 }}>
-    //         {v}
-    //       </Paragraph>
-    //     </Tooltip>
-    //   ),
-    // },
     {
       title: <span className="whitespace-nowrap">Estado</span>,
       key: "estado",
@@ -275,7 +263,7 @@ export default function TicketListStudentView() {
       key: "creado_en",
       width: 180,
       render: (iso: string) => (
-        <span className="text-slate-600">
+        <span style={{ color: token.colorTextSecondary }}>
           <FieldTimeOutlined className="mr-1" />
           {fmt(iso)}
         </span>
@@ -286,7 +274,6 @@ export default function TicketListStudentView() {
     },
   ];
 
-  // Columna de calificación (solo Finalizados)
   const calificacionCol = {
     title: <span className="whitespace-nowrap">Calificación</span>,
     key: "calificacion",
@@ -331,29 +318,45 @@ export default function TicketListStudentView() {
   );
 
   return (
-    <div className="min-h-[100dvh] bg-gradient-to-b from-sky-50 via-white to-white">
+    <div
+      className="min-h-[100dvh]"
+      style={{
+        background: `linear-gradient(to bottom, ${token.colorFillTertiary}, ${token.colorBgLayout})`,
+      }}
+    >
       {/* HERO */}
       <div className="mx-auto max-w-7xl px-4 pt-8">
         <div
           className="rounded-2xl p-[1px] shadow-lg"
-          style={{
-            background:
-              "linear-gradient(135deg, rgba(56,189,248,.9), rgba(99,102,241,.9) 60%, rgba(139,92,246,.9))",
-          }}
+          style={
+            {
+              // background: `linear-gradient(135deg, ${token.colorPrimary}CC, ${token.colorPrimaryHover}CC 60%, ${token.colorPrimaryActive}CC)`,
+            }
+          }
         >
-          <div className="rounded-2xl bg-white/85 backdrop-blur-md px-6 py-6 md:px-10">
+          <div
+            className="rounded-2xl backdrop-blur-md px-6 py-6 md:px-10"
+            style={{
+              background: token.colorBgContainer,
+              border: `1px solid ${token.colorBorderSecondary}`,
+            }}
+          >
             <div className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
               <div>
-                <Title level={3} className="m-0 !text-slate-900">
+                <Title
+                  level={3}
+                  className="m-0"
+                  style={{ color: token.colorText }}
+                >
                   📁 Mis Tickets
                 </Title>
-                <Text type="secondary">
+                <Text style={{ color: token.colorTextSecondary }}>
                   Consulta el estado y el historial de tus tickets registrados.
                 </Text>
               </div>
               <div className="flex items-center gap-2">
                 <Tooltip title="Tus datos están protegidos">
-                  <SafetyCertificateTwoTone twoToneColor="#22c55e" />
+                  <SafetyCertificateTwoTone twoToneColor={token.colorSuccess} />
                 </Tooltip>
                 <Tag color="blue" className="text-sm">
                   Mesa de Ayuda
@@ -378,8 +381,11 @@ export default function TicketListStudentView() {
       {/* CONTENIDO */}
       <div className="mx-auto max-w-7xl px-4 py-8">
         <Card
-          className="rounded-2xl border-slate-200 shadow-sm"
-          style={{ borderColor: token.colorBorderSecondary }}
+          className="rounded-2xl shadow-sm"
+          style={{
+            background: token.colorBgContainer,
+            // border: `1px solid ${token.colorBorderSecondary}`,
+          }}
         >
           {/* Filtros */}
           <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -409,6 +415,8 @@ export default function TicketListStudentView() {
                 value={estado}
                 onChange={(v) => {
                   setEstado(v as string | undefined);
+                  setActivePage(1);
+                  setFinalPage(1);
                 }}
                 className="w-full md:w-64"
                 suffixIcon={<FilterOutlined />}
@@ -491,7 +499,7 @@ export default function TicketListStudentView() {
                     tableLayout="fixed"
                     className="tabla-finalizados"
                     rowClassName={(row) =>
-                      row.calificacion == null ? "bg-yellow-50" : ""
+                      row.calificacion == null ? "row-pendiente" : ""
                     }
                   />
                 ),
@@ -503,7 +511,7 @@ export default function TicketListStudentView() {
         </Card>
       </div>
 
-      {/* Estilos sutiles para headers / zebra */}
+      {/* Estilos con tokens: headers, zebra y fila pendiente */}
       <style jsx global>{`
         .tabla-activos .ant-table-thead > tr > th,
         .tabla-finalizados .ant-table-thead > tr > th {
@@ -517,6 +525,9 @@ export default function TicketListStudentView() {
         .tabla-activos .ant-table-tbody > tr:hover > td,
         .tabla-finalizados .ant-table-tbody > tr:hover > td {
           background: ${token.controlItemBgHover} !important;
+        }
+        .tabla-finalizados .row-pendiente > td {
+          background: ${token.colorWarningBg} !important;
         }
       `}</style>
     </div>

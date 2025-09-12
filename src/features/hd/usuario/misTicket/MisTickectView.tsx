@@ -10,7 +10,7 @@ export default function MisTicketView() {
 
   return (
     <>
-      <div className="mx-auto p-6 bg-white rounded-xl shadow-sm">
+      <div className="mx-auto p-6 rounded-xl shadow-sm">
         <Flex justify="space-between" align="center">
           <div className=" mb-4">
             <Title level={3} style={{ margin: 0 }}>

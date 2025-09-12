@@ -21,7 +21,7 @@ export const getTickets = async (filtros?: {
   return response.data;
 };
 
-export const getTicketsMe = async (filtros: {
+export const getTicketsMe = async (filtros?: {
   estados_id?: string[];
 }): Promise<HD_Ticket[]> => {
   const response = await api.get("/hd/ticket/me", {

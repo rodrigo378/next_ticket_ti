@@ -9,11 +9,11 @@ export default function Page({
   searchParams?: { token?: string; returnTo?: string };
 }) {
   const token = searchParams?.token;
-  const returnTo = searchParams?.returnTo || "/";
+  // const returnTo = searchParams?.returnTo || "/";
 
   // Si viene con ?token=..., NO renderizamos la UI de login (evita FOUC)
   if (token) {
-    return <TokenSaver token={token} returnTo={returnTo} />;
+    return <TokenSaver />;
   }
 
   // Sin token: muestra tu login tal cual
