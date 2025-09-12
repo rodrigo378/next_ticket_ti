@@ -8,8 +8,11 @@ import {
   Space,
   Card,
   Avatar,
-  UploadFile,
+  Button,
+  theme,
+  message,
 } from "antd";
+import type { UploadFile } from "antd/es/upload/interface";
 import CardDetalle from "../../usuario/detalleTicket/components/CardDetalle";
 import { CardOpcionesRapidas } from "./components/card";
 import CardArchivos from "./components/CardArchivos";
@@ -18,15 +21,69 @@ import CardSla from "./components/CardSla";
 import useDetalleTicket from "./hooks/useDetalleTicket";
 import CardTicketOrigen from "./components/CardDerivado";
 import CardMensaje from "./components/CardMensaje";
-import { UserOutlined, MailOutlined, PhoneOutlined } from "@ant-design/icons";
+import {
+  UserOutlined,
+  MailOutlined,
+  PhoneOutlined,
+  ArrowLeftOutlined,
+  IdcardOutlined,
+  NumberOutlined,
+  CopyOutlined,
+} from "@ant-design/icons";
 import { useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { HD_Ticket } from "@/interface/hd/hd_ticket";
 
 const { Text, Title } = Typography;
 
-/* ========= SUBCOMPONENTES (fuera del render para no remontar) ========= */
+/* ========= Extensión de tipos (local a este archivo) ========= */
+/** Estudiante (getInfoEstudiante) */
+interface HD_InfoUsuarioEstudiante {
+  c_codalu?: string;
+  c_dni?: string;
+  c_email?: string;
+  c_email_institucional?: string;
+  c_fono?: string;
+  c_celu?: string;
+  nombreCompleto?: string;
+}
+/** Administrativo (getInfoAdmin) */
+interface HD_InfoUsuarioAdmin {
+  nombreCompleto?: string;
+  emails?: string;
+}
 
-function HeaderResumen({ ticket }: { ticket?: HD_Ticket }) {
+type HD_InfoUsuario = HD_InfoUsuarioEstudiante | HD_InfoUsuarioAdmin;
+
+type TicketWithUserInfo = HD_Ticket & {
+  infoUsuario?: HD_InfoUsuario[]; // viene como array desde el raw
+};
+
+// Type guards
+function isEstudiante(info?: HD_InfoUsuario): info is HD_InfoUsuarioEstudiante {
+  return (
+    !!info &&
+    ("c_email_institucional" in info || "c_codalu" in info || "c_dni" in info)
+  );
+}
+function isAdmin(info?: HD_InfoUsuario): info is HD_InfoUsuarioAdmin {
+  return !!info && "emails" in info && !("c_email_institucional" in info);
+}
+
+/* util: copiar al portapapeles con feedback */
+async function copyToClipboard(text?: string, label?: string) {
+  if (!text) return;
+  try {
+    await navigator.clipboard.writeText(text);
+    message.success(`${label ?? "Copiado"}: ${text}`);
+  } catch {
+    message.warning("No se pudo copiar al portapapeles.");
+  }
+}
+
+/* ========= SUBCOMPONENTES ========= */
+
+function HeaderResumen({ ticket }: { ticket?: TicketWithUserInfo }) {
   if (!ticket) return null;
 
   const estadoNombre = (ticket?.estado?.nombre || "").toLowerCase();
@@ -58,26 +115,116 @@ function HeaderResumen({ ticket }: { ticket?: HD_Ticket }) {
   );
 }
 
-function CardUsuarioCreador() {
-  // Data estática como pediste
+function CardUsuarioCreador({ ticket }: { ticket?: TicketWithUserInfo }) {
+  const { token } = theme.useToken();
+  const info = ticket?.infoUsuario?.[0];
+
+  // Nombre: 1) nombre/apellidos del creador 2) nombreCompleto del infoUsuario 3) fallback
+  const nombre =
+    [ticket?.creado?.nombre, ticket?.creado?.apellidos]
+      .filter(Boolean)
+      .join(" ") ||
+    (info as HD_InfoUsuarioEstudiante | HD_InfoUsuarioAdmin)?.nombreCompleto ||
+    "Usuario";
+
+  // Normalización de campos por tipo
+  const correoInstitucional = isEstudiante(info)
+    ? info.c_email_institucional
+    : isAdmin(info)
+    ? info.emails
+    : undefined;
+
+  const correoPersonal = isEstudiante(info) ? info.c_email : undefined;
+  const celular = isEstudiante(info) ? info.c_celu : undefined;
+  const fono = isEstudiante(info) ? info.c_fono : undefined;
+  const dni = isEstudiante(info) ? info.c_dni : undefined;
+  const codigo = isEstudiante(info) ? info.c_codalu : undefined;
+
   return (
     <Card
       title="👤 Usuario que creó el ticket"
       className="mb-4 rounded-xl shadow-sm"
+      style={{
+        background: token.colorBgContainer,
+        borderColor: token.colorBorderSecondary,
+        boxShadow: token.boxShadowTertiary,
+      }}
+      headStyle={{ color: token.colorTextHeading }}
     >
       <div className="flex items-start gap-3">
         <Avatar size={56} icon={<UserOutlined />} />
-        <div className="leading-6">
-          <Text strong>Juan Pérez</Text>
-          <div className="text-sm text-gray-500">Área: Académica</div>
-          <div className="text-sm">
-            <MailOutlined className="mr-1" />
-            juan.perez@uma.edu.pe
-          </div>
-          <div className="text-sm">
-            <PhoneOutlined className="mr-1" />
-            +51 999 888 777
-          </div>
+        <div className="leading-6 flex-1">
+          <Text strong style={{ color: token.colorText }}>
+            {nombre}
+          </Text>
+
+          {/* Solo Estudiante: DNI y Código con botón de copiar */}
+          {dni && (
+            <div
+              className="text-sm flex items-center gap-2"
+              style={{ color: token.colorTextSecondary }}
+            >
+              <span>
+                <IdcardOutlined className="mr-1" />
+                DNI: {dni}
+              </span>
+              <Button
+                size="small"
+                type="text"
+                icon={<CopyOutlined />}
+                aria-label="Copiar DNI"
+                onClick={() => copyToClipboard(dni, "DNI copiado")}
+                style={{ color: token.colorTextSecondary }}
+              />
+            </div>
+          )}
+
+          {codigo && (
+            <div
+              className="text-sm flex items-center gap-2"
+              style={{ color: token.colorTextSecondary }}
+            >
+              <span>
+                <NumberOutlined className="mr-1" />
+                Código: {codigo}
+              </span>
+              <Button
+                size="small"
+                type="text"
+                icon={<CopyOutlined />}
+                aria-label="Copiar código"
+                onClick={() => copyToClipboard(codigo, "Código copiado")}
+                style={{ color: token.colorTextSecondary }}
+              />
+            </div>
+          )}
+
+          {/* Correo institucional (o emails de admin) */}
+          {correoInstitucional && (
+            <div className="text-sm" style={{ color: token.colorText }}>
+              <MailOutlined className="mr-1" />
+              {correoInstitucional}
+            </div>
+          )}
+
+          {/* Correo personal (solo estudiante si existe) */}
+          {correoPersonal && (
+            <div
+              className="text-sm"
+              style={{ color: token.colorTextSecondary }}
+            >
+              <MailOutlined className="mr-1" />
+              {correoPersonal}
+            </div>
+          )}
+
+          {/* Teléfonos (solo estudiante si existen) */}
+          {(celular || fono) && (
+            <div className="text-sm" style={{ color: token.colorText }}>
+              <PhoneOutlined className="mr-1" />
+              {[celular, fono].filter(Boolean).join(" / ")}
+            </div>
+          )}
         </div>
       </div>
     </Card>
@@ -92,7 +239,7 @@ function Content({
   loadingMensaje,
   handleEnviarMensaje,
 }: {
-  ticket?: HD_Ticket;
+  ticket?: TicketWithUserInfo;
   id: string;
   onTicketUpdate: () => void;
   nuevoMensaje: string;
@@ -141,8 +288,8 @@ function Content({
       {/* Derecha (sticky) */}
       <Col span={8}>
         <div style={{ position: "sticky", top: 16 }}>
-          {/* Acciones rápidas (movido a la derecha) */}
-          <div className="">
+          {/* Acciones rápidas */}
+          <div>
             <CardOpcionesRapidas
               ticket={ticket}
               onTicketUpdate={onTicketUpdate}
@@ -156,7 +303,7 @@ function Content({
 
           {/* Usuario que creó el ticket */}
           <div className="mt-4">
-            <CardUsuarioCreador />
+            <CardUsuarioCreador ticket={ticket} />
           </div>
         </div>
       </Col>
@@ -167,27 +314,36 @@ function Content({
 /* ===================== COMPONENTE PRINCIPAL ===================== */
 
 export default function DetalleTicketView() {
+  const router = useRouter();
   const {
     id,
     ticket,
     fetchTicket,
-    // estos vienen del hook (versión con mensajes)
     nuevoMensaje,
     setNuevoMensaje,
     loadingMensaje,
     handleEnviarMensaje,
   } = useDetalleTicket();
 
-  // Evita recrear la función en cada render
+  // Cast de conveniencia al tipo extendido (no modifica tu modelo global)
+  const ticketPlus = ticket as TicketWithUserInfo | undefined;
+
   const onTicketUpdate = useCallback(() => {
     fetchTicket(id);
   }, [fetchTicket, id]);
 
   return (
     <div className="mx-auto p-6" style={{ overflowAnchor: "none" }}>
-      <HeaderResumen ticket={ticket} />
+      {/* Botón volver (arriba-izquierda) */}
+      <div className="mb-3">
+        <Button icon={<ArrowLeftOutlined />} onClick={() => router.back()}>
+          Volver
+        </Button>
+      </div>
+
+      <HeaderResumen ticket={ticketPlus} />
       <Content
-        ticket={ticket}
+        ticket={ticketPlus}
         id={id}
         onTicketUpdate={onTicketUpdate}
         nuevoMensaje={nuevoMensaje}
