@@ -237,6 +237,7 @@ export default function MainLayout({
   return (
     <Layout className="min-h-screen bg-background text-foreground">
       {/* Sidebar fijo (NO depende del tema) */}
+      {/* Sidebar fijo (NO depende del tema) */}
       <Sider
         theme="dark"
         collapsed={collapsed}
