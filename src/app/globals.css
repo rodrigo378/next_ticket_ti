@@ -31,7 +31,7 @@
   .dark {
     --background: #0b1220;
     --foreground: #e6e8ea;
-    --brand: #e91e63; /* cambia si quieres variante dark */
+    --brand: #e91e63;
     --muted: #9aa4b2;
 
     --select-item-selected-bg: color-mix(
