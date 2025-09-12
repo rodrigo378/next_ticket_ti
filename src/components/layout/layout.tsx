@@ -147,6 +147,8 @@ function toAntdItems(
 /* --- mapeo rutas hijas → clave de menú --- */
 const routeMap: Array<{ test: RegExp; key: string }> = [
   { test: /^\/hd\/ticket\/\d+$/, key: "/hd/ticket" },
+  { test: /^\/hd\/bandeja\/\d+$/, key: "/hd/bandeja" },
+  { test: /^\/hd\/est\/\d+$/, key: "/hd/est/mis-tickets" },
 ];
 function mapPathToMenuKey(pathname: string): string {
   const hit = routeMap.find((r) => r.test.test(pathname));

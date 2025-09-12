@@ -11,6 +11,7 @@ import {
   Avatar,
   Tooltip,
   Tag,
+  theme,
 } from "antd";
 import TextArea from "antd/es/input/TextArea";
 import {
@@ -47,6 +48,8 @@ export default function CardMensajeSoporte({
   handleEnviarMensaje,
   onToggleBloqueo,
 }: Props) {
+  const { token } = theme.useToken();
+
   const mensajes = useMemo(() => ticket?.mensajes ?? [], [ticket?.mensajes]);
   const [fileList, setFileList] = useState<UploadFile[]>([]);
 
@@ -86,14 +89,11 @@ export default function CardMensajeSoporte({
   })();
 
   // ====== ¿Mensaje del EQUIPO o del SOLICITANTE? ======
-  // “Solicitante” = el creador del ticket, sin importar su rol (puede ser administrativo).
-  // “Equipo/Soporte” = cualquier emisor distinto del creador; se prioriza el asignado.
   const esMensajeDelEquipo = useCallback(
     (m: HD_MensajeTicket) => {
       if (!ticket) return false;
       if (m.emisor_id === ticket.creado_id) return false; // solicitante
       if (ticket.asignado_id && m.emisor_id === ticket.asignado_id) return true;
-      // Heurística adicional por rol (opcional)
       const rol = m?.emisor?.rol?.nombre?.toLowerCase?.() ?? "";
       const tokens = [
         "soporte",
@@ -105,8 +105,7 @@ export default function CardMensajeSoporte({
         "especialista",
       ];
       if (tokens.some((t) => rol.includes(t))) return true;
-      // Fallback: cualquier NO-creador lo tratamos como equipo
-      return true;
+      return true; // fallback: cualquier NO-creador → equipo
     },
     [ticket]
   );
@@ -154,8 +153,35 @@ export default function CardMensajeSoporte({
     setFileList([]);
   };
 
+  // ====== estilos acordes a tema ======
+  const bubbleEquipoStyle: React.CSSProperties = {
+    background: token.colorPrimaryBg,
+    border: `1px solid ${token.colorPrimaryBorder}`,
+    borderRadius: token.borderRadiusLG,
+    padding: 12,
+  };
+  const bubbleSolicitanteStyle: React.CSSProperties = {
+    background: token.colorFillQuaternary,
+    border: `1px solid ${token.colorBorderSecondary}`,
+    borderRadius: token.borderRadiusLG,
+    padding: 12,
+  };
+  const avatarEquipoStyle: React.CSSProperties = {
+    backgroundColor: token.colorPrimaryBg,
+    color: token.colorPrimaryText,
+  };
+  const avatarSolicitanteStyle: React.CSSProperties = {
+    backgroundColor: token.colorFillQuaternary,
+    color: token.colorTextTertiary,
+  };
+
   return (
     <Card
+      className="mb-6 shadow-sm rounded-xl"
+      styles={{
+        header: { borderBottomColor: token.colorSplit },
+        body: { paddingTop: 16, background: token.colorBgContainer },
+      }}
       title={
         <div className="flex items-center gap-2">
           <span>📨 Conversación (Soporte)</span>
@@ -181,8 +207,6 @@ export default function CardMensajeSoporte({
           </Tooltip>
         </Space>
       }
-      className="mb-6 shadow-sm rounded-xl"
-      styles={{ body: { paddingTop: 16 } }}
     >
       {/* Mensajes */}
       <div
@@ -199,25 +223,34 @@ export default function CardMensajeSoporte({
                 <Avatar
                   size="large"
                   icon={delEquipo ? <TeamOutlined /> : <UserOutlined />}
-                  className={
-                    delEquipo
-                      ? "bg-blue-100 text-blue-600 me-3"
-                      : "bg-gray-100 text-gray-600 me-3"
-                  }
+                  style={delEquipo ? avatarEquipoStyle : avatarSolicitanteStyle}
                 />
                 <div className="flex-1" style={{ paddingLeft: 10 }}>
                   <div className="flex items-center justify-between">
-                    <Typography.Text strong>
+                    <Typography.Text strong style={{ color: token.colorText }}>
                       {m?.emisor?.nombre ?? "—"}
                     </Typography.Text>
-                    <Typography.Text type="secondary" className="text-xs">
+                    <Typography.Text
+                      type="secondary"
+                      className="text-xs"
+                      style={{ color: token.colorTextTertiary }}
+                    >
                       {dayjs(m.createdAt).format("DD/MM/YYYY HH:mm")}
                     </Typography.Text>
                   </div>
-                  <div className="mt-1 rounded-lg border border-gray-100 bg-white p-3 shadow-sm">
+
+                  <div
+                    style={
+                      delEquipo ? bubbleEquipoStyle : bubbleSolicitanteStyle
+                    }
+                  >
                     {m.contenido && (
                       <Typography.Paragraph
-                        style={{ margin: 0, whiteSpace: "pre-wrap" }}
+                        style={{
+                          margin: 0,
+                          whiteSpace: "pre-wrap",
+                          color: token.colorText,
+                        }}
                       >
                         {m.contenido}
                       </Typography.Paragraph>
@@ -248,10 +281,20 @@ export default function CardMensajeSoporte({
       </Divider>
 
       {inputsDisabled && (
-        <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 p-3">
+        <div
+          className="mb-3 rounded-lg p-3"
+          style={{
+            background: token.colorWarningBg,
+            border: `1px solid ${token.colorWarning}`,
+          }}
+        >
           <Space>
-            <InfoCircleOutlined />
-            <Typography.Text type="secondary" className="text-xs">
+            <InfoCircleOutlined style={{ color: token.colorWarning }} />
+            <Typography.Text
+              type="secondary"
+              className="text-xs"
+              style={{ color: token.colorText }}
+            >
               {disabledReason}
             </Typography.Text>
           </Space>
@@ -283,6 +326,10 @@ export default function CardMensajeSoporte({
           beforeUpload={() => false}
           itemRender={(originNode) => originNode}
           disabled={inputsDisabled}
+          style={{
+            background: token.colorFillQuaternary,
+            borderColor: token.colorBorder,
+          }}
         >
           <p className="ant-upload-drag-icon">
             <PaperClipOutlined />

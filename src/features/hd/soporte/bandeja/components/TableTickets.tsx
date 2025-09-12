@@ -62,6 +62,20 @@ export default function TableTickets({ usuario, tickets, loading }: Props) {
       ),
     },
     {
+      title: "Creado por",
+      key: "creado_id",
+      render: (record: HD_Ticket) => (
+        <div className="flex flex-col !items-start">
+          <span>{`${record.creado?.nombre || ""} ${
+            record.creado?.apellidos || ""
+          }`}</span>
+          <Tag color={record.creado?.rol_id === 3 ? "blue" : "green"}>
+            {record.creado?.rol_id === 3 ? `Alumno` : `Administrativo`}
+          </Tag>
+        </div>
+      ),
+    },
+    {
       title: "Prioridad",
       dataIndex: ["prioridad", "nombre"],
       key: "prioridad",

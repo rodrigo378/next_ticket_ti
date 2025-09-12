@@ -115,6 +115,9 @@ function Content({
       {/* Izquierda (principal) */}
       <Col span={16}>
         <div className="space-y-6">
+          {/* Calificación (cierre) */}
+          <CardCalificacion ticket={ticket} />
+
           {/* Chat */}
           <CardMensaje
             ticket={ticket}
@@ -132,9 +135,6 @@ function Content({
 
           {/* Origen / Derivado */}
           <CardTicketOrigen ticket={ticket} />
-
-          {/* Calificación (cierre) */}
-          <CardCalificacion ticket={ticket} />
         </div>
       </Col>
 

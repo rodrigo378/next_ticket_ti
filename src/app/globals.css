@@ -19,6 +19,12 @@
     --foreground: #0f172a;
     --brand: #e91e63;
     --muted: #475569;
+
+    --select-item-selected-bg: color-mix(
+      in srgb,
+      var(--foreground) 8%,
+      transparent
+    );
   }
 
   /* Tema oscuro (activado con <html class="dark">) */
@@ -27,6 +33,12 @@
     --foreground: #e6e8ea;
     --brand: #e91e63; /* cambia si quieres variante dark */
     --muted: #9aa4b2;
+
+    --select-item-selected-bg: color-mix(
+      in srgb,
+      var(--foreground) 22%,
+      transparent
+    );
   }
 
   html,
@@ -80,4 +92,18 @@
     animation: none !important;
     transition: none !important;
   }
+}
+
+/* AntD Select: color del item SELECCIONADO acorde al tema */
+.ant-select-dropdown
+  .ant-select-item-option-selected:not(.ant-select-item-option-disabled) {
+  background-color: var(--select-item-selected-bg) !important;
+  color: var(--ant-color-text) !important;
+}
+
+/* (opcional) color del check del seleccionado */
+.ant-select-dropdown
+  .ant-select-item-option-selected
+  .ant-select-item-option-state {
+  color: var(--ant-color-text) !important;
 }
