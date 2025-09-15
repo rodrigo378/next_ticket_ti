@@ -160,7 +160,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   const refreshIam = useCallback(async () => {
     setReadyIam(false);
     try {
-      const ctx = await getIamContext(); // ← usa cookie HttpOnly (via axios withCredentials)
+      const ctx = await getIamContext();
       console.log("ctx => ", ctx);
 
       setIam(ctx);

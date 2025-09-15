@@ -18,17 +18,17 @@ export interface NormalizedError {
 function mapHttpToCode(status?: number): string {
   switch (status) {
     case 400:
-      return "HD_VALIDATION_FAILED";
+      return "VALIDATION_FAILED";
     case 401:
-      return "HD_UNAUTHORIZED";
+      return "UNAUTHORIZED";
     case 403:
-      return "HD_FORBIDDEN";
+      return "FORBIDDEN";
     case 404:
-      return "HD_NOT_FOUND";
+      return "NOT_FOUND";
     case 500:
-      return "HD_SERVER_ERROR";
+      return "SERVER_ERROR";
     default:
-      return "HD_SERVER_ERROR";
+      return "SERVER_ERROR";
   }
 }
 
