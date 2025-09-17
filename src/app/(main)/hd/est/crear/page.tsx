@@ -108,8 +108,15 @@ export default function TicketCreateStudentView() {
     }
   }, [areas, searchParams, form]);
 
+  // const areaOptions = useMemo(
+  //   () => areas.map((a) => ({ label: a.nombre, value: a.id })),
+  //   [areas]
+  // );
   const areaOptions = useMemo(
-    () => areas.map((a) => ({ label: a.nombre, value: a.id })),
+    () =>
+      areas
+        .filter((a) => a.id === 1) // solo área con ID 1
+        .map((a) => ({ label: a.nombre, value: a.id })),
     [areas]
   );
 

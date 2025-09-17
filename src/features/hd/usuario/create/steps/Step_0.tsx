@@ -77,15 +77,17 @@ export default function Step_0({
               optionFilterProp="label"
               className="w-full"
             >
-              {areas.map((area) => (
-                <Select.Option
-                  key={area.id}
-                  value={area.id}
-                  label={area.nombre}
-                >
-                  {area.nombre}
-                </Select.Option>
-              ))}
+              {areas
+                .filter((a) => a.id === 1)
+                .map((area) => (
+                  <Select.Option
+                    key={area.id}
+                    value={area.id}
+                    label={area.nombre}
+                  >
+                    {area.nombre}
+                  </Select.Option>
+                ))}
             </Select>
           </Form.Item>
         </Col>

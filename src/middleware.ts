@@ -66,7 +66,6 @@ export async function middleware(req: NextRequest) {
     // otros estados: dejamos pasar (o decide tu política)
   } catch (err) {
     console.log("error => ", err);
-
     // si el perfil falla por red, decide tu política (dejar pasar o mandar a login)
     // return NextResponse.redirect(new URL("/login", req.url));
   }
