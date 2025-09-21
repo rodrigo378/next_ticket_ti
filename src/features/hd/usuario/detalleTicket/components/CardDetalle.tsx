@@ -1,9 +1,6 @@
 import { HD_Ticket } from "@/interface/hd/hd_ticket";
 import { Card, Descriptions, Tag } from "antd";
-import dayjs from "dayjs";
-import relativeTime from "dayjs/plugin/relativeTime";
-dayjs.extend(relativeTime);
-dayjs.locale("es");
+import dayjs from "@shared/date/dayjs";
 
 interface Props {
   ticket: HD_Ticket | null;
@@ -13,7 +10,7 @@ export default function CardDetalle({ ticket }: Props) {
   const estadoNombre = (ticket?.estado?.nombre || "").toLowerCase();
   const estadoColor = estadoNombre.includes("abierto")
     ? "green"
-    : estadoNombre.includes("progreso")
+    : estadoNombre.includes("proceso")
     ? "blue"
     : "default";
 
@@ -24,7 +21,7 @@ export default function CardDetalle({ ticket }: Props) {
     : null;
 
   return (
-    <Card title="🎟️ Detalle del Ticket" className="mb- rounded-xl shadow-sm">
+    <Card title="🎟️ Detalle del Ticket" className="rounded-xl shadow-sm">
       <Descriptions column={1} size="middle" bordered>
         <Descriptions.Item label="Código">
           {ticket?.codigo ?? "—"}

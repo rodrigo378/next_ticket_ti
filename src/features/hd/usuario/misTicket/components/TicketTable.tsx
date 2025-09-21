@@ -1,19 +1,8 @@
 import { EyeOutlined } from "@ant-design/icons";
 import { Button, Table, Tag, Tooltip } from "antd";
 import Link from "next/link";
-
-import dayjs from "dayjs";
-import "dayjs/locale/es";
-import relativeTime from "dayjs/plugin/relativeTime";
-import utc from "dayjs/plugin/utc";
-import tz from "dayjs/plugin/timezone";
 import { HD_Ticket } from "@/interface/hd/hd_ticket";
-
-dayjs.locale("es");
-dayjs.extend(relativeTime);
-dayjs.extend(utc);
-dayjs.extend(tz);
-dayjs.tz.setDefault("America/Lima");
+import dayjs from "@shared/date/dayjs";
 
 interface Props {
   ticket: HD_Ticket[];

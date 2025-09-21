@@ -6,14 +6,15 @@ import {
   PaperClipOutlined,
 } from "@ant-design/icons";
 import { Card, List, Typography } from "antd";
-import dayjs from "dayjs";
+import dayjs from "@shared/date/dayjs";
+
 const { Text } = Typography;
 
 interface Props {
   ticket: HD_Ticket | null;
 }
 
-const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
+const API = process.env.NEXT_PUBLIC_API_URL!;
 
 const getFileIcon = (filename: string) => {
   const f = (filename || "").toLowerCase();

@@ -22,14 +22,10 @@ import {
   TeamOutlined,
   InfoCircleOutlined,
 } from "@ant-design/icons";
-import dayjs from "dayjs";
-import relativeTime from "dayjs/plugin/relativeTime";
-import "dayjs/locale/es";
 import type { UploadFile } from "antd/es/upload/interface";
 import { HD_Ticket } from "@/interface/hd/hd_ticket";
 import { HD_MensajeTicket } from "@/interface/hd/hd_mensajeTicket";
-dayjs.extend(relativeTime);
-dayjs.locale("es");
+import dayjs from "@shared/date/dayjs";
 
 interface Props {
   ticket: HD_Ticket | null;

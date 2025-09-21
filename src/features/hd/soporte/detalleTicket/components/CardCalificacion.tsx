@@ -1,15 +1,8 @@
 import { Card, Rate, Tag, Typography } from "antd";
-const { Text } = Typography;
-
-import dayjs from "dayjs";
-import relativeTime from "dayjs/plugin/relativeTime";
-import "dayjs/locale/es";
-import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
 import { useMemo } from "react";
 import { HD_Ticket } from "@/interface/hd/hd_ticket";
-dayjs.extend(relativeTime);
-dayjs.locale("es");
-dayjs.extend(isSameOrBefore);
+import dayjs from "@shared/date/dayjs";
+const { Text } = Typography;
 
 interface Props {
   ticket: HD_Ticket;

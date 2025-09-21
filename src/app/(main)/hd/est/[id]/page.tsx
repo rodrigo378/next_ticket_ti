@@ -29,23 +29,16 @@ import {
   DownloadOutlined,
   MessageOutlined,
 } from "@ant-design/icons";
+
 import TextArea from "antd/es/input/TextArea";
 import { useParams, useRouter } from "next/navigation";
-
 import {
   createCalificacion,
   createMensaje,
 } from "@/features/hd/service/ticket_ti";
-
-import dayjs from "dayjs";
-import relativeTime from "dayjs/plugin/relativeTime";
-import "dayjs/locale/es";
-
 import { HD_Ticket } from "@/interface/hd/hd_ticket";
 import { HD_MensajeTicket } from "@/interface/hd/hd_mensajeTicket";
-
-dayjs.extend(relativeTime);
-dayjs.locale("es");
+import dayjs from "@shared/date/dayjs";
 
 const { Title, Text, Paragraph } = Typography;
 

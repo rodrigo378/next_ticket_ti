@@ -1,11 +1,7 @@
 "use client";
 import { Card, Descriptions, Tag, Space, Typography } from "antd";
-import dayjs from "dayjs";
-import relativeTime from "dayjs/plugin/relativeTime";
-import "dayjs/locale/es";
 import { HD_Ticket } from "@/interface/hd/hd_ticket";
-dayjs.extend(relativeTime);
-dayjs.locale("es");
+import dayjs from "@shared/date/dayjs";
 
 const { Text } = Typography;
 

@@ -16,17 +16,12 @@ import {
 import React, { useMemo } from "react";
 const { Text } = Typography;
 const { Option } = Select;
-
-import dayjs from "dayjs";
-import relativeTime from "dayjs/plugin/relativeTime";
-import "dayjs/locale/es";
 import { HD_Ticket } from "@/interface/hd/hd_ticket";
 import { Core_Usuario } from "@/interface/core/core_usuario";
 import { HD_DerivacionTicket } from "@/interface/hd/hd_derivacionTicket";
 import { TreeNode } from "@/interface/hd/hd_incidencia";
 
-dayjs.extend(relativeTime);
-dayjs.locale("es");
+import dayjs from "@shared/date/dayjs";
 
 interface Props {
   arbol: TreeNode[];

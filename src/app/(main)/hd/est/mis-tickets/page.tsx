@@ -28,10 +28,10 @@ import {
   ExclamationCircleOutlined,
 } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
-import dayjs from "dayjs";
 import { useRouter } from "next/navigation";
 import { getTicketsMe } from "@/features/hd/service/ticket_ti";
 import { HD_Ticket } from "@/interface/hd/hd_ticket";
+import dayjs from "@shared/date/dayjs";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
