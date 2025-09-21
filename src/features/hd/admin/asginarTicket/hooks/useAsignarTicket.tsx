@@ -1,8 +1,7 @@
 "use client";
 import { useUsuario } from "@/context/UserContext";
-import { Core_Usuario } from "@/interface/core/core_usuario";
-import { TreeNode } from "@/interface/hd/hd_incidencia";
-import { HD_Ticket } from "@/interface/hd/hd_ticket";
+import { Core_Usuario } from "@interfaces/core";
+import { HD_Ticket, TreeNode } from "@interfaces/hd";
 import { getArbol } from "@/features/hd/service/incidencias";
 import {
   asignarTicket,

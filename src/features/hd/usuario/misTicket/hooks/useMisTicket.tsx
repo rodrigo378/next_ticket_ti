@@ -1,6 +1,6 @@
 "use client";
 
-import { HD_Ticket } from "@/interface/hd/hd_ticket";
+import { HD_Ticket } from "@interfaces/hd";
 import { getTicketsMe } from "@/features/hd/service/ticket_ti";
 import { useEffect, useMemo, useState } from "react";
 

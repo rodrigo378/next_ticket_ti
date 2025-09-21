@@ -1,4 +1,4 @@
-import { Core_Usuario } from "@/interface/core/core_usuario";
+import { Core_Usuario } from "@interfaces/core";
 import { api } from "../api";
 
 export const getMe = async (): Promise<Core_Usuario> => {

@@ -1,6 +1,6 @@
 "use client";
 
-import { Core_Usuario } from "@/interface/core/core_usuario";
+import { Core_Usuario } from "@interfaces/core";
 import { Table } from "antd";
 import type { ColumnsType } from "antd/es/table";
 

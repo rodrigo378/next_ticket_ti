@@ -8,9 +8,7 @@ import {
   CheckCircleOutlined,
 } from "@ant-design/icons";
 import type { UploadFile } from "antd/es/upload/interface";
-import { HD_Area } from "@/interface/hd/hd_area";
-import { HD_CatalogoServicio } from "@/interface/hd/hd_catalogoServicio";
-import { HD_Incidencia } from "@/interface/hd/hd_incidencia";
+import { HD_Area, HD_CatalogoServicio, HD_Incidencia } from "@interfaces/hd";
 import { getAreas } from "@/features/hd/service/area";
 import { getIncidencias } from "@/features/hd/service/incidencias";
 import { getCatalogo } from "@/features/hd/service/catalogo";

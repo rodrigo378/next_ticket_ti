@@ -1,7 +1,7 @@
 import { Badge, Tabs } from "antd";
 import TicketTable from "./TicketTable";
 import TicketTableResueltos from "./TicketTableResueltos";
-import { HD_Ticket } from "@/interface/hd/hd_ticket";
+import { HD_Ticket } from "@interfaces/hd";
 
 interface Props {
   ticketsActivos: HD_Ticket[];

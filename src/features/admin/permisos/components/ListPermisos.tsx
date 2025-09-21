@@ -1,4 +1,4 @@
-import { Core_Modulo } from "@/interface/core/core_modulo";
+import { Core_Modulo } from "@interfaces/core";
 import {
   Button,
   Card,

@@ -1,4 +1,4 @@
-import { HD_Ticket } from "@/interface/hd/hd_ticket";
+import { HD_Ticket } from "@interfaces/hd";
 import { PaperClipOutlined } from "@ant-design/icons";
 import { Card, List, Typography } from "antd";
 const { Text } = Typography;

@@ -8,14 +8,15 @@ import type { MenuProps } from "antd";
 import { MenuFoldOutlined, MenuUnfoldOutlined } from "@ant-design/icons";
 import { useRouter, usePathname } from "next/navigation";
 import { useUsuario } from "@/context/UserContext";
+
+import { getFullMenu } from "@/services/core/iam";
+import { logout } from "@/services/core/auth";
+import ThemeToggle from "@/components/ThemeToggle";
 import {
   IamMenuGroup,
   IamMenuItem,
   IamMenuModule,
-} from "@/interface/core/layout";
-import { getFullMenu } from "@/services/core/iam";
-import { logout } from "@/services/core/auth";
-import ThemeToggle from "@/components/ThemeToggle";
+} from "@/interfaces/core/layout";
 
 const { Header, Sider, Content } = Layout;
 

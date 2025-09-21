@@ -23,11 +23,13 @@ import {
   updateCategoria,
 } from "@/features/hd/service/incidencias";
 import { updateSla } from "@/features/hd/service/sla";
-import { HD_CatalogoServicio } from "@/interface/hd/hd_catalogoServicio";
-import { HD_Area } from "@/interface/hd/hd_area";
-import { HD_Subarea } from "@/interface/hd/hd_subarea";
 import { getAreas, getSubareas } from "@/features/hd/service/area";
-import { HD_Incidencia } from "@/interface/hd/hd_incidencia";
+import {
+  HD_Area,
+  HD_CatalogoServicio,
+  HD_Incidencia,
+  HD_Subarea,
+} from "@/interfaces/hd";
 
 const { Title, Paragraph } = Typography;
 const { Option } = Select;

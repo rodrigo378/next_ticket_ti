@@ -1,7 +1,6 @@
 import { AxiosResponse } from "axios";
 import { api } from "../../../services/api";
-import { HD_Ticket } from "@/interface/hd/hd_ticket";
-import { HD_CalificacionTicket } from "@/interface/hd/hd_calificacionTicket";
+import { HD_Ticket, HD_CalificacionTicket } from "@interfaces/hd";
 
 export const createTicketTi = async (formData: FormData): Promise<unknown> => {
   const response = await api.post("/hd/ticket", formData);

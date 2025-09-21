@@ -1,5 +1,4 @@
-import { Core_Modulo } from "@/interface/core/core_modulo";
-import { Core_Permiso } from "@/interface/core/core_permiso";
+import { Core_Modulo, Core_Permiso } from "@interfaces/core";
 import { getUsuario } from "@/services/adm/admin";
 import {
   getListPermisos,

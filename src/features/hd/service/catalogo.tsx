@@ -1,6 +1,6 @@
 import { AxiosResponse } from "axios";
 import { api } from "../../../services/api";
-import { HD_CatalogoServicio } from "@/interface/hd/hd_catalogoServicio";
+import { HD_CatalogoServicio } from "@interfaces/hd";
 
 export const getCatalogo = async (
   area_id?: string

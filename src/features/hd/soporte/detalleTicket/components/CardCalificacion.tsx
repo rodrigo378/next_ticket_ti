@@ -1,6 +1,6 @@
 import { Card, Rate, Tag, Typography } from "antd";
 import { useMemo } from "react";
-import { HD_Ticket } from "@/interface/hd/hd_ticket";
+import { HD_Ticket } from "@interfaces/hd";
 import dayjs from "@shared/date/dayjs";
 const { Text } = Typography;
 

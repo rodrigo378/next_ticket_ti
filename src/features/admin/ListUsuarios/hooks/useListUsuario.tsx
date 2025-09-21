@@ -1,9 +1,7 @@
 "use client";
 
 import { CoreRol_Id } from "@/const/rol.const";
-import { Core_Rol } from "@/interface/core/core_rol";
-import { Core_Usuario } from "@/interface/core/core_usuario";
-import { HD_Area } from "@/interface/hd/hd_area";
+import { Core_Rol, Core_Usuario } from "@interfaces/core";
 import { getRoles } from "@/services/core/rol";
 import {
   createUsuario,
@@ -16,6 +14,7 @@ import {
 import { getAreas } from "@/features/hd/service/area";
 import { Form, message } from "antd";
 import { useEffect, useRef, useState } from "react";
+import { HD_Area } from "@interfaces/hd";
 
 /** === TIPOS LOCALES PARA EL NUEVO PAYLOAD === */
 interface ModConfigModule {

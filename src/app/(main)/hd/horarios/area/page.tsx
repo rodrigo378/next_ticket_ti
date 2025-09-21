@@ -2,13 +2,13 @@
 
 import React, { useEffect, useState } from "react";
 import { theme } from "antd";
-import { HD_Area } from "@/interface/hd/hd_area";
 import {
   getAreas,
   getArea,
   updateHorario,
   createHorario,
 } from "@/features/hd/service/area";
+import { HD_Area } from "@/interfaces/hd";
 
 /* =============== UI mínimas (con tokens de AntD) =============== */
 function Card({

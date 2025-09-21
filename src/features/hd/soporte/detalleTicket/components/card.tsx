@@ -10,8 +10,7 @@ import {
 } from "antd";
 import { useEffect, useRef, useState } from "react";
 import ComponenteModal from "./modal";
-import { HD_Ticket } from "@/interface/hd/hd_ticket";
-import { HD_EstadoTicket } from "@/interface/hd/hd_estadoTicket";
+import { HD_Ticket, HD_EstadoTicket } from "@interfaces/hd";
 import { getEstados } from "@/features/hd/service/estado";
 import { cambiarEstado } from "@/features/hd/service/ticket_ti";
 

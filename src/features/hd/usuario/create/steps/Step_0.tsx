@@ -1,6 +1,4 @@
-import { HD_Area } from "@/interface/hd/hd_area";
-import { HD_CatalogoServicio } from "@/interface/hd/hd_catalogoServicio";
-import { HD_Incidencia } from "@/interface/hd/hd_incidencia";
+import { HD_Area, HD_CatalogoServicio, HD_Incidencia } from "@interfaces/hd";
 import { Col, Form, FormInstance, Row, Select } from "antd";
 
 interface Props {

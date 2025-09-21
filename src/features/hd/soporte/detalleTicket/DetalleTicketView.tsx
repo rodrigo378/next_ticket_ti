@@ -32,7 +32,7 @@ import {
 } from "@ant-design/icons";
 import { useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { HD_Ticket } from "@/interface/hd/hd_ticket";
+import { HD_Ticket } from "@interfaces/hd";
 
 const { Text, Title } = Typography;
 

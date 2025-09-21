@@ -1,4 +1,4 @@
-import { HD_EstadoTicket } from "@/interface/hd/hd_estadoTicket";
+import { HD_EstadoTicket } from "@interfaces/hd";
 import { api } from "../../../services/api";
 import { AxiosResponse } from "axios";
 

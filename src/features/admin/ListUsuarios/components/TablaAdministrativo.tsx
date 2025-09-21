@@ -1,4 +1,4 @@
-import { Core_Usuario } from "@/interface/core/core_usuario";
+import { Core_Usuario } from "@interfaces/core";
 import { EyeOutlined } from "@ant-design/icons";
 import { Button, Table, Tag } from "antd";
 import { ColumnsType } from "antd/es/table";

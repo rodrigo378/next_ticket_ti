@@ -1,5 +1,4 @@
-import { HD_CalificacionTicket } from "@/interface/hd/hd_calificacionTicket";
-import { HD_Ticket } from "@/interface/hd/hd_ticket";
+import { HD_CalificacionTicket, HD_Ticket } from "@interfaces/hd";
 import {
   createCalificacion,
   createMensaje,

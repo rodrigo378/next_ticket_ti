@@ -1,6 +1,5 @@
-import { HD_HorarioUsuario } from "@/interface/hd/hd_horarioUsuario";
+import { HD_HorarioUsuario, HD_HorarioArea } from "@interfaces/hd";
 import { api } from "../../../services/api";
-import { HD_HorarioArea } from "@/interface/hd/hd_horarioArea";
 
 export const createHorarioUsuario = async (
   data: Partial<HD_HorarioUsuario>

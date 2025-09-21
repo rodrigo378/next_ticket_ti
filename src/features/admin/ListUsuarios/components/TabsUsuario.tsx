@@ -3,7 +3,7 @@
 import { Tabs } from "antd";
 import TableUsuarioAdministrativo from "./TablaAdministrativo";
 import TableUsuarioAlumno from "./TablaAlumno";
-import { Core_Usuario } from "@/interface/core/core_usuario";
+import { Core_Usuario } from "@interfaces/core";
 
 interface Props {
   usuarios: Core_Usuario[];

@@ -1,4 +1,4 @@
-import { HD_SLA } from "@/interface/hd/hd_sla";
+import { HD_SLA } from "@interfaces/hd";
 import { api } from "../../../services/api";
 import { AxiosResponse } from "axios";
 

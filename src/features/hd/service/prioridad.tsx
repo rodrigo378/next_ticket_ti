@@ -1,4 +1,4 @@
-import { HD_PrioridadTicket } from "@/interface/hd/hd_prioridadTicket";
+import { HD_PrioridadTicket } from "@interfaces/hd";
 import { api } from "../../../services/api";
 import { AxiosResponse } from "axios";
 

@@ -1,8 +1,7 @@
 import { Button, Table, Tag, Tooltip } from "antd";
 import { BranchesOutlined, EyeOutlined } from "@ant-design/icons";
-import { HD_Ticket } from "@/interface/hd/hd_ticket";
-import { HD_PrioridadTicket } from "@/interface/hd/hd_prioridadTicket";
-import { Core_Usuario } from "@/interface/core/core_usuario";
+import { HD_Ticket, HD_PrioridadTicket } from "@interfaces/hd";
+import { Core_Usuario } from "@interfaces/core";
 import dayjs from "@shared/date/dayjs";
 
 interface Props {

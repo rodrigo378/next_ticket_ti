@@ -1,5 +1,5 @@
 import { Alert, Card, Divider, Progress, Tag, Typography, Space } from "antd";
-import { HD_Ticket } from "@/interface/hd/hd_ticket";
+import { HD_Ticket } from "@interfaces/hd";
 import dayjs from "@shared/date/dayjs";
 
 const { Text } = Typography;

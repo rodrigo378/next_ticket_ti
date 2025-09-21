@@ -1,7 +1,6 @@
-import { HD_Incidencia } from "@/interface/hd/hd_incidencia";
+import { HD_Incidencia, HD_Categoria } from "@interfaces/hd";
 import { api } from "../../../services/api";
 import { AxiosResponse } from "axios";
-import { HD_Categoria } from "@/interface/hd/hd_categoria";
 
 export const getIncidencias = async (
   tipo?: string,

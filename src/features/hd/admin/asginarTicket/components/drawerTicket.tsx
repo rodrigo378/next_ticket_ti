@@ -14,14 +14,12 @@ import {
   Typography,
 } from "antd";
 import React, { useMemo } from "react";
+import { HD_Ticket, HD_DerivacionTicket, TreeNode } from "@interfaces/hd";
+import { Core_Usuario } from "@interfaces/core";
+import dayjs from "@shared/date/dayjs";
+
 const { Text } = Typography;
 const { Option } = Select;
-import { HD_Ticket } from "@/interface/hd/hd_ticket";
-import { Core_Usuario } from "@/interface/core/core_usuario";
-import { HD_DerivacionTicket } from "@/interface/hd/hd_derivacionTicket";
-import { TreeNode } from "@/interface/hd/hd_incidencia";
-
-import dayjs from "@shared/date/dayjs";
 
 interface Props {
   arbol: TreeNode[];

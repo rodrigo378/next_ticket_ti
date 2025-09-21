@@ -1,5 +1,5 @@
 import { useUsuario } from "@/context/UserContext";
-import { HD_Ticket } from "@/interface/hd/hd_ticket";
+import { HD_Ticket } from "@interfaces/hd";
 import { getTickets } from "@/features/hd/service/ticket_ti";
 import { message } from "antd";
 import { useEffect, useState } from "react";

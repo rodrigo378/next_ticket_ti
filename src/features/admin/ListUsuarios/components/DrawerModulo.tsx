@@ -4,10 +4,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { Drawer, Collapse, Select, Button, Alert, Form } from "antd";
 import type { FormInstance } from "antd";
-import type { HD_Area } from "@/interface/hd/hd_area";
-import { getSubareas } from "@/features/hd/service/area"; // <-- usa tu servicio que ya devuelve subáreas filtradas por área
+import { getSubareas } from "@/features/hd/service/area";
+import { HD_Area } from "@interfaces/hd";
 
-/** === TIPOS DEL NUEVO PAYLOAD (definidos aquí) === */
 export interface UsuarioModuloConfigModule {
   codigo: string; // "ADM" | "HD" | otros
   nombre: string;

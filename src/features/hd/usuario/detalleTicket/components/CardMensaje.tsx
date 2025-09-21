@@ -21,8 +21,7 @@ import {
   InfoCircleOutlined,
 } from "@ant-design/icons";
 import type { UploadFile } from "antd/es/upload/interface";
-import { HD_Ticket } from "@/interface/hd/hd_ticket";
-import { HD_MensajeTicket } from "@/interface/hd/hd_mensajeTicket";
+import { HD_Ticket, HD_MensajeTicket } from "@interfaces/hd";
 import dayjs from "@shared/date/dayjs";
 
 interface Props {

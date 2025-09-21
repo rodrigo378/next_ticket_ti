@@ -1,5 +1,4 @@
-import { HD_Area } from "@/interface/hd/hd_area";
-import { HD_Incidencia } from "@/interface/hd/hd_incidencia";
+import { HD_Area, HD_Incidencia } from "@interfaces/hd";
 import { Descriptions, Form, FormInstance, UploadFile } from "antd";
 import Title from "antd/es/typography/Title";
 import Link from "next/link";

@@ -1,7 +1,6 @@
 "use client";
 
-import { Core_Rol } from "@/interface/core/core_rol";
-import { Core_Usuario } from "@/interface/core/core_usuario";
+import { Core_Rol, Core_Usuario } from "@interfaces/core";
 import { Button, Drawer, Form, FormInstance, Input, Select } from "antd";
 
 interface Props {

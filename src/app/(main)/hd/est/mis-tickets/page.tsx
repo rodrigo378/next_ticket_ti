@@ -30,8 +30,8 @@ import {
 import type { ColumnsType } from "antd/es/table";
 import { useRouter } from "next/navigation";
 import { getTicketsMe } from "@/features/hd/service/ticket_ti";
-import { HD_Ticket } from "@/interface/hd/hd_ticket";
 import dayjs from "@shared/date/dayjs";
+import { HD_Ticket } from "@/interfaces/hd";
 
 const { Title, Text } = Typography;
 const { Option } = Select;

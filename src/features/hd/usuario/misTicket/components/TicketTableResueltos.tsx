@@ -1,4 +1,4 @@
-import { HD_Ticket } from "@/interface/hd/hd_ticket";
+import { HD_Ticket } from "@interfaces/hd";
 import { ExclamationCircleOutlined, EyeOutlined } from "@ant-design/icons";
 import { Button, Rate, Table, Tag } from "antd";
 import Link from "next/link";

@@ -36,9 +36,8 @@ import {
   createCalificacion,
   createMensaje,
 } from "@/features/hd/service/ticket_ti";
-import { HD_Ticket } from "@/interface/hd/hd_ticket";
-import { HD_MensajeTicket } from "@/interface/hd/hd_mensajeTicket";
 import dayjs from "@shared/date/dayjs";
+import { HD_MensajeTicket, HD_Ticket } from "@/interfaces/hd";
 
 const { Title, Text, Paragraph } = Typography;
 

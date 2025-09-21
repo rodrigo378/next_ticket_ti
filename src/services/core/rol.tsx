@@ -1,4 +1,4 @@
-import { Core_Rol } from "@/interface/core/core_rol";
+import { Core_Rol } from "@interfaces/core/core_rol";
 import { api } from "../api";
 import { AxiosResponse } from "axios";
 
