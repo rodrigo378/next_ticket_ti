@@ -4,7 +4,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Drawer, Collapse, Select, Button, Alert, Form } from "antd";
 import type { FormInstance } from "antd";
-import { getSubareas } from "@/features/hd/service/area";
+import { getSubareas } from "@services/hd";
 import { HD_Area } from "@interfaces/hd";
 
 export interface UsuarioModuloConfigModule {

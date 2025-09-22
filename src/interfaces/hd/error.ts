@@ -1,16 +1,9 @@
-export type HdErrorCode =
-  | "OUT_OF_HOURS"
-  | "AREA_NO_HORARIO"
-  | "VALIDATION_ERROR"
-  | "UNAUTHORIZED"
-  | "FORBIDDEN"
-  | "NOT_FOUND"
-  | "SERVER_ERROR";
+export type HdErrorCode = "OUT_OF_HOURS" | "AREA_NO_HORARIO";
 
 export interface HdApiError {
-  status: number; // HTTP status
-  code: HdErrorCode; // código del dominio HD
-  message: string; // mensaje amigable
+  status: number;
+  code: HdErrorCode;
+  message: string;
   details?: {
     ventanas?: string[];
     fieldErrors?: Record<string, string | string[]>;

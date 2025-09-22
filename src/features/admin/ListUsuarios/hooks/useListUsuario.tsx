@@ -11,7 +11,7 @@ import {
   updateUsuario,
   upsertUsuarioModulo,
 } from "@/services/core/usuario";
-import { getAreas } from "@/features/hd/service/area";
+import { getAreas } from "@services/hd";
 import { Form, message } from "antd";
 import { useEffect, useRef, useState } from "react";
 import { HD_Area } from "@interfaces/hd";

@@ -1,5 +1,5 @@
 import { AxiosResponse } from "axios";
-import { api } from "../../../services/api";
+import { api } from "../api";
 import { HD_CatalogoServicio } from "@interfaces/hd";
 
 export const getCatalogo = async (

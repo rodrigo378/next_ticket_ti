@@ -1,7 +1,7 @@
 "use client";
 import { Modal } from "antd";
 import type { NormalizedError } from "@/services/api";
-import type { ErrorMap } from "@/utils/errorMap";
+import { ErrorMap } from "@/shared/ui/errors/errorMap";
 
 const toArray = (x: unknown): string[] =>
   Array.isArray(x) ? x.map(String) : x ? [String(x)] : [];

@@ -14,20 +14,22 @@ import {
 } from "antd";
 import { useEffect, useState } from "react";
 import { SearchOutlined, PlusOutlined } from "@ant-design/icons";
-import { createCatalogo, getCatalogo } from "@/features/hd/service/catalogo";
-import {
-  createCategoria,
-  createIncidencia,
-  updateCategoria,
-} from "@/features/hd/service/incidencias";
-import { updateSla } from "@/features/hd/service/sla";
-import { getAreas, getSubareas } from "@/features/hd/service/area";
 import {
   HD_Area,
   HD_CatalogoServicio,
   HD_Incidencia,
   HD_Subarea,
 } from "@interfaces/hd";
+import {
+  createCatalogo,
+  createCategoria,
+  createIncidencia,
+  getAreas,
+  getCatalogo,
+  getSubareas,
+  updateCategoria,
+  updateSla,
+} from "@services/hd";
 
 const { Title, Paragraph } = Typography;
 const { Option } = Select;

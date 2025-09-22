@@ -1,10 +1,7 @@
 "use client";
 
-import { getUsuario, getUsuarios } from "@/services/core/usuario";
-import {
-  createHorarioUsuario,
-  updateHorarioUsuario,
-} from "@/features/hd/service/horario_usuario";
+import { getUsuario, getUsuarios } from "@services/core";
+import { createHorarioUsuario, updateHorarioUsuario } from "@services/hd";
 import React, { useEffect, useState } from "react";
 
 // ===== TIPOS =====

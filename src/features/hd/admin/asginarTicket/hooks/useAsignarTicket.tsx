@@ -2,16 +2,16 @@
 import { useUsuario } from "@/context/UserContext";
 import { Core_Usuario } from "@interfaces/core";
 import { HD_Ticket, TreeNode } from "@interfaces/hd";
-import { getArbol } from "@/features/hd/service/incidencias";
-import {
-  asignarTicket,
-  getSoporte,
-  getTicket,
-  getTickets,
-} from "@/features/hd/service/ticket_ti";
 import { message } from "antd";
 import { useEffect, useRef, useState } from "react";
 import { io, Socket } from "socket.io-client";
+import {
+  asignarTicket,
+  getArbol,
+  getSoporte,
+  getTicket,
+  getTickets,
+} from "@services/hd";
 
 export type IncTreeNode = {
   title: string;

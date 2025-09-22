@@ -1,5 +1,5 @@
 import { AxiosResponse } from "axios";
-import { api } from "../../../services/api";
+import { api } from "../api";
 import { HD_Area, HD_Subarea, HD_HorarioArea } from "@interfaces/hd";
 
 export const getArea = async (area_id: number): Promise<HD_Area> => {

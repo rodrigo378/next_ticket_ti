@@ -16,7 +16,7 @@ import {
   IamMenuGroup,
   IamMenuItem,
   IamMenuModule,
-} from "@/interfaces/core/layout";
+} from "@interfaces/core/layout";
 
 const { Header, Sider, Content } = Layout;
 

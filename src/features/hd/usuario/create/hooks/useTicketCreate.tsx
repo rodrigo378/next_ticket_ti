@@ -9,14 +9,17 @@ import {
 } from "@ant-design/icons";
 import type { UploadFile } from "antd/es/upload/interface";
 import { HD_Area, HD_CatalogoServicio, HD_Incidencia } from "@interfaces/hd";
-import { getAreas } from "@/features/hd/service/area";
-import { getIncidencias } from "@/features/hd/service/incidencias";
-import { getCatalogo } from "@/features/hd/service/catalogo";
-import { createTicketTi } from "@/features/hd/service/ticket_ti";
 import { applyFormErrors } from "@/utils/applyFormErrors";
 import { handleApiError } from "@/utils/handleApiError";
-import { NormalizedError } from "@/services/api";
-import { hdErrorMap } from "@/features/hd/utils/errorMap.hd";
+
+import { NormalizedError } from "@services/api";
+import {
+  createTicket,
+  getAreas,
+  getCatalogo,
+  getIncidencias,
+} from "@services/hd";
+import { hdErrorMap } from "@/features/hd/errors/errorMap.hd";
 
 const REQUIRED_STEP1_FIELDS = [
   "area_id",
@@ -100,7 +103,7 @@ export function useTicketCreate() {
       fileList.forEach((f) => {
         if (f.originFileObj) fd.append("archivos", f.originFileObj as Blob);
       });
-      await createTicketTi(fd);
+      await createTicket(fd);
       message.success("🎉 Ticket creado exitosamente");
       router.push("/hd/ticket");
     } catch (e) {

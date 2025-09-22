@@ -1,5 +1,5 @@
 import { HD_PrioridadTicket } from "@interfaces/hd";
-import { api } from "../../../services/api";
+import { api } from "../api";
 import { AxiosResponse } from "axios";
 
 export const getPrioridades = async (): Promise<HD_PrioridadTicket[]> => {

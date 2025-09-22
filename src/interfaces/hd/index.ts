@@ -39,3 +39,6 @@ export type { HD_Subarea } from "./hd_subarea";
 export type { HD_Ticket } from "./hd_ticket";
 
 export type { HD_UsuarioArea } from "./hd_usuarioArea";
+
+export type { HdErrorCode, HdApiError } from "./error";
+export { isHdApiError } from "./error";

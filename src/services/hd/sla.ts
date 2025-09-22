@@ -1,5 +1,5 @@
 import { HD_SLA } from "@interfaces/hd";
-import { api } from "../../../services/api";
+import { api } from "../api";
 import { AxiosResponse } from "axios";
 
 export const getSla = async (): Promise<HD_SLA[]> => {

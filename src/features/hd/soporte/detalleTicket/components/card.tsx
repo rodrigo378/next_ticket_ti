@@ -11,8 +11,7 @@ import {
 import { useEffect, useRef, useState } from "react";
 import ComponenteModal from "./modal";
 import { HD_Ticket, HD_EstadoTicket } from "@interfaces/hd";
-import { getEstados } from "@/features/hd/service/estado";
-import { cambiarEstado } from "@/features/hd/service/ticket_ti";
+import { cambiarEstado, getEstados } from "@services/hd";
 
 const { Title, Text } = Typography;
 

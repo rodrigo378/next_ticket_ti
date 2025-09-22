@@ -1,7 +1,7 @@
 // src/context/UserContext.tsx
 "use client";
 
-import { Core_Rol } from "@/interfaces/core/core_rol";
+import { Core_Rol } from "@interfaces/core/core_rol";
 import { getIamContext } from "@/services/core/iam";
 import { Spin } from "antd";
 import { useRouter } from "next/navigation";

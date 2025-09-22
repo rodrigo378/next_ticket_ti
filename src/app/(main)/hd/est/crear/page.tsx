@@ -28,11 +28,11 @@ import {
   ReloadOutlined,
 } from "@ant-design/icons";
 import { useRouter, useSearchParams } from "next/navigation";
-import { createTicketEstudiante } from "@/features/hd/service/ticket_ti";
 import { applyFormErrors } from "@/utils/applyFormErrors";
 import { NormalizedError } from "@/services/api";
 import { handleApiError } from "@/utils/handleApiError";
-import { hdErrorMap } from "@/features/hd/utils/errorMap.hd";
+import { hdErrorMap } from "@/features/hd/errors/errorMap.hd";
+import { createTicketEstudiante } from "@services/hd";
 
 const { Title, Text, Paragraph } = Typography;
 const { TextArea } = Input;

@@ -32,12 +32,9 @@ import {
 
 import TextArea from "antd/es/input/TextArea";
 import { useParams, useRouter } from "next/navigation";
-import {
-  createCalificacion,
-  createMensaje,
-} from "@/features/hd/service/ticket_ti";
 import dayjs from "@shared/date/dayjs";
-import { HD_MensajeTicket, HD_Ticket } from "@/interfaces/hd";
+import { HD_MensajeTicket, HD_Ticket } from "@interfaces/hd";
+import { createCalificacion, createMensaje } from "@services/hd";
 
 const { Title, Text, Paragraph } = Typography;
 

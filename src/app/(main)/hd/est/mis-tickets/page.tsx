@@ -29,9 +29,9 @@ import {
 } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import { useRouter } from "next/navigation";
-import { getTicketsMe } from "@/features/hd/service/ticket_ti";
 import dayjs from "@shared/date/dayjs";
-import { HD_Ticket } from "@/interfaces/hd";
+import { HD_Ticket } from "@interfaces/hd";
+import { getTicketsMe } from "@services/hd";
 
 const { Title, Text } = Typography;
 const { Option } = Select;

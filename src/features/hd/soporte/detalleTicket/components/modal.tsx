@@ -1,7 +1,6 @@
 "use client";
+import { derivarTicket, getAreas } from "@services/hd";
 import { HD_Area, HD_Ticket } from "@interfaces/hd";
-import { getAreas } from "@/features/hd/service/area";
-import { derivarTicket } from "@/features/hd/service/ticket_ti";
 import { Button, Form, message, Modal, Select } from "antd";
 import TextArea from "antd/es/input/TextArea";
 import { useRouter } from "next/navigation";

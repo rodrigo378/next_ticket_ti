@@ -4,8 +4,8 @@ import { useEffect, useState } from "react";
 import { Table, Typography, Button, Drawer, Form, Input, message } from "antd";
 import { ColumnsType } from "antd/es/table";
 import { PlusOutlined } from "@ant-design/icons";
-import { getPrioridades } from "@/features/hd/service/prioridad";
-import { HD_PrioridadTicket } from "@/interfaces/hd";
+import { HD_PrioridadTicket } from "@interfaces/hd";
+import { getPrioridades } from "@services/hd";
 const { Title, Paragraph } = Typography;
 
 export default function Page() {

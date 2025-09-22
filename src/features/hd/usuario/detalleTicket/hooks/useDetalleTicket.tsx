@@ -1,9 +1,5 @@
 import { HD_CalificacionTicket, HD_Ticket } from "@interfaces/hd";
-import {
-  createCalificacion,
-  createMensaje,
-  getTicket,
-} from "@/features/hd/service/ticket_ti";
+import { createCalificacion, createMensaje, getTicket } from "@services/hd";
 import { message } from "antd";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";

@@ -12,5 +12,5 @@ export interface Core_Item {
   modulo?: Core_Modulo;
   submodulo?: Core_Submodulo | null;
   permisos?: Core_Permiso[];
-  config: Record<string, unknown>; // Json
+  config: Record<string, unknown>;
 }
