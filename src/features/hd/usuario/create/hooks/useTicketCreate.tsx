@@ -9,8 +9,6 @@ import {
 } from "@ant-design/icons";
 import type { UploadFile } from "antd/es/upload/interface";
 import { HD_Area, HD_CatalogoServicio, HD_Incidencia } from "@interfaces/hd";
-import { applyFormErrors } from "@/utils/applyFormErrors";
-import { handleApiError } from "@/utils/handleApiError";
 
 import { NormalizedError } from "@services/api";
 import {
@@ -20,6 +18,8 @@ import {
   getIncidencias,
 } from "@services/hd";
 import { hdErrorMap } from "@/features/hd/errors/errorMap.hd";
+import { applyFormErrors } from "@/shared/ui/errors/applyFormErrors";
+import { handleApiError } from "@/shared/ui/errors/handleApiError";
 
 const REQUIRED_STEP1_FIELDS = [
   "area_id",
