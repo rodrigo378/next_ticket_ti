@@ -56,7 +56,7 @@ type UserContextType = {
 const UserContext = createContext<UserContextType | undefined>(undefined);
 
 /* ---------------- Loader con branding UMA ---------------- */
-const Loader = () => {
+export const Loader = () => {
   return (
     <div
       style={{

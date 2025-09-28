@@ -17,7 +17,7 @@ import {
   getCatalogo,
   getIncidencias,
 } from "@services/hd";
-import { hdErrorMap } from "@/features/hd/errors/errorMap.hd";
+import { hdErrorMap } from "@features/hd/errors/errorMap.hd";
 import { applyFormErrors } from "@/shared/ui/errors/applyFormErrors";
 import { handleApiError } from "@/shared/ui/errors/handleApiError";
 

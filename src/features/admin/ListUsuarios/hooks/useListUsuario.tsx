@@ -6,7 +6,7 @@ import { getRoles } from "@/services/core/rol";
 import {
   createUsuario,
   getUsuario,
-  getUsuarioModuloConfig, // { user, modules }
+  getUsuarioModuloConfig,
   getUsuarios,
   updateUsuario,
   upsertUsuarioModulo,
@@ -35,7 +35,7 @@ interface ModConfigResponse {
 }
 
 export default function useListUsuario() {
-  // STATE =======================================
+  // ===================================================================================
   const [usuarios, setUsuarios] = useState<Core_Usuario[]>([]);
   const [usuario, setUsuario] = useState<Core_Usuario>();
 
@@ -48,13 +48,12 @@ export default function useListUsuario() {
   const [roles, setRoles] = useState<Core_Rol[]>([]);
   const [areas, setAreas] = useState<HD_Area[]>([]);
 
-  // nuevo payload cacheado
   const [usuarioModuloConfig, setUsuarioModuloConfig] =
     useState<ModConfigResponse | null>(null);
 
   const lastReqUserIdRef = useRef<number | null>(null);
 
-  // FETCH =======================================
+  // ===================================================================================
   const fetchUsuarios = async (roles_id: number[]) => {
     try {
       const data = await getUsuarios({ roles_id });
@@ -65,6 +64,7 @@ export default function useListUsuario() {
     }
   };
 
+  // ===================================================================================
   const fetchRol = async () => {
     try {
       const data = await getRoles();
@@ -74,6 +74,7 @@ export default function useListUsuario() {
     }
   };
 
+  // ===================================================================================
   const fetchAreas = async () => {
     try {
       const data = await getAreas();
@@ -83,19 +84,21 @@ export default function useListUsuario() {
     }
   };
 
+  // ===================================================================================
   useEffect(() => {
     fetchUsuarios([CoreRol_Id.SUPERADMIN, CoreRol_Id.ADMINISTRATIVO]);
     fetchRol();
     fetchAreas();
   }, []);
 
-  // HANDLERS ====================================
+  // ===================================================================================
   const onCloseAdministrativo = () => {
     setOpenAdministrativo(false);
     setUsuario(undefined);
     form.resetFields();
   };
 
+  // ===================================================================================
   const onCloseModulo = () => {
     setOpenModulo(false);
     setUsuarioModuloConfig(null);
@@ -103,6 +106,7 @@ export default function useListUsuario() {
     lastReqUserIdRef.current = null;
   };
 
+  // ===================================================================================
   const onFinishAdministrativo = async (values: Core_Usuario) => {
     try {
       if (usuario) {
@@ -128,6 +132,7 @@ export default function useListUsuario() {
     }
   };
 
+  // ===================================================================================
   const showDrawerModulo = async (usuario_id: number) => {
     // console.log("se abrio drawer modulo");
 
@@ -168,6 +173,7 @@ export default function useListUsuario() {
     }
   };
 
+  // ===================================================================================
   const showDrawerAdministrativo = async (usuario_id?: number) => {
     try {
       form.resetFields();
@@ -192,6 +198,7 @@ export default function useListUsuario() {
     }
   };
 
+  // ===================================================================================
   const onChangeTab = (tabKey: string) => {
     switch (tabKey) {
       case "administrativo":
@@ -205,6 +212,7 @@ export default function useListUsuario() {
     }
   };
 
+  // ===================================================================================
   const onFinishModulos = async (values: {
     adm?: { rol?: string };
     hd?: {
@@ -241,11 +249,10 @@ export default function useListUsuario() {
             : undefined;
 
         const area_id: number | undefined =
-          typeof values.hd.area_id === "number" ? values.hd.area_id : undefined; // opcional
+          typeof values.hd.area_id === "number" ? values.hd.area_id : undefined;
 
         if (rol === "nivel_5" || rol === "N5") {
           areas_id = undefined;
-          // subarea_id = undefined;
         } else if (rol === "nivel_4" || rol === "N4") {
           if (!areas_id || areas_id.length === 0) areas_id = undefined;
         } else {
@@ -256,9 +263,9 @@ export default function useListUsuario() {
         tareas.push(
           upsertUsuarioModulo(userId, "HD", {
             rol,
-            areas_id, // el back lo mapea a admin_area_ids
-            subarea_id, // vínculo principal del usuario
-            area_id, // opcional (si el back lo quiere explícito)
+            areas_id,
+            subarea_id,
+            area_id,
           })
         );
       }
@@ -270,7 +277,7 @@ export default function useListUsuario() {
 
       await Promise.all(tareas);
       message.success("Configuración de módulos actualizada.");
-      await showDrawerModulo(userId); // refresca con backend
+      await showDrawerModulo(userId);
     } catch (err) {
       console.error("onFinishModulos error => ", err);
       message.error("No se pudo actualizar la configuración.");
@@ -279,11 +286,12 @@ export default function useListUsuario() {
 
   return {
     usuario,
+    usuario_id: lastReqUserIdRef.current ?? usuario?.id ?? null,
+
     usuarios,
     openAdministrativo,
     roles,
 
-    // ⬇️ esto es lo que ahora necesita el Drawer
     usuarioModuloConfig,
     modules: usuarioModuloConfig?.modules ?? [],
 

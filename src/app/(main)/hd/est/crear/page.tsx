@@ -29,7 +29,7 @@ import {
 } from "@ant-design/icons";
 import { useRouter, useSearchParams } from "next/navigation";
 import { NormalizedError } from "@/services/api";
-import { hdErrorMap } from "@/features/hd/errors/errorMap.hd";
+import { hdErrorMap } from "@features/hd/errors/errorMap.hd";
 import { createTicketEstudiante } from "@services/hd";
 import { applyFormErrors } from "@/shared/ui/errors/applyFormErrors";
 import { handleApiError } from "@/shared/ui/errors/handleApiError";
