@@ -59,7 +59,7 @@ const ComponenteModal = forwardRef<ModalHandle, Props>(({ ticket }, ref) => {
       message.success("Solicitud enviada correctamente");
       form.resetFields();
       setIsModalOpen(false);
-      router.push("/ticket/soporte");
+      router.push("/hd/bandeja");
     } catch (error) {
       console.error("error =>", error);
       message.error("No se pudo derivar el ticket");

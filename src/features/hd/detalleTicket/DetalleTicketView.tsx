@@ -13,7 +13,6 @@ import {
   message,
 } from "antd";
 import type { UploadFile } from "antd/es/upload/interface";
-import CardDetalle from "../../usuario/detalleTicket/components/CardDetalle";
 import { CardOpcionesRapidas } from "./components/card";
 import CardArchivos from "./components/CardArchivos";
 import CardCalificacion from "./components/CardCalificacion";
@@ -33,6 +32,7 @@ import {
 import { useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { HD_Ticket } from "@interfaces/hd";
+import CardDetalle from "../usuario/detalleTicket/components/CardDetalle";
 
 const { Text, Title } = Typography;
 

@@ -84,8 +84,10 @@ export default function DrawerModulosUsuario({
   ];
 
   const roleOptionsTP = [
-    { label: "Administrativo", value: "administrativo" },
+    { label: "Supervisor", value: "supervisor" },
     { label: "Personal de salud", value: "per_salud" },
+    { label: "Administrativo", value: "administrativo" },
+    { label: "Estudiante", value: "estudiante" },
   ];
 
   const items = [

@@ -25,10 +25,10 @@ import {
   Affix,
   theme,
   Skeleton,
-  Result,
   Modal,
   Table,
   DatePicker,
+  Select,
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import {
@@ -42,8 +42,8 @@ import {
   PlusOutlined,
 } from "@ant-design/icons";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
-import dayjs from "dayjs";
+import { useParams } from "next/navigation";
+import dayjs, { Dayjs } from "dayjs";
 
 // Servicios
 import {
@@ -53,22 +53,8 @@ import {
   updateInventario,
   updateLote,
 } from "@services/tp/inventario";
-import { TP_InventarioLote } from "@interfaces/tp";
-
-// Tipos
-type Inventario = {
-  id: number;
-  codigo: string;
-  codigoBarras?: string | null;
-  nombre: string;
-  unidadBase?: string | null;
-  esPerecible: boolean;
-  stockGlobal: number;
-  stockMinimo?: number | null;
-  ubicacion?: string | null;
-  activo: boolean;
-  notas?: string | null;
-};
+import { TP_Inventario, TP_InventarioLote, TP_Ubicacion } from "@interfaces/tp";
+import { getUbicaciones, createUbicacion } from "@services/tp/ubicacion";
 
 type FormValues = {
   nombre: string;
@@ -80,36 +66,131 @@ type FormValues = {
   notas?: string;
 };
 
-type LoteRow = {
-  id: number;
-  inventario_id: number;
+// Form de Lote: tipado explícito para asegurar ubicacion_id number|null
+type LoteFormValues = {
   codigoLote: string;
-  codigoBarras?: string | null;
-  fechaVencimiento?: string | null;
-  cantidad: number;
-  estado: "ACTIVO" | "INACTIVO";
+  fechaVencimiento?: Dayjs;
+  cantidad?: number;
+  estado?: boolean; // true => ACTIVO
   ubicacion_id?: number | null;
 };
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Modal local: Crear Ubicación
+// ──────────────────────────────────────────────────────────────────────────────
+function NuevaUbicacionModal({
+  open,
+  onCancel,
+  onCreated,
+}: {
+  open: boolean;
+  onCancel: () => void;
+  onCreated: (u: TP_Ubicacion) => void;
+}) {
+  const [formUbic] = Form.useForm<{
+    nombre: string;
+    descripcion?: string;
+    direccion?: string;
+    tipo?: string;
+  }>();
+  const [saving, setSaving] = useState(false);
+
+  const handleOk = async () => {
+    try {
+      const values = await formUbic.validateFields();
+      setSaving(true);
+      const payload: Partial<TP_Ubicacion> = {
+        nombre: values.nombre.trim(),
+        descripcion: values.descripcion?.trim() || undefined,
+        direccion: values.direccion?.trim() || undefined,
+        tipo: values.tipo?.trim() || undefined,
+      };
+      const created = await createUbicacion(payload);
+      message.success("Ubicación creada.");
+      onCreated(created);
+      formUbic.resetFields();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (e: any) {
+      if (e?.errorFields) return;
+      message.error("No se pudo crear la ubicación.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Modal
+      open={open}
+      title="Nueva ubicación"
+      okText="Guardar"
+      cancelText="Cancelar"
+      onCancel={() => !saving && onCancel()}
+      onOk={handleOk}
+      confirmLoading={saving}
+    >
+      <Form form={formUbic} layout="vertical" preserve={false}>
+        <Form.Item
+          label="Nombre"
+          name="nombre"
+          rules={[
+            { required: true, message: "Ingrese el nombre" },
+            { max: 100, message: "Máximo 100 caracteres" },
+          ]}
+        >
+          <Input placeholder="Ej: Almacén Central / Estante A-3" />
+        </Form.Item>
+        <Form.Item
+          label="Descripción"
+          name="descripcion"
+          rules={[{ max: 200, message: "Máximo 200 caracteres" }]}
+        >
+          <Input placeholder="Referencia breve" />
+        </Form.Item>
+        <Form.Item
+          label="Dirección"
+          name="direccion"
+          rules={[{ max: 200, message: "Máximo 200 caracteres" }]}
+        >
+          <Input placeholder="(Opcional) Ubicación física" />
+        </Form.Item>
+        <Form.Item
+          label="Tipo"
+          name="tipo"
+          rules={[{ max: 50, message: "Máximo 50 caracteres" }]}
+        >
+          <Input placeholder="Ej: almacén, anaquel, aula" />
+        </Form.Item>
+      </Form>
+    </Modal>
+  );
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
 
 export default function InventarioDetailPage() {
   const params = useParams<{ id: string }>();
   const id = Number(params?.id);
-  const router = useRouter();
 
-  const [editingLote, setEditingLote] = useState<LoteRow | null>(null);
+  const [editingLote, setEditingLote] = useState<TP_InventarioLote | null>(
+    null
+  );
   const [form] = Form.useForm<FormValues>();
   const [mode, setMode] = useState<"ver" | "editar">("ver");
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [notFound, setNotFound] = useState(false);
-  const [data, setData] = useState<Inventario | null>(null);
+  const [data, setData] = useState<TP_Inventario | null>(null);
 
   // Lotes
   const [loteModalOpen, setLoteModalOpen] = useState(false);
-  const [lotes, setLotes] = useState<LoteRow[]>([]);
+  const [lotes, setLotes] = useState<TP_InventarioLote[]>([]);
   const [loadingLotes, setLoadingLotes] = useState(false);
   const [creatingLote, setCreatingLote] = useState(false);
-  const [loteForm] = Form.useForm();
+  const [loteForm] = Form.useForm<LoteFormValues>();
+
+  // Ubicaciones (para lotes)
+  const [ubicLoading, setUbicLoading] = useState(false);
+  const [ubicaciones, setUbicaciones] = useState<TP_Ubicacion[]>([]);
+  const [ubicModalOpen, setUbicModalOpen] = useState(false);
 
   const topRef = useRef<HTMLDivElement | null>(null);
   const { token } = theme.useToken();
@@ -119,14 +200,11 @@ export default function InventarioDetailPage() {
     return data.stockMinimo != null && data.stockGlobal < data.stockMinimo;
   }, [data]);
 
-  const editMode = mode === "editar";
-
   // Cargar detalle
   useEffect(() => {
     let mounted = true;
     const load = async () => {
       if (!Number.isFinite(id)) {
-        setNotFound(true);
         setLoading(false);
         return;
       }
@@ -142,15 +220,15 @@ export default function InventarioDetailPage() {
           ubicacion: res.ubicacion ?? undefined,
           esPerecible: res.esPerecible,
           activo: res.activo,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           notas: (res as any).notas ?? undefined,
         });
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (e: any) {
+        console.log("e =>", e);
+
         if (!mounted) return;
-        if (e?.code === "TP_INVENTARIO_NOT_FOUND") {
-          setNotFound(true);
-        } else {
-          message.error("No se pudo cargar el inventario.");
-        }
+        message.error("No se pudo cargar el inventario.");
       } finally {
         if (mounted) setLoading(false);
       }
@@ -161,26 +239,50 @@ export default function InventarioDetailPage() {
     };
   }, [id, form]);
 
+  // Cargar ubicaciones (para Lotes)
+  useEffect(() => {
+    const loadUbic = async () => {
+      try {
+        setUbicLoading(true);
+        const res = await getUbicaciones();
+        setUbicaciones(Array.isArray(res) ? res : []);
+      } catch (e) {
+        console.error("getUbicaciones error =>", e);
+        setUbicaciones([]);
+        message.warning("No se pudieron cargar las ubicaciones.");
+      } finally {
+        setUbicLoading(false);
+      }
+    };
+    loadUbic();
+  }, []);
+
+  const ubicacionMap = useMemo(() => {
+    const m = new Map<number, string>();
+    for (const u of ubicaciones) m.set(Number(u.id), u.nombre);
+    return m;
+  }, [ubicaciones]);
+
   // Guardar inventario
   const handleSave = async () => {
     if (!data) return;
     try {
       setSaving(true);
       const values = await form.validateFields();
-      const payload: Partial<Inventario> = {
+      const payload: Partial<TP_Inventario> = {
         nombre: values.nombre?.trim(),
         unidadBase: values.unidadBase ?? null,
         stockMinimo:
           typeof values.stockMinimo === "number" ? values.stockMinimo : null,
-        ubicacion: values.ubicacion ?? null,
+        ubicacion: values.ubicacion ?? null, // a nivel inventario (no perecibles)
         esPerecible: !!values.esPerecible,
         activo: values.activo !== false,
-        notas: values.notas ?? null,
       };
       const updated = await updateInventario(data.id, payload);
       setData(updated);
       message.success("Inventario actualizado.");
       setMode("ver");
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (e: any) {
       if (e?.errorFields) return;
       message.error("No se pudo actualizar el inventario.");
@@ -216,19 +318,24 @@ export default function InventarioDetailPage() {
     }
   };
 
-  const handleSubmitLote = async (values: Partial<TP_InventarioLote>) => {
+  const handleSubmitLote = async (values: LoteFormValues) => {
     if (!data) return;
 
     const payload = {
       inventario_id: data.id,
       codigoLote: values.codigoLote?.trim(),
       fechaVencimiento: values.fechaVencimiento
-        ? (values.fechaVencimiento as any).toDate?.() ?? values.fechaVencimiento
+        ? values.fechaVencimiento.toDate()
         : null,
       cantidad: typeof values.cantidad === "number" ? values.cantidad : 0,
       estado: values.estado ? "ACTIVO" : "INACTIVO",
-      ubicacion_id: values.ubicacion_id ?? null,
+      // IMPORTANT: antd Select ya devuelve number porque options usan Number(u.id)
+      // si viene undefined => lo mandamos como null
+      ubicacion_id:
+        typeof values.ubicacion_id === "number" ? values.ubicacion_id : null,
     };
+
+    console.debug("Lote payload =>", payload); // quítalo en prod
 
     try {
       setCreatingLote(true);
@@ -242,9 +349,6 @@ export default function InventarioDetailPage() {
       loteForm.resetFields();
       setEditingLote(null);
       await loadLotes();
-      // Si recalculas stockGlobal en backend, podrías refrescar:
-      // const refresh = await getInventario(data.id);
-      // setData(refresh);
     } catch {
       message.error(
         editingLote
@@ -256,23 +360,8 @@ export default function InventarioDetailPage() {
     }
   };
 
-  if (notFound) {
-    return (
-      <Result
-        status="404"
-        title="Inventario no encontrado"
-        subTitle="Verifica el identificador o vuelve al listado."
-        extra={
-          <Button type="primary" onClick={() => router.push("/inventario")}>
-            Ir al listado
-          </Button>
-        }
-      />
-    );
-  }
-
-  // Columnas con anchos para evitar desbordes
-  const loteColumns: ColumnsType<LoteRow> = [
+  // Columnas con nombre de ubicación (no ID)
+  const loteColumns: ColumnsType<TP_InventarioLote> = [
     {
       title: "Código lote",
       dataIndex: "codigoLote",
@@ -298,15 +387,27 @@ export default function InventarioDetailPage() {
       title: "Ubicación",
       dataIndex: "ubicacion_id",
       key: "ubicacion",
-      render: (v) =>
-        v != null ? (
-          `ID ${v}`
+      render: (v: number | null | undefined) => {
+        if (v == null)
+          return (
+            <Typography.Text type="secondary">Sin ubicación</Typography.Text>
+          );
+        const nombre = ubicacionMap.get(Number(v));
+        return nombre ? (
+          <Typography.Text>{nombre}</Typography.Text>
         ) : (
-          <Typography.Text type="secondary">Sin ubicación</Typography.Text>
-        ),
+          <Typography.Text type="secondary">ID {v}</Typography.Text>
+        );
+      },
       sorter: (a, b) =>
         (a.ubicacion_id ?? Number.MAX_SAFE_INTEGER) -
         (b.ubicacion_id ?? Number.MAX_SAFE_INTEGER),
+      filters: [
+        { text: "Con ubicación", value: "con" },
+        { text: "Sin ubicación", value: "sin" },
+      ],
+      onFilter: (val, row) =>
+        val === "con" ? row.ubicacion_id != null : row.ubicacion_id == null,
     },
     {
       title: "Estado",
@@ -335,7 +436,8 @@ export default function InventarioDetailPage() {
                   ? dayjs(r.fechaVencimiento)
                   : undefined,
                 cantidad: r.cantidad,
-                ubicacion_id: r.ubicacion_id ?? undefined,
+                ubicacion_id:
+                  r.ubicacion_id != null ? Number(r.ubicacion_id) : undefined,
                 estado: r.estado === "ACTIVO",
               });
             }}
@@ -400,7 +502,7 @@ export default function InventarioDetailPage() {
                   disabled={loading || !data}
                 />
 
-                {editMode ? (
+                {mode === "editar" ? (
                   <>
                     <Button
                       icon={<RollbackOutlined />}
@@ -522,11 +624,7 @@ export default function InventarioDetailPage() {
                 <Skeleton active paragraph={{ rows: 3 }} />
               ) : (
                 <Typography.Paragraph style={{ marginBottom: 0 }}>
-                  {data.notas ?? (
-                    <Typography.Text type="secondary">
-                      Sin notas registradas.
-                    </Typography.Text>
-                  )}
+                  {/* notas opcionales */}
                 </Typography.Paragraph>
               )}
             </Card>
@@ -538,15 +636,15 @@ export default function InventarioDetailPage() {
               className="shadow-sm"
               title="Editar inventario"
               extra={
-                <Tag color={editMode ? "gold" : "default"}>
-                  {editMode ? "Modo edición" : "Solo lectura"}
+                <Tag color={mode === "editar" ? "gold" : "default"}>
+                  {mode === "editar" ? "Modo edición" : "Solo lectura"}
                 </Tag>
               }
             >
               <Form<FormValues>
                 form={form}
                 layout="vertical"
-                disabled={!editMode || loading || !data}
+                disabled={mode !== "editar" || loading || !data}
                 initialValues={{ activo: true, esPerecible: false }}
               >
                 <Row gutter={[16, 12]}>
@@ -655,8 +753,7 @@ export default function InventarioDetailPage() {
                 </Row>
               </Form>
 
-              {/* Oculta acciones cuando el modal está abierto */}
-              {editMode && !loteModalOpen && (
+              {mode === "editar" && !loteModalOpen && (
                 <>
                   <Divider style={{ margin: 0 }} />
                   <Space
@@ -705,9 +802,8 @@ export default function InventarioDetailPage() {
           setEditingLote(null);
           loteForm.resetFields();
         }}
-        width={880}
+        width={900}
         footer={null}
-        destroyOnClose
       >
         <Card
           size="small"
@@ -719,11 +815,11 @@ export default function InventarioDetailPage() {
           }
           style={{ marginBottom: 12 }}
         >
-          <Table<LoteRow>
+          <Table<TP_InventarioLote>
             rowKey="id"
             columns={loteColumns}
             dataSource={lotes}
-            loading={loadingLotes}
+            loading={loadingLotes || ubicLoading}
             size="middle"
             tableLayout="fixed"
             scroll={{ x: "max-content" }}
@@ -740,7 +836,7 @@ export default function InventarioDetailPage() {
             </Space>
           }
         >
-          <Form
+          <Form<LoteFormValues>
             layout="vertical"
             form={loteForm}
             onFinish={handleSubmitLote}
@@ -792,9 +888,35 @@ export default function InventarioDetailPage() {
                 <Form.Item
                   label="Ubicación (opcional)"
                   name="ubicacion_id"
-                  tooltip="Si manejas ubicaciones"
+                  tooltip="Catálogo TP_Ubicacion"
                 >
-                  <Input placeholder="ID ubicación (opcional)" />
+                  <Select
+                    allowClear
+                    placeholder="Seleccione una ubicación"
+                    loading={ubicLoading}
+                    options={ubicaciones.map((u) => ({
+                      label: u.nombre,
+                      value: Number(u.id), // asegura number
+                    }))}
+                    showSearch
+                    optionFilterProp="label"
+                    dropdownRender={(menu) => (
+                      <div>
+                        {menu}
+                        <Divider style={{ margin: "8px 0" }} />
+                        <div style={{ padding: "0 8px 8px" }}>
+                          <Button
+                            block
+                            type="dashed"
+                            icon={<PlusOutlined />}
+                            onClick={() => setUbicModalOpen(true)}
+                          >
+                            Nueva ubicación
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  />
                 </Form.Item>
               </Col>
 
@@ -807,10 +929,7 @@ export default function InventarioDetailPage() {
               <Col
                 xs={24}
                 md={7}
-                style={{
-                  display: "flex",
-                  alignItems: "end",
-                }}
+                style={{ display: "flex", alignItems: "end" }}
               >
                 <Space style={{ marginTop: 4 }}>
                   {editingLote && (
@@ -839,6 +958,22 @@ export default function InventarioDetailPage() {
           </Form>
         </Card>
       </Modal>
+
+      {/* Modal crear ubicación (para lotes) */}
+      <NuevaUbicacionModal
+        open={ubicModalOpen}
+        onCancel={() => setUbicModalOpen(false)}
+        onCreated={(created) => {
+          // agregar ordenado y preseleccionar
+          setUbicaciones((prev) =>
+            [...prev, created].sort((a, b) =>
+              a.nombre.localeCompare(b.nombre, "es", { sensitivity: "base" })
+            )
+          );
+          loteForm.setFieldsValue({ ubicacion_id: Number(created.id) });
+          setUbicModalOpen(false);
+        }}
+      />
     </div>
   );
 }
