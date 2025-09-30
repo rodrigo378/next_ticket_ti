@@ -34,9 +34,8 @@ export default function useBandeja() {
   const onChangeTabs = (key: string) => {
     setTabKey(key);
     if (key === "mis_tickets") fetchTickets("true", ["2", "3"]);
-    else if (key === "grupo")
-      fetchTickets(undefined, ["1", "2", "3", "5", "7"]);
-    else if (key === "finalizados") fetchTickets(undefined, ["4"]);
+    else if (key === "grupo") fetchTickets(undefined, ["1", "2", "3", "5"]);
+    else if (key === "finalizados") fetchTickets(undefined, ["4", "6", "7"]);
   };
 
   return {
