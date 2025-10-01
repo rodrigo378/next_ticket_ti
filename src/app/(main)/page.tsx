@@ -1,4 +1,4 @@
-import DashboardAreaUMA from "@/features/hd/dashboart/principal/Dashboard";
+import DashboardAreaUMA from "@features/hd/dashboard/Dashboard";
 
 export default function Page() {
   return (

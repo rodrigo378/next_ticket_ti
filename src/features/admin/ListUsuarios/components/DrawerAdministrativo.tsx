@@ -27,7 +27,6 @@ export default function DrawerAdministrativo({
       width={500}
       onClose={onCloseAdministrativo}
       open={openAdministrativo}
-      destroyOnClose
     >
       <Form form={form} layout="vertical" onFinish={onFinishAdministrativo}>
         <Form.Item name="nombre" label="Nombre" rules={[{ required: true }]}>

@@ -10,14 +10,14 @@ import DrawerModulosUsuario from "./components/DrawerModulo";
 
 export default function ListUsuarioView() {
   const {
+    usuario_id,
     usuario,
     usuarios,
     roles,
     openAdministrativo,
     form,
     formModules,
-    // usuarioModulo, // ❌ ya no se usa
-    modules, // ✅ ahora usamos modules del hook
+    modules,
     areas,
     onCloseAdministrativo,
     showDrawerAdministrativo,
@@ -65,6 +65,7 @@ export default function ListUsuarioView() {
       />
 
       <DrawerModulosUsuario
+        usuario_id={usuario_id}
         open={openModulo}
         onClose={onCloseModulo}
         formModules={formModules}

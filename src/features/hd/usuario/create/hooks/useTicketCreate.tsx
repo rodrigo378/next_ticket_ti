@@ -17,7 +17,7 @@ import {
   getCatalogo,
   getIncidencias,
 } from "@services/hd";
-import { hdErrorMap } from "@/features/hd/errors/errorMap.hd";
+import { hdErrorMap } from "@features/hd/errors/errorMap.hd";
 import { applyFormErrors } from "@/shared/ui/errors/applyFormErrors";
 import { handleApiError } from "@/shared/ui/errors/handleApiError";
 
@@ -42,25 +42,45 @@ export function useTicketCreate() {
   const [incidencias, setIncidencias] = useState<HD_Incidencia[]>([]);
   const [fileList, setFileList] = useState<UploadFile[]>([]);
 
+  // NEW: banderas de carga para selects
+  const [loadingAreas, setLoadingAreas] = useState(false);
+  const [loadingCatalogo, setLoadingCatalogo] = useState(false);
+  const [loadingIncidencias, setLoadingIncidencias] = useState(false);
+
   const tipo = Form.useWatch<string | undefined>("tipo", form);
   const catalogoId = Form.useWatch<number | undefined>(
     "catalogo_servicio_id",
     form
   );
 
+  // Cargar áreas
   useEffect(() => {
-    getAreas().then(setAreas);
+    (async () => {
+      setLoadingAreas(true);
+      try {
+        const data = await getAreas();
+        setAreas(data);
+      } catch {
+        message.error("Error al cargar áreas");
+      } finally {
+        setLoadingAreas(false);
+      }
+    })();
   }, []);
 
+  // Cargar incidencias cuando hay tipo + catálogo
   useEffect(() => {
     if (!tipo || !catalogoId) return;
     let abort = false;
+    setLoadingIncidencias(true);
     (async () => {
       try {
         const data = await getIncidencias(tipo, String(catalogoId));
         if (!abort) setIncidencias(data);
       } catch {
         if (!abort) message.error("Error al cargar incidencias");
+      } finally {
+        if (!abort) setLoadingIncidencias(false);
       }
     })();
     return () => {
@@ -68,11 +88,19 @@ export function useTicketCreate() {
     };
   }, [tipo, catalogoId, form]);
 
+  // Cargar catálogo por área
   const fetchCatalogo = useCallback(async (areaId: number) => {
     setCatalogo([]);
     setIncidencias([]);
-    const data = await getCatalogo(String(areaId));
-    setCatalogo(data);
+    setLoadingCatalogo(true);
+    try {
+      const data = await getCatalogo(String(areaId));
+      setCatalogo(data);
+    } catch {
+      message.error("Error al cargar catálogo");
+    } finally {
+      setLoadingCatalogo(false);
+    }
   }, []);
 
   const isStep1Complete = REQUIRED_STEP1_FIELDS.every((n) =>
@@ -146,7 +174,7 @@ export function useTicketCreate() {
     ],
     [current, isStep1Complete, form]
   );
-  // http://localhost:4000/hd/ticket/soporte/1
+
   return {
     form,
     current,
@@ -161,5 +189,9 @@ export function useTicketCreate() {
     setFileList,
     stepItems,
     fetchCatalogo,
+    // loading flags expuestas
+    loadingAreas,
+    loadingCatalogo,
+    loadingIncidencias,
   };
 }

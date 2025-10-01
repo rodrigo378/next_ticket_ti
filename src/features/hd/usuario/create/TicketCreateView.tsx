@@ -25,6 +25,10 @@ export default function TicketCreateView() {
     setFileList,
     stepItems,
     fetchCatalogo,
+    // ⬇️ nuevos flags de carga del hook
+    loadingAreas,
+    loadingCatalogo,
+    loadingIncidencias,
   } = useTicketCreate();
 
   const renderStep = () =>
@@ -35,6 +39,10 @@ export default function TicketCreateView() {
         catalogo={catalogo}
         incidencias={incidencias}
         fetchCatalogo={fetchCatalogo}
+        // ⬇️ pásalos al Step_0
+        loadingAreas={loadingAreas}
+        loadingCatalogo={loadingCatalogo}
+        loadingIncidencias={loadingIncidencias}
       />
     ) : current === 1 ? (
       <Step_1 fileList={fileList} setFileList={setFileList} />

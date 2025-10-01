@@ -1,5 +1,5 @@
 import { HD_Area, HD_CatalogoServicio, HD_Incidencia } from "@interfaces/hd";
-import { Col, Form, FormInstance, Row, Select } from "antd";
+import { Col, Form, FormInstance, Row, Select, Spin } from "antd";
 
 interface Props {
   form: FormInstance;
@@ -7,6 +7,10 @@ interface Props {
   incidencias: HD_Incidencia[];
   catalogo: HD_CatalogoServicio[];
   fetchCatalogo: (area_id: number) => void;
+  // nuevas props de carga
+  loadingAreas: boolean;
+  loadingCatalogo: boolean;
+  loadingIncidencias: boolean;
 }
 
 export default function Step_0({
@@ -15,6 +19,9 @@ export default function Step_0({
   incidencias,
   catalogo,
   fetchCatalogo,
+  loadingAreas,
+  loadingCatalogo,
+  loadingIncidencias,
 }: Props) {
   const catalogo_id = Form.useWatch<number | undefined>(
     "catalogo_servicio_id",
@@ -34,7 +41,6 @@ export default function Step_0({
       categoria_id: undefined,
     });
     fetchCatalogo(area_id);
-    console.log("form => ", form.getFieldValue);
   };
 
   const handleCatalogoChange = () => {
@@ -44,10 +50,6 @@ export default function Step_0({
       categoria_id: undefined,
     });
   };
-
-  // const handleIncidenciaChange = () => {
-  //   form.setFieldsValue({ categoria_id: undefined });
-  // };
 
   const labelIncidenciaRequerimiento =
     tipo === "incidencia"
@@ -60,7 +62,7 @@ export default function Step_0({
     <>
       <Row gutter={16}>
         <Col xs={24} md={12}>
-          {/* Select de area */}
+          {/* Select de área */}
           <Form.Item
             label="Área"
             name="area_id"
@@ -74,9 +76,17 @@ export default function Step_0({
               showSearch
               optionFilterProp="label"
               className="w-full"
+              loading={loadingAreas}
+              notFoundContent={
+                loadingAreas ? (
+                  <div className="py-3 text-center">
+                    <Spin size="small" /> Cargando áreas...
+                  </div>
+                ) : null
+              }
             >
               {areas
-                .filter((a) => a.id === 1)
+                .filter((a) => [1, 2, 5, 8].includes(a.id))
                 .map((area) => (
                   <Select.Option
                     key={area.id}
@@ -91,7 +101,7 @@ export default function Step_0({
         </Col>
 
         <Col xs={24} md={12}>
-          {/* select de catalogo */}
+          {/* Select de catálogo */}
           <Form.Item
             label="Catálogo de Servicio"
             name="catalogo_servicio_id"
@@ -100,10 +110,18 @@ export default function Step_0({
             <Select
               placeholder="Selecciona catálogo"
               size="large"
-              disabled={!form.getFieldValue("area_id")}
+              disabled={!form.getFieldValue("area_id") || loadingCatalogo}
+              loading={loadingCatalogo}
               onChange={handleCatalogoChange}
               showSearch
               optionFilterProp="label"
+              notFoundContent={
+                loadingCatalogo ? (
+                  <div className="py-3 text-center">
+                    <Spin size="small" /> Cargando catálogo...
+                  </div>
+                ) : null
+              }
             >
               {catalogo.map((cat) => (
                 <Select.Option key={cat.id} value={cat.id} label={cat.nombre}>
@@ -117,6 +135,7 @@ export default function Step_0({
 
       <Row gutter={16}>
         <Col xs={24} md={12}>
+          {/* Select tipo */}
           <Form.Item label="Tipo de solicitud" required>
             <div className="mb-2 text-gray-500 text-sm">
               <span className="italic">
@@ -133,7 +152,7 @@ export default function Step_0({
               <Select
                 placeholder="Selecciona tipo"
                 size="large"
-                disabled={!catalogo_id}
+                disabled={!catalogo_id || loadingIncidencias || loadingCatalogo}
               >
                 <Select.Option value="incidencia">Incidencia</Select.Option>
                 <Select.Option value="requerimiento">
@@ -145,6 +164,7 @@ export default function Step_0({
         </Col>
 
         <Col xs={24} md={12}>
+          {/* Select incidencia/requerimiento */}
           <Form.Item
             label={labelIncidenciaRequerimiento}
             name="incidencia_id"
@@ -158,10 +178,18 @@ export default function Step_0({
             <Select
               placeholder={`Selecciona ${labelIncidenciaRequerimiento}`}
               size="large"
-              disabled={!tipo}
-              // onChange={handleIncidenciaChange}
+              disabled={!tipo || loadingIncidencias}
+              loading={loadingIncidencias}
               showSearch
               optionFilterProp="label"
+              notFoundContent={
+                loadingIncidencias ? (
+                  <div className="py-3 text-center">
+                    <Spin size="small" /> Cargando{" "}
+                    {labelIncidenciaRequerimiento.toLowerCase()}...
+                  </div>
+                ) : null
+              }
             >
               {incidencias.map((i) => (
                 <Select.Option key={i.id} value={i.id} label={i.nombre}>
@@ -175,6 +203,7 @@ export default function Step_0({
 
       <Row gutter={16}>
         <Col xs={24} md={12}>
+          {/* Select categoría */}
           <Form.Item
             label={
               <div className="flex items-center gap-2">
@@ -187,7 +216,7 @@ export default function Step_0({
             <Select
               placeholder="Selecciona categoría"
               size="large"
-              disabled={!incidencia_id}
+              disabled={!incidencia_id || loadingIncidencias}
               showSearch
               optionFilterProp="label"
             >
