@@ -17,6 +17,8 @@ import {
   theme,
   Space,
   Rate,
+  Grid,
+  List,
 } from "antd";
 import {
   SearchOutlined,
@@ -27,7 +29,8 @@ import {
   FilterOutlined,
   ExclamationCircleOutlined,
 } from "@ant-design/icons";
-import type { ColumnsType } from "antd/es/table";
+import type { ColumnsType, ColumnType } from "antd/es/table";
+import type { Breakpoint } from "antd/es/_util/responsiveObserver";
 import { useRouter } from "next/navigation";
 import dayjs from "@shared/date/dayjs";
 import { HD_Ticket } from "@interfaces/hd";
@@ -35,6 +38,7 @@ import { getTicketsMe } from "@services/hd";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
+const { useBreakpoint } = Grid;
 
 const fmt = (iso: string) => dayjs(iso).format("DD/MM/YYYY HH:mm");
 
@@ -71,9 +75,39 @@ type RowUI = {
   calificacion?: number | null;
 };
 
+// Helpers responsive tipados
+const ALL_BP: Breakpoint[] = ["xs", "sm", "md", "lg", "xl"];
+const DESK_BP: Breakpoint[] = ["sm", "md", "lg", "xl"];
+
+/* Tag con ellipsis real (sin tooltip nativo que se “despegue”) */
+function EllipsisTag({
+  children,
+  maxWidth,
+}: {
+  children: React.ReactNode;
+  maxWidth?: number | string;
+}) {
+  return (
+    <Tag
+      className="m-0"
+      style={{ maxWidth: maxWidth ?? "100%", display: "inline-block" }}
+      title=""
+    >
+      <Typography.Text
+        ellipsis={{ tooltip: false }}
+        style={{ maxWidth: "100%", display: "inline-block" }}
+      >
+        {children}
+      </Typography.Text>
+    </Tag>
+  );
+}
+
 export default function TicketListStudentView() {
   const router = useRouter();
   const { token } = theme.useToken();
+  const screens = useBreakpoint();
+  const isMobile = !screens.md; // < md
 
   const [loading, setLoading] = useState(false);
   const [q, setQ] = useState<string>("");
@@ -89,6 +123,11 @@ export default function TicketListStudentView() {
   // contador de resueltos sin calificación (para el tab)
   const [pendientesFinalizados, setPendientesFinalizados] = useState<number>(0);
 
+  // Ajustes responsive de paginación
+  useEffect(() => {
+    setPageSize(isMobile ? 5 : 8);
+  }, [isMobile]);
+
   const fetchTickets = async (estados_id: string[]) => {
     setLoading(true);
     try {
@@ -103,14 +142,13 @@ export default function TicketListStudentView() {
       }
     } catch (err) {
       console.log("err => ", err);
-
       message.error("No se pudieron obtener tus tickets.");
     } finally {
       setLoading(false);
     }
   };
 
-  // Precarga: activos (1) + conteo de resueltos (4)
+  // Precarga: activos + conteo finalizados pendientes
   useEffect(() => {
     fetchTickets([String(ESTADO_ID.ABIERTO)]);
     (async () => {
@@ -157,13 +195,13 @@ export default function TicketListStudentView() {
         descripcion: t.descripcion ?? "",
         estadoCodigo: codigo,
         estadoNombre: t.estado?.nombre ?? ESTADO_META[codigo]?.label ?? codigo,
-        creado_en: t.createdAt as unknown as string,
+        creado_en: (t.createdAt as unknown as string) ?? "",
         calificacion: calif,
       };
     });
   }, [raw]);
 
-  // Filtros locales (texto + estado)
+  // Filtros locales
   const rowsFiltered = useMemo(() => {
     let data = rowsAll;
     if (q.trim()) {
@@ -205,47 +243,34 @@ export default function TicketListStudentView() {
     router.push(`/hd/est/${row.id}`);
   };
 
-  // Columnas
+  // Columnas (desktop)
   const baseColumns: ColumnsType<RowUI> = [
     {
       title: <span className="whitespace-nowrap">Código</span>,
       dataIndex: "codigo",
       key: "codigo",
       width: 120,
-      render: (v) => <Text strong>{v}</Text>,
+      render: (v: string) => <Text strong>{v}</Text>,
       onCell: () => ({ className: "whitespace-nowrap" }),
+      responsive: ALL_BP,
     },
     {
       title: <span className="whitespace-nowrap">Área</span>,
       dataIndex: "area_nombre",
       key: "area",
-      width: 220,
-      ellipsis: true,
-      render: (v) => (
-        <Tooltip title={v}>
-          <Tag
-            style={{
-              background: token.colorFillQuaternary,
-              borderColor: token.colorBorderSecondary,
-              color: token.colorText,
-              maxWidth: 200,
-              display: "inline-block",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-              verticalAlign: "middle",
-            }}
-          >
-            {v}
-          </Tag>
-        </Tooltip>
+      width: 240,
+      render: (v: string) => (
+        <div style={{ maxWidth: 220 }}>
+          <EllipsisTag maxWidth={220}>{v}</EllipsisTag>
+        </div>
       ),
+      responsive: DESK_BP, // oculto en xs en la tabla
     },
     {
       title: <span className="whitespace-nowrap">Estado</span>,
       key: "estado",
       width: 150,
-      render: (_, row) => {
+      render: (_: unknown, row: RowUI) => {
         const meta = ESTADO_META[row.estadoCodigo] || {
           label: row.estadoCodigo,
           color: "default",
@@ -256,6 +281,7 @@ export default function TicketListStudentView() {
           </Tooltip>
         );
       },
+      responsive: ALL_BP,
     },
     {
       title: <span className="whitespace-nowrap">Creado</span>,
@@ -271,26 +297,26 @@ export default function TicketListStudentView() {
       sorter: (a, b) =>
         dayjs(a.creado_en).valueOf() - dayjs(b.creado_en).valueOf(),
       defaultSortOrder: "descend",
+      responsive: DESK_BP, // oculto en xs
     },
   ];
 
-  const calificacionCol = {
+  const calificacionCol: ColumnType<RowUI> = {
     title: <span className="whitespace-nowrap">Calificación</span>,
     key: "calificacion",
     width: 180,
-    render: (row: RowUI) => {
-      const calif = row.calificacion;
-      return calif != null ? (
-        <Rate allowHalf disabled value={Number(calif)} />
+    render: (row: RowUI) =>
+      row.calificacion != null ? (
+        <Rate allowHalf disabled value={Number(row.calificacion)} />
       ) : (
         <Tag icon={<ExclamationCircleOutlined />} color="gold">
           Pendiente
         </Tag>
-      );
-    },
+      ),
+    responsive: DESK_BP,
   };
 
-  const accionesCol = {
+  const accionesCol: ColumnType<RowUI> = {
     title: <span className="whitespace-nowrap">Acciones</span>,
     key: "acciones",
     width: 110,
@@ -299,6 +325,7 @@ export default function TicketListStudentView() {
         Ver
       </Button>
     ),
+    responsive: ALL_BP,
   };
 
   const columnsActivos: ColumnsType<RowUI> = [...baseColumns, accionesCol];
@@ -317,6 +344,164 @@ export default function TicketListStudentView() {
     </span>
   );
 
+  // ---- Render responsive: Tabla en desktop / Lista en móvil ----
+  const renderTablaActivos = (
+    <Table<RowUI>
+      rowKey="id"
+      columns={columnsActivos}
+      dataSource={dataActivos}
+      loading={loading}
+      size={isMobile ? "small" : "middle"}
+      scroll={isMobile ? { x: 560 } : undefined}
+      pagination={{
+        current: activePage,
+        pageSize,
+        total: rowsFiltered.length,
+        showSizeChanger: !isMobile,
+        onChange: (p, ps) => {
+          setActivePage(p);
+          setPageSize(ps);
+        },
+        showTotal: (t) => `${t} ticket(s) activos`,
+        size: isMobile ? "small" : "default",
+      }}
+      locale={{
+        emptyText: (
+          <Empty
+            image={Empty.PRESENTED_IMAGE_SIMPLE}
+            description="No hay tickets activos"
+          />
+        ),
+      }}
+      tableLayout="fixed"
+      className="tabla-activos"
+    />
+  );
+
+  const renderTablaFinalizados = (
+    <Table<RowUI>
+      rowKey="id"
+      columns={columnsFinalizados}
+      dataSource={dataFinalizados}
+      loading={loading}
+      size={isMobile ? "small" : "middle"}
+      scroll={isMobile ? { x: 680 } : undefined}
+      pagination={{
+        current: finalPage,
+        pageSize,
+        total: rowsFiltered.length,
+        showSizeChanger: !isMobile,
+        onChange: (p, ps) => {
+          setFinalPage(p);
+          setPageSize(ps);
+        },
+        showTotal: (t) => `${t} ticket(s) finalizados`,
+        size: isMobile ? "small" : "default",
+      }}
+      locale={{
+        emptyText: (
+          <Empty
+            image={Empty.PRESENTED_IMAGE_SIMPLE}
+            description="No hay tickets finalizados"
+          />
+        ),
+      }}
+      tableLayout="fixed"
+      className="tabla-finalizados"
+      rowClassName={(row) => (row.calificacion == null ? "row-pendiente" : "")}
+    />
+  );
+
+  // Vista móvil como tarjetas
+  const renderList = (data: RowUI[], showRating?: boolean) => (
+    <List
+      dataSource={data}
+      loading={loading}
+      locale={{
+        emptyText: (
+          <Empty
+            image={Empty.PRESENTED_IMAGE_SIMPLE}
+            description={
+              showRating
+                ? "No hay tickets finalizados"
+                : "No hay tickets activos"
+            }
+          />
+        ),
+      }}
+      renderItem={(row) => {
+        const meta = ESTADO_META[row.estadoCodigo] || {
+          label: row.estadoCodigo,
+          color: "default",
+        };
+        return (
+          <List.Item className="p-0">
+            <Card
+              size="small"
+              className="w-full"
+              bordered
+              style={{ borderColor: token.colorBorderSecondary }}
+              bodyStyle={{ padding: 12 }}
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Text strong className="truncate">
+                      #{row.codigo}
+                    </Text>
+                    <Tag color={meta.color} className="m-0">
+                      {meta.label}
+                    </Tag>
+                  </div>
+
+                  <div
+                    className="mt-1 text-xs"
+                    style={{ color: token.colorTextSecondary }}
+                  >
+                    <FieldTimeOutlined className="mr-1" />
+                    {fmt(row.creado_en)}
+                  </div>
+
+                  <div className="mt-2 max-w-[78vw]">
+                    <EllipsisTag>{row.area_nombre}</EllipsisTag>
+                  </div>
+
+                  {showRating && (
+                    <div className="mt-2">
+                      {row.calificacion != null ? (
+                        <Rate
+                          allowHalf
+                          disabled
+                          value={Number(row.calificacion)}
+                        />
+                      ) : (
+                        <Tag icon={<ExclamationCircleOutlined />} color="gold">
+                          Pendiente
+                        </Tag>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <Button icon={<EyeOutlined />} onClick={() => onVer(row)}>
+                  Ver
+                </Button>
+              </div>
+            </Card>
+          </List.Item>
+        );
+      }}
+      pagination={{
+        current: tabKey === "activos" ? activePage : finalPage,
+        pageSize,
+        total: rowsFiltered.length,
+        onChange: (p) =>
+          tabKey === "activos" ? setActivePage(p) : setFinalPage(p),
+        size: "small",
+      }}
+    />
+  );
+
   return (
     <div
       className="min-h-[100dvh]"
@@ -326,14 +511,7 @@ export default function TicketListStudentView() {
     >
       {/* HERO */}
       <div className="mx-auto max-w-7xl px-4 pt-8">
-        <div
-          className="rounded-2xl p-[1px] shadow-lg"
-          style={
-            {
-              // background: `linear-gradient(135deg, ${token.colorPrimary}CC, ${token.colorPrimaryHover}CC 60%, ${token.colorPrimaryActive}CC)`,
-            }
-          }
-        >
+        <div className="rounded-2xl p-[1px] shadow-lg">
           <div
             className="rounded-2xl backdrop-blur-md px-6 py-6 md:px-10"
             style={{
@@ -382,10 +560,7 @@ export default function TicketListStudentView() {
       <div className="mx-auto max-w-7xl px-4 py-8">
         <Card
           className="rounded-2xl shadow-sm"
-          style={{
-            background: token.colorBgContainer,
-            // border: `1px solid ${token.colorBorderSecondary}`,
-          }}
+          style={{ background: token.colorBgContainer }}
         >
           {/* Filtros */}
           <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -438,71 +613,16 @@ export default function TicketListStudentView() {
               {
                 key: "activos",
                 label: "Activos",
-                children: (
-                  <Table<RowUI>
-                    rowKey="id"
-                    columns={columnsActivos}
-                    dataSource={dataActivos}
-                    loading={loading}
-                    pagination={{
-                      current: activePage,
-                      pageSize,
-                      total: rowsFiltered.length,
-                      showSizeChanger: true,
-                      onChange: (p, ps) => {
-                        setActivePage(p);
-                        setPageSize(ps);
-                      },
-                      showTotal: (t) => `${t} ticket(s) activos`,
-                    }}
-                    locale={{
-                      emptyText: (
-                        <Empty
-                          image={Empty.PRESENTED_IMAGE_SIMPLE}
-                          description="No hay tickets activos"
-                        />
-                      ),
-                    }}
-                    tableLayout="fixed"
-                    className="tabla-activos"
-                  />
-                ),
+                children: isMobile
+                  ? renderList(dataActivos, false)
+                  : renderTablaActivos,
               },
               {
                 key: "finalizados",
                 label: <FinalizadosLabel />,
-                children: (
-                  <Table<RowUI>
-                    rowKey="id"
-                    columns={columnsFinalizados}
-                    dataSource={dataFinalizados}
-                    loading={loading}
-                    pagination={{
-                      current: finalPage,
-                      pageSize,
-                      total: rowsFiltered.length,
-                      showSizeChanger: true,
-                      onChange: (p, ps) => {
-                        setFinalPage(p);
-                        setPageSize(ps);
-                      },
-                      showTotal: (t) => `${t} ticket(s) finalizados`,
-                    }}
-                    locale={{
-                      emptyText: (
-                        <Empty
-                          image={Empty.PRESENTED_IMAGE_SIMPLE}
-                          description="No hay tickets finalizados"
-                        />
-                      ),
-                    }}
-                    tableLayout="fixed"
-                    className="tabla-finalizados"
-                    rowClassName={(row) =>
-                      row.calificacion == null ? "row-pendiente" : ""
-                    }
-                  />
-                ),
+                children: isMobile
+                  ? renderList(dataFinalizados, true)
+                  : renderTablaFinalizados,
               },
             ]}
             tabBarGutter={10}

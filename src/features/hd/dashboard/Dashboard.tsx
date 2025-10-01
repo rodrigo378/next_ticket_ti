@@ -436,7 +436,6 @@ export default function DashboardAreaUMA() {
             </Col>
           </Row>
 
-          {/* <Card title="Resumen del día por estado" bodyStyle={{ height: 320 }}></Card> */}
           <Card
             title="Resumen del día por estado"
             // style={{ border: "2px solid red" }}
@@ -622,34 +621,28 @@ export default function DashboardAreaUMA() {
             </Select>
           </div>
 
-          <Card
-            title="Creados vs Cerrados (semanal)"
-            bodyStyle={{ height: 320 }}
-          >
+          <Card title="Creados vs Cerrados (semanal)">
             <Line data={creadosVsCerrados} options={commonOptions} />
           </Card>
 
           <Row gutter={[16, 16]}>
             <Col xs={24} md={12}>
-              <Card title="Evolución SLA (%)" bodyStyle={{ height: 300 }}>
+              <Card title="Evolución SLA (%)">
                 <Line data={evoSLA} options={commonOptions} />
               </Card>
             </Col>
             <Col xs={24} md={12}>
-              <Card title="Evolución TMA (min)" bodyStyle={{ height: 300 }}>
+              <Card title="Evolución TMA (min)">
                 <Line data={evoTMA} options={commonOptions} />
               </Card>
             </Col>
             <Col xs={24} md={12}>
-              <Card title="Evolución TMR (min)" bodyStyle={{ height: 300 }}>
+              <Card title="Evolución TMR (min)">
                 <Line data={evoTMR} options={commonOptions} />
               </Card>
             </Col>
             <Col xs={24} md={12}>
-              <Card
-                title="Evolución TMA asignación (min)"
-                bodyStyle={{ height: 300 }}
-              >
+              <Card title="Evolución TMA asignación (min)">
                 <Line data={evoTMAAsign} options={commonOptions} />
               </Card>
             </Col>
@@ -684,7 +677,7 @@ export default function DashboardAreaUMA() {
             </Select>
           </div>
 
-          <Card title="Top categorías" bodyStyle={{ height: 320 }}>
+          <Card title="Top categorías">
             <Bar data={topCategorias} options={commonOptions} />
           </Card>
 
@@ -715,10 +708,7 @@ export default function DashboardAreaUMA() {
             })}
           </Row>
 
-          <Card
-            title="Satisfacción (1–5 estrellas)"
-            bodyStyle={{ height: 320 }}
-          >
+          <Card title="Satisfacción (1–5 estrellas)">
             <Bar data={satisfaccion} options={commonOptions} />
           </Card>
         </div>
@@ -736,7 +726,7 @@ export default function DashboardAreaUMA() {
           </H1>
           <Text type="secondary">Snapshot (no depende de fechas)</Text>
 
-          <Card title="Backlog por estado" bodyStyle={{ height: 320 }}>
+          <Card title="Backlog por estado">
             <Bar data={backlogPorEstado} options={commonOptions} />
           </Card>
         </div>

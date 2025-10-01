@@ -17,6 +17,7 @@ import {
   Alert,
   Modal,
   theme,
+  Grid,
 } from "antd";
 import type { UploadFile } from "antd/es/upload/interface";
 import {
@@ -37,8 +38,9 @@ import { handleApiError } from "@/shared/ui/errors/handleApiError";
 const { Title, Text, Paragraph } = Typography;
 const { TextArea } = Input;
 const { Dragger } = Upload;
+const { useBreakpoint } = Grid;
 
-// ====== Tipos / Mocks ======
+/* ====== Tipos / Mocks ====== */
 export type AreaOption = { id: number; nombre: string };
 // Reemplaza por tu servicio real getAreas()
 async function getAreasMock(): Promise<AreaOption[]> {
@@ -47,12 +49,14 @@ async function getAreasMock(): Promise<AreaOption[]> {
     { id: 2, nombre: "Oficina de Coordinación académica (COA)" },
     { id: 3, nombre: "Oficina de Servicios académicos (OSAR)" },
     { id: 4, nombre: "Mesa de partes" },
+    { id: 5, nombre: "Tesorería (TES)" },
     { id: 6, nombre: "Defensoria Estudiante" },
-    { id: 7, nombre: "'Admisión'," },
+    { id: 7, nombre: "Admisión" },
+    { id: 8, nombre: "Educación (EV)" },
   ];
 }
 
-// ====== Constantes UI ======
+/* ====== Constantes UI ====== */
 const MAX_DESC = 800;
 const MIN_DESC = 10;
 const ACCEPTED_TYPES = [
@@ -68,7 +72,7 @@ const ACCEPTED_TYPES = [
 const MAX_SIZE_MB = 10;
 const MAX_FILES = 5;
 
-// ====== Helpers ======
+/* ====== Helpers ====== */
 const isBlank = (v?: string) => !v || v.trim().length === 0;
 const isValidDesc = (v?: string) =>
   !!v && v.trim().length >= MIN_DESC && v.trim().length <= MAX_DESC;
@@ -76,6 +80,9 @@ const isValidDesc = (v?: string) =>
 export default function TicketCreateStudentView() {
   const router = useRouter();
   const { token } = theme.useToken();
+  const screens = useBreakpoint();
+  const isMobile = !screens.md; // xs/sm
+  const isTablet = screens.md && !screens.lg;
 
   const [form] = Form.useForm();
   const [areas, setAreas] = useState<AreaOption[]>([]);
@@ -85,7 +92,7 @@ export default function TicketCreateStudentView() {
 
   const searchParams = useSearchParams();
 
-  // Cargar áreas
+  /* Cargar áreas */
   useEffect(() => {
     (async () => {
       try {
@@ -97,7 +104,7 @@ export default function TicketCreateStudentView() {
     })();
   }, []);
 
-  // Preselección de área por query ?area=ID
+  /* Preselección de área por query ?area=ID */
   useEffect(() => {
     if (!areas.length) return;
     const areaParam = searchParams.get("area");
@@ -108,14 +115,11 @@ export default function TicketCreateStudentView() {
     }
   }, [areas, searchParams, form]);
 
-  // const areaOptions = useMemo(
-  //   () => areas.map((a) => ({ label: a.nombre, value: a.id })),
-  //   [areas]
-  // );
+  /* Solo área con ID 1 (como dejaste) */
   const areaOptions = useMemo(
     () =>
       areas
-        .filter((a) => a.id === 1) // solo área con ID 1
+        .filter((a) => [1, 2, 5, 8].includes(a.id))
         .map((a) => ({ label: a.nombre, value: a.id })),
     [areas]
   );
@@ -123,7 +127,7 @@ export default function TicketCreateStudentView() {
   const getSelectedAreaLabel = (id?: number) =>
     id ? areaOptions.find((o) => o.value === id)?.label : undefined;
 
-  // Validaciones de adjuntos
+  /* Validaciones de adjuntos */
   const beforeUpload = (file: File) => {
     const isAllowedType =
       ACCEPTED_TYPES.includes(file.type) ||
@@ -170,7 +174,6 @@ export default function TicketCreateStudentView() {
 
       const res = await createTicketEstudiante(fd);
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       if ((res as any)?.codigo) {
         message.success(
           <>
@@ -202,7 +205,7 @@ export default function TicketCreateStudentView() {
 
   const canSubmit = !!selectedArea && isValidDesc(descValue) && !loading;
 
-  // Detectar cambios para confirmar limpieza
+  /* Detectar cambios para confirmar limpieza */
   useEffect(() => {
     setTouched(true);
   }, [selectedArea, descValue, fileList.length]);
@@ -227,10 +230,8 @@ export default function TicketCreateStudentView() {
     });
   };
 
-  // ====== Estilos con tokens ======
-  const wrapperStyle: React.CSSProperties = {
-    // background: `linear-gradient(90deg, ${token.colorPrimary} 0%, ${token.colorPrimaryHover} 50%, ${token.colorPrimaryActive} 100%)`,
-  };
+  /* ====== Estilos con tokens ====== */
+  const wrapperStyle: React.CSSProperties = {};
   const heroInnerStyle: React.CSSProperties = {
     background: token.colorBgContainer,
     border: `1px solid ${token.colorBorderSecondary}`,
@@ -250,39 +251,31 @@ export default function TicketCreateStudentView() {
       }}
     >
       {/* HERO / ENCABEZADO */}
-      <div className="mx-auto max-w-7xl px-4 pt-8">
+      <div className="mx-auto max-w-7xl px-4 pt-6 md:pt-8">
         <div className="rounded-2xl p-[1px] shadow-lg" style={wrapperStyle}>
           <div
-            className="rounded-2xl backdrop-blur-md px-6 py-6 md:px-10"
+            className={`rounded-2xl backdrop-blur-md px-4 py-5 md:px-10 md:py-6`}
             style={heroInnerStyle}
           >
-            <div className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
+            <div className="flex flex-col items-start justify-between gap-3 md:flex-row md:items-center md:gap-4">
               <div>
                 <Title
-                  level={3}
+                  level={isMobile ? 4 : 3}
                   className="m-0"
-                  style={{ color: titleColor, margin: 0 }}
+                  style={{ color: titleColor }}
                 >
-                  🎫 Crear Ticket — Estudiante
+                  🎫 Crear Ticket
                 </Title>
                 <Text style={{ color: secondaryText }}>
-                  Registra tu solicitud en pocos pasos. Nuestro equipo te
-                  contactará por correo institucional.
+                  Registra tu solicitud en pocos pasos. Te contactaremos por
+                  correo UMA.
                 </Text>
               </div>
               <div className="flex items-center gap-2">
-                <Tag
-                  color="blue"
-                  className="text-sm"
-                  aria-label="Mesa de Ayuda"
-                >
+                <Tag color="blue" className="text-xs md:text-sm">
                   Mesa de Ayuda
                 </Tag>
-                <Tag
-                  color="purple"
-                  className="text-sm"
-                  aria-label="Atención Estudiante"
-                >
+                <Tag color="purple" className="text-xs md:text-sm">
                   Atención Estudiante
                 </Tag>
                 <Tooltip title="Tus datos están protegidos">
@@ -291,13 +284,13 @@ export default function TicketCreateStudentView() {
               </div>
             </div>
             <Alert
-              className="mt-4"
+              className="mt-3 md:mt-4"
               type="info"
               showIcon
               message={
-                <span className="text-[13px]">
-                  <InfoCircleOutlined /> Respuesta por correo UMA. Revisa tu
-                  bandeja y spam.
+                <span className="text-[12px] md:text-[13px]">
+                  <InfoCircleOutlined /> Revisa tu correo institucional UMA (y
+                  spam).
                 </span>
               }
             />
@@ -306,7 +299,7 @@ export default function TicketCreateStudentView() {
       </div>
 
       {/* CONTENIDO */}
-      <div className="mx-auto max-w-7xl px-4 py-8">
+      <div className="mx-auto max-w-7xl px-4 py-6 md:py-8">
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
           {/* Columna principal */}
           <div className="lg:col-span-8 space-y-6">
@@ -326,7 +319,7 @@ export default function TicketCreateStudentView() {
                         style={{ color: secondaryText }}
                         className="text-xs ps-2"
                       >
-                        (Selecciona el destino de tu solicitud)
+                        (Destino de tu solicitud)
                       </Text>
                     </span>
                   }
@@ -338,8 +331,8 @@ export default function TicketCreateStudentView() {
                     options={areaOptions}
                     showSearch
                     optionFilterProp="label"
-                    size="large"
-                    autoFocus
+                    size={isMobile ? "middle" : "large"}
+                    autoFocus={!isMobile}
                     disabled={loading}
                     aria-label="Seleccionar área"
                   />
@@ -386,8 +379,8 @@ export default function TicketCreateStudentView() {
                   }
                 >
                   <TextArea
-                    rows={6}
-                    placeholder="Describe el problema con detalle. Si aplica, indica curso, sección, código de matrícula, navegador, etc."
+                    rows={isMobile ? 5 : isTablet ? 6 : 7}
+                    placeholder="Describe el problema con detalle. Curso, sección, navegador, etc."
                     disabled={loading}
                     aria-label="Descripción del problema"
                   />
@@ -411,6 +404,8 @@ export default function TicketCreateStudentView() {
                     itemRender={(origin) => origin}
                     disabled={loading}
                     aria-label="Cargar adjuntos"
+                    listType={isMobile ? "picture" : "text"}
+                    style={{ padding: isMobile ? 8 : 16 }}
                   >
                     <p className="ant-upload-drag-icon">
                       <InboxOutlined />
@@ -419,8 +414,7 @@ export default function TicketCreateStudentView() {
                       Arrastra y suelta archivos aquí
                     </p>
                     <p className="ant-upload-hint">
-                      PDF, imágenes, Word, Excel, TXT. Prioriza capturas que
-                      ayuden a entender el problema.
+                      PDF, imágenes, Word, Excel, TXT.
                     </p>
                     <p
                       className="m-0 text-xs"
@@ -431,15 +425,18 @@ export default function TicketCreateStudentView() {
                   </Dragger>
                 </Form.Item>
 
-                <Divider />
+                <Divider className="my-4 md:my-6" />
 
                 {/* Barra de acción sticky */}
                 <div className="sticky bottom-2 z-10">
                   <div
-                    className="rounded-xl p-3 shadow-sm backdrop-blur"
+                    className="rounded-xl p-3 md:p-4 shadow-sm backdrop-blur"
                     style={{
                       background: token.colorBgContainer,
                       border: `1px solid ${token.colorBorderSecondary}`,
+                      paddingBottom: `calc(${
+                        isMobile ? 12 : 16
+                      }px + env(safe-area-inset-bottom))`,
                     }}
                   >
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -451,11 +448,12 @@ export default function TicketCreateStudentView() {
                           style={{ color: secondaryText }}
                           className="text-xs"
                         >
-                          Verifica que tus datos sean correctos antes de enviar.
+                          Verifica tus datos antes de enviar.
                         </Text>
                       </div>
                       <div className="flex gap-2">
                         <Button
+                          size={isMobile ? "middle" : "middle"}
                           icon={<ReloadOutlined />}
                           onClick={handleClear}
                           disabled={loading}
@@ -465,7 +463,7 @@ export default function TicketCreateStudentView() {
                         </Button>
                         <Button
                           type="primary"
-                          size="large"
+                          size={isMobile ? "middle" : "large"}
                           icon={<SendOutlined />}
                           onClick={onSubmit}
                           loading={loading}
@@ -485,11 +483,18 @@ export default function TicketCreateStudentView() {
             <Card
               className="rounded-2xl shadow-sm"
               style={cardStyle}
-              title="Vista previa"
+              title={
+                <span className={isMobile ? "text-base" : ""}>
+                  Vista previa
+                </span>
+              }
             >
               <div className="space-y-2 text-sm">
                 <div className="flex items-start gap-2">
-                  <Text style={{ color: secondaryText }} className="w-28">
+                  <Text
+                    style={{ color: secondaryText }}
+                    className="w-24 md:w-28"
+                  >
                     Área:
                   </Text>
                   <Text strong style={{ color: token.colorText }}>
@@ -497,7 +502,10 @@ export default function TicketCreateStudentView() {
                   </Text>
                 </div>
                 <div className="flex items-start gap-2">
-                  <Text style={{ color: secondaryText }} className="w-28">
+                  <Text
+                    style={{ color: secondaryText }}
+                    className="w-24 md:w-28"
+                  >
                     Descripción:
                   </Text>
                   <Paragraph
@@ -508,7 +516,10 @@ export default function TicketCreateStudentView() {
                   </Paragraph>
                 </div>
                 <div className="flex items-start gap-2">
-                  <Text style={{ color: secondaryText }} className="w-28">
+                  <Text
+                    style={{ color: secondaryText }}
+                    className="w-24 md:w-28"
+                  >
                     Adjuntos:
                   </Text>
                   <Text style={{ color: token.colorText }}>
@@ -522,7 +533,11 @@ export default function TicketCreateStudentView() {
           {/* Columna lateral */}
           <div className="lg:col-span-4 space-y-6">
             <Card className="rounded-2xl shadow-sm" style={cardStyle}>
-              <Title level={5} className="m-0" style={{ color: titleColor }}>
+              <Title
+                level={isMobile ? 5 : 5}
+                className="m-0"
+                style={{ color: titleColor }}
+              >
                 Consejos para un ticket efectivo
               </Title>
               <ul
@@ -542,7 +557,11 @@ export default function TicketCreateStudentView() {
             </Card>
 
             <Card className="rounded-2xl shadow-sm" style={cardStyle}>
-              <Title level={5} className="m-0" style={{ color: titleColor }}>
+              <Title
+                level={isMobile ? 5 : 5}
+                className="m-0"
+                style={{ color: titleColor }}
+              >
                 Estado y seguimiento
               </Title>
               <div
@@ -550,11 +569,10 @@ export default function TicketCreateStudentView() {
                 style={{ color: secondaryText }}
               >
                 <p>
-                  Recibirás notificaciones al correo institucional UMA con cada
-                  actualización.
+                  Recibirás notificaciones al correo UMA con cada actualización.
                 </p>
                 <p>
-                  Puedes consultar el avance de tus tickets desde{" "}
+                  Puedes consultar el avance desde{" "}
                   <Tag color="blue">Mis Tickets</Tag>.
                 </p>
               </div>

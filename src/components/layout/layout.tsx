@@ -3,7 +3,16 @@
 import React, { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Layout, Menu, Dropdown, Button, message, Spin } from "antd";
+import {
+  Layout,
+  Menu,
+  Dropdown,
+  Button,
+  message,
+  Spin,
+  Drawer,
+  Grid,
+} from "antd";
 import type { MenuProps } from "antd";
 import { MenuFoldOutlined, MenuUnfoldOutlined } from "@ant-design/icons";
 import { useRouter, usePathname } from "next/navigation";
@@ -19,6 +28,7 @@ import {
 } from "@interfaces/core/layout";
 
 const { Header, Sider, Content } = Layout;
+const { useBreakpoint } = Grid;
 
 /* ---------- colores fijos del sidebar ---------- */
 const SIDER = {
@@ -165,8 +175,12 @@ export default function MainLayout({
   const router = useRouter();
   const pathname = usePathname();
   const { usuario } = useUsuario();
+  const screens = useBreakpoint();
 
-  const [collapsed, setCollapsed] = useState(false);
+  const isDesktop = screens.lg ?? false;
+
+  const [collapsed, setCollapsed] = useState(false); // escritorio
+  const [drawerOpen, setDrawerOpen] = useState(false); // móvil/tablet
   const [modules, setModules] = useState<IamMenuModule[]>([]);
   const [openKeys, setOpenKeys] = useState<string[]>([]);
   const [navigating, setNavigating] = useState(false);
@@ -187,10 +201,13 @@ export default function MainLayout({
   const items = useMemo(
     () =>
       toAntdItems(modules, {
-        collapsed,
-        onNavigateStart: () => setNavigating(true),
+        collapsed: isDesktop ? collapsed : false,
+        onNavigateStart: () => {
+          setNavigating(true);
+          if (!isDesktop) setDrawerOpen(false);
+        },
       }),
-    [modules, collapsed]
+    [modules, collapsed, isDesktop]
   );
 
   const selectedKey = useMemo(() => mapPathToMenuKey(pathname), [pathname]);
@@ -239,44 +256,64 @@ export default function MainLayout({
 
   return (
     <Layout className="min-h-screen bg-background text-foreground">
-      {/* Sidebar fijo (NO depende del tema) */}
-      {/* Sidebar fijo (NO depende del tema) */}
-      <Sider
-        theme="dark"
-        collapsed={collapsed}
-        onCollapse={setCollapsed}
-        width={270}
-        collapsedWidth={76}
-        className="fixed-sider"
-      >
-        <div className="flex items-center justify-center gap-2 py-4">
-          {!collapsed && (
-            <div className="text-lg font-bold leading-none fixed-sider__brand">
-              Gestión UMA
-            </div>
-          )}
-        </div>
-
-        <Menu
+      {/* --- SIDEBAR EN ESCRITORIO --- */}
+      {isDesktop && (
+        <Sider
           theme="dark"
-          mode="inline"
-          items={items}
-          selectedKeys={[selectedKey]}
-          openKeys={collapsed ? [] : openKeys}
-          onOpenChange={onOpenChange}
-          inlineIndent={14}
-          inlineCollapsed={collapsed}
-          className="px-2 pb-3 fixed-sider__menu"
-        />
-      </Sider>
+          collapsed={collapsed}
+          onCollapse={setCollapsed}
+          width={270}
+          collapsedWidth={76}
+          breakpoint="lg"
+          className="fixed-sider"
+          trigger={null}
+        >
+          <div className="flex items-center justify-center gap-2 py-4">
+            {!collapsed && (
+              <div className="text-lg font-bold leading-none fixed-sider__brand">
+                Gestión UMA
+              </div>
+            )}
+          </div>
 
-      {/* Topbar + contenido: SIGUEN el tema */}
-      <Layout>
+          <Menu
+            theme="dark"
+            mode="inline"
+            items={items}
+            selectedKeys={[selectedKey]}
+            openKeys={collapsed ? [] : openKeys}
+            onOpenChange={onOpenChange}
+            inlineIndent={14}
+            inlineCollapsed={collapsed}
+            className="px-2 pb-3 fixed-sider__menu"
+          />
+        </Sider>
+      )}
+
+      {/* --- TOPBAR + CONTENIDO --- */}
+      <Layout
+        style={{
+          marginLeft: isDesktop ? (collapsed ? 76 : 270) : 0,
+          transition: "margin-left .2s ease",
+        }}
+      >
         <Header className="px-4 flex justify-between items-center bg-background text-foreground border-b border-black/5 dark:border-white/10">
           <Button
             type="text"
-            onClick={() => setCollapsed(!collapsed)}
-            icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+            onClick={() =>
+              isDesktop ? setCollapsed(!collapsed) : setDrawerOpen(true)
+            }
+            icon={
+              isDesktop ? (
+                collapsed ? (
+                  <MenuUnfoldOutlined />
+                ) : (
+                  <MenuFoldOutlined />
+                )
+              ) : (
+                <MenuUnfoldOutlined />
+              )
+            }
             className="text-foreground"
           />
           <div className="flex items-center gap-3">
@@ -302,11 +339,57 @@ export default function MainLayout({
         </Spin>
       </Layout>
 
-      {/* Estilos fijos SOLO para el sidebar */}
+      {/* --- DRAWER EN MÓVIL/TABLET (forzado al estilo oscuro del sidebar) --- */}
+      {!isDesktop && (
+        <Drawer
+          placement="left"
+          width={280}
+          open={drawerOpen}
+          onClose={() => setDrawerOpen(false)}
+          className="fixed-sider__drawer"
+          styles={{
+            header: { display: "none" },
+            content: {
+              background: SIDER.bg,
+              borderRight: `1px solid ${SIDER.border}`,
+            },
+            body: {
+              padding: 0,
+              background: SIDER.bg,
+            },
+            mask: { backgroundColor: "rgba(0,0,0,0.45)" },
+          }}
+        >
+          <div
+            className="flex items-center justify-center gap-2 py-4"
+            style={{ background: SIDER.bg }}
+          >
+            <div className="text-lg font-bold leading-none fixed-sider__brand">
+              Gestión UMA
+            </div>
+          </div>
+          <Menu
+            theme="dark"
+            mode="inline"
+            items={items}
+            selectedKeys={[selectedKey]}
+            openKeys={openKeys}
+            onOpenChange={onOpenChange}
+            inlineIndent={14}
+            className="px-2 pb-3 fixed-sider__menu"
+          />
+        </Drawer>
+      )}
+
+      {/* Estilos fijos SOLO para el sidebar + Drawer oscuro */}
       <style jsx global>{`
         .fixed-sider {
           background: ${SIDER.bg} !important;
           border-right: 1px solid ${SIDER.border};
+          position: fixed;
+          inset-block: 0;
+          left: 0;
+          z-index: 100;
         }
         .fixed-sider .ant-layout-sider-trigger {
           background: ${SIDER.bgActive} !important;
@@ -348,6 +431,19 @@ export default function MainLayout({
         }
         .fixed-sider__group {
           color: ${SIDER.text};
+        }
+
+        /* —— Drawer móvil oscuro —— */
+        .fixed-sider__drawer .ant-drawer-content,
+        .fixed-sider__drawer .ant-drawer-body {
+          background: ${SIDER.bg} !important;
+        }
+        .fixed-sider__drawer .ant-drawer-content-wrapper {
+          box-shadow: none;
+        }
+        .fixed-sider__drawer .ant-menu,
+        .fixed-sider__drawer .ant-menu-dark {
+          background: ${SIDER.bg} !important;
         }
       `}</style>
     </Layout>

@@ -1,7 +1,13 @@
 // app/hd/est/[id]/page.tsx
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   Card,
   Typography,
@@ -18,6 +24,7 @@ import {
   Rate,
   Input,
   theme,
+  Skeleton,
 } from "antd";
 import {
   ArrowLeftOutlined,
@@ -46,18 +53,20 @@ type TicketEstado =
   | "CERRADO"
   | "OBSERVADO";
 
-const ESTADO_META: Record<TicketEstado, { label: string; color: string }> = {
-  ABIERTO: { label: "Abierto", color: "blue" },
-  ASIGNADO: { label: "Asignado", color: "purple" },
-  EN_PROCESO: { label: "En proceso", color: "gold" },
-  RESUELTO: { label: "Resuelto", color: "green" },
-  CERRADO: { label: "Cerrado", color: "default" },
-  OBSERVADO: { label: "Observado", color: "red" },
+const ESTADO_META: Record<
+  TicketEstado,
+  { label: string; color: string; emoji?: string }
+> = {
+  ABIERTO: { label: "Abierto", color: "blue", emoji: "🟦" },
+  ASIGNADO: { label: "Asignado", color: "purple", emoji: "🟪" },
+  EN_PROCESO: { label: "En proceso", color: "gold", emoji: "🟨" },
+  RESUELTO: { label: "Resuelto", color: "green", emoji: "🟩" },
+  CERRADO: { label: "Cerrado", color: "default", emoji: "⬜️" },
+  OBSERVADO: { label: "Observado", color: "red", emoji: "🟥" },
 };
 
 const fmt = (iso?: string) =>
   iso ? dayjs(iso).format("DD/MM/YYYY HH:mm") : "—";
-
 const API = process.env.NEXT_PUBLIC_API_URL ?? "";
 
 // Normaliza claves de estado ("EN PROCESO" -> "EN_PROCESO")
@@ -67,9 +76,38 @@ const toEstadoKey = (v?: string): TicketEstado => {
   return (ESTADO_META as any)[key] ? (key as TicketEstado) : "ABIERTO";
 };
 
-/* =========================
-   Calificación (inline)
-========================= */
+/* ============  Hook XS/SM  =========== */
+function useIsMobile(breakpoint = 640) {
+  const [isMobile, setIsMobile] = useState<boolean>(false);
+  useEffect(() => {
+    const mq = window.matchMedia(`(max-width:${breakpoint - 1}px)`);
+    const onChange = () => setIsMobile(mq.matches);
+    onChange();
+    mq.addEventListener?.("change", onChange);
+    return () => mq.removeEventListener?.("change", onChange);
+  }, [breakpoint]);
+  return isMobile;
+}
+
+/* ===============  Tag con ellipsis real  ============== */
+function EllipsisTag({ children }: { children?: React.ReactNode }) {
+  return (
+    <Tag className="max-w-full" title="">
+      <Typography.Text
+        ellipsis={{ tooltip: false }}
+        style={{
+          maxWidth: "100%",
+          display: "inline-block",
+          verticalAlign: "top",
+        }}
+      >
+        {children}
+      </Typography.Text>
+    </Tag>
+  );
+}
+
+/* =========================  Calificación (inline)  ======================== */
 function CardCalificacionInline({
   ticket,
   onCrear,
@@ -102,7 +140,19 @@ function CardCalificacionInline({
   };
 
   return (
-    <Card className="mb-6" title="📝 Califica tu experiencia">
+    <Card
+      className="mb-6 rounded-2xl shadow-sm"
+      title={
+        <Space size={8} wrap>
+          <span className="text-base sm:text-lg">
+            📝 Califica tu experiencia
+          </span>
+          <Tooltip title="Tu evaluación impulsa la mejora continua (CBE - SUNEDU)">
+            <InfoCircleOutlined />
+          </Tooltip>
+        </Space>
+      }
+    >
       {yaTiene ? (
         <div className="text-center">
           <Text strong>Tu calificación</Text>
@@ -111,7 +161,7 @@ function CardCalificacionInline({
               allowHalf
               disabled
               defaultValue={valorExistente}
-              style={{ fontSize: 28 }}
+              style={{ fontSize: 26 }}
             />
           </div>
           {ticket?.calificacionTicket?.comentario ? (
@@ -131,14 +181,14 @@ function CardCalificacionInline({
         </div>
       ) : (
         <>
-          <Text strong>¿Cómo calificarías la atención recibida?</Text>
-          <div className="my-4 flex justify-center">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+            <Text strong>¿Cómo calificarías la atención recibida?</Text>
             <Rate
               allowClear
               allowHalf
               value={rating}
               onChange={setRating}
-              style={{ fontSize: 34 }}
+              style={{ fontSize: 30 }}
             />
           </div>
           <Input.TextArea
@@ -147,21 +197,27 @@ function CardCalificacionInline({
             value={comentario}
             onChange={(e) => setComentario(e.target.value)}
             className="my-3"
+            maxLength={500}
+            aria-label="Comentario de calificación"
+            style={{ paddingBottom: 26, paddingRight: 28 }}
           />
-          <div className="mt-2 flex justify-center">
+          <div className="mt-2 flex justify-end">
             <Button
               type="primary"
               size="large"
               onClick={handleEnviar}
               disabled={rating === 0}
               loading={enviando}
+              aria-label="Enviar calificación"
+              className="w-full sm:w-auto"
             >
               Enviar calificación
             </Button>
           </div>
           <div className="mt-3">
             <Text type="secondary" italic>
-              Tu opinión nos ayuda a mejorar nuestro servicio de soporte.
+              Tu opinión nos ayuda a mejorar el servicio de soporte (mejora
+              continua).
             </Text>
           </div>
         </>
@@ -170,12 +226,7 @@ function CardCalificacionInline({
   );
 }
 
-/* =========================
-   Chat del Estudiante
-   - Solo EN_PROCESO
-   - Debe existir un mensaje previo de Soporte/Administrativo
-   - Máx 3 respuestas del alumno desde el último mensaje de soporte
-========================= */
+/* =========================  Chat del Estudiante  ======================== */
 function CardChatEstudiante({
   ticket,
   onSend,
@@ -186,6 +237,8 @@ function CardChatEstudiante({
   const mensajes = useMemo(() => ticket.mensajes ?? [], [ticket.mensajes]);
   const [nuevoMensaje, setNuevoMensaje] = useState<string>("");
   const [sending, setSending] = useState(false);
+  const listRef = useRef<HTMLDivElement>(null);
+  const isMobile = useIsMobile();
 
   const code = toEstadoKey(ticket?.estado?.codigo);
   const nameKey = toEstadoKey(ticket?.estado?.nombre);
@@ -193,7 +246,7 @@ function CardChatEstudiante({
   const enProceso =
     ticket.estado_id === 3 || code === "EN_PROCESO" || nameKey === "EN_PROCESO";
   const esAsignado = code === "ASIGNADO" || nameKey === "ASIGNADO";
-  const esCancelado = code === "CERRADO" || nameKey === "CERRADO"; // si además tienes CANCELADO por id/código, ajusta aquí
+  const esCancelado = code === "CERRADO" || nameKey === "CERRADO";
   const esFinalizado =
     ticket.estado_id === 4 ||
     code === "RESUELTO" ||
@@ -201,7 +254,6 @@ function CardChatEstudiante({
     code === "CERRADO" ||
     nameKey === "CERRADO";
 
-  // Detectar si un mensaje es de Soporte/Administrativo (no estudiante)
   const esDeSoporte = useCallback(
     (m: HD_MensajeTicket) => {
       const rol = m?.emisor?.rol?.nombre?.toLowerCase?.() ?? "";
@@ -219,13 +271,11 @@ function CardChatEstudiante({
         "operador",
       ];
       if (rol && soporteTokens.some((tok) => rol.includes(tok))) return true;
-      // fallback: cualquier emisor distinto del creador del ticket se considera "soporte"
       return m.emisor_id !== ticket.creado_id;
     },
     [ticket.creado_id]
   );
 
-  // Orden cronológico
   const mensajesOrdenados = useMemo(() => {
     const arr = [...(mensajes || [])];
     return arr.sort(
@@ -234,7 +284,11 @@ function CardChatEstudiante({
     );
   }, [mensajes]);
 
-  // Índice del último mensaje de soporte
+  useEffect(() => {
+    if (!listRef.current) return;
+    listRef.current.scrollTop = listRef.current.scrollHeight;
+  }, [mensajesOrdenados.length]);
+
   const lastSupportIdx = useMemo(() => {
     for (let i = mensajesOrdenados.length - 1; i >= 0; i--) {
       if (esDeSoporte(mensajesOrdenados[i])) return i;
@@ -244,7 +298,6 @@ function CardChatEstudiante({
 
   const soporteHaEscrito = lastSupportIdx !== -1;
 
-  // Contar respuestas del alumno desde el último soporte
   const userReplyCountSinceSupport = useMemo(() => {
     if (lastSupportIdx === -1) return 0;
     let c = 0;
@@ -272,7 +325,7 @@ function CardChatEstudiante({
     if (esAsignado)
       return "No puedes escribir: el ticket está ASIGNADO. Espera a que Soporte te contacte.";
     if (esCancelado)
-      return "El ticket fue CANCELADO; no se pueden enviar mensajes.";
+      return "El ticket fue CERRADO; no se pueden enviar mensajes.";
     if (esFinalizado)
       return "El ticket ha sido resuelto/cerrado; la conversación está cerrada.";
     if (!enProceso)
@@ -302,6 +355,15 @@ function CardChatEstudiante({
     }
   };
 
+  const handleKeyDown: React.KeyboardEventHandler<HTMLTextAreaElement> = (
+    e
+  ) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+      e.preventDefault();
+      handleSend();
+    }
+  };
+
   const mensajesRestantes =
     LIMITE_REPLIES -
     Math.min(
@@ -313,9 +375,9 @@ function CardChatEstudiante({
     <Card
       className="mb-6 rounded-2xl shadow-sm"
       title={
-        <Space>
+        <Space wrap>
           <MessageOutlined />
-          <span>Conversación</span>
+          <span className="text-sm sm:text-base md:text-lg">Conversación</span>
           <Tag
             color={
               !soporteHaEscrito
@@ -325,7 +387,7 @@ function CardChatEstudiante({
                 : "blue"
             }
           >
-            {(!soporteHaEscrito && "Esperando respuesta de Soporte") ||
+            {(!soporteHaEscrito && "Esperando mensaje inicial de Soporte") ||
               (excedioCupoUsuario
                 ? "Límite alcanzado"
                 : `Te quedan ${mensajesRestantes} mensaje(s)`)}
@@ -334,8 +396,11 @@ function CardChatEstudiante({
       }
     >
       <div
-        className="mb-4 max-h-96 overflow-y-auto pr-2 space-y-4"
+        className="mb-4 max-h-[60vh] sm:max-h-[28rem] overflow-y-auto pr-1 sm:pr-2 space-y-4"
         id="hilo-ticket-est"
+        ref={listRef}
+        role="log"
+        aria-live="polite"
       >
         {mensajesOrdenados.length === 0 ? (
           <Empty description="Sin mensajes en este ticket" />
@@ -347,24 +412,50 @@ function CardChatEstudiante({
                 .filter(Boolean)
                 .join(" ") || (deSoporte ? "Soporte" : "Usuario");
             return (
-              <div key={m.id} className="flex gap-3 items-start">
-                <Avatar
-                  size="large"
-                  icon={deSoporte ? <TeamOutlined /> : <UserOutlined />}
-                  className={
-                    deSoporte
-                      ? "bg-blue-100 text-blue-600 me-3"
-                      : "bg-gray-100 text-gray-600 me-3"
-                  }
-                />
-                <div className="flex-1" style={{ paddingLeft: 10 }}>
-                  <div className="flex items-center justify-between">
-                    <Typography.Text strong>{nombre}</Typography.Text>
-                    <Typography.Text type="secondary" className="text-xs">
+              <div
+                key={m.id}
+                className={`flex items-start gap-3 ${
+                  deSoporte ? "" : "justify-end"
+                }`}
+              >
+                {deSoporte && (
+                  <Avatar
+                    size="large"
+                    icon={<TeamOutlined />}
+                    className="bg-blue-100 text-blue-600 shrink-0"
+                  />
+                )}
+                <div
+                  className={`${
+                    deSoporte ? "" : "text-right"
+                  } max-w-[88%] xs:max-w-[86%] sm:max-w-[80%] md:max-w-[70%]`}
+                >
+                  <div
+                    className={`mb-1 flex items-center justify-between ${
+                      deSoporte ? "" : "flex-row-reverse"
+                    }`}
+                  >
+                    <Typography.Text className="text-[13px] sm:text-sm" strong>
+                      {nombre}
+                    </Typography.Text>
+                    <Typography.Text
+                      type="secondary"
+                      className="text-[10px] sm:text-[11px]"
+                    >
                       {dayjs(String(m.createdAt)).format("DD/MM/YYYY HH:mm")}
                     </Typography.Text>
                   </div>
-                  <div className="mt-1 rounded-lg border border-gray-100 bg-white p-3 shadow-sm">
+                  <div
+                    className={`rounded-2xl border p-3 shadow-sm ${
+                      deSoporte
+                        ? "border-blue-50 bg-white"
+                        : "border-emerald-50 bg-emerald-50"
+                    }`}
+                    style={{
+                      overflowWrap: "anywhere",
+                      wordBreak: "break-word",
+                    }}
+                  >
                     {m.contenido && (
                       <Paragraph style={{ margin: 0, whiteSpace: "pre-wrap" }}>
                         {m.contenido}
@@ -378,6 +469,10 @@ function CardChatEstudiante({
                           icon={<DownloadOutlined />}
                           href={m.url}
                           target="_blank"
+                          aria-label={`Descargar adjunto ${
+                            m.nombre ?? "archivo"
+                          }`}
+                          className="max-w-full truncate"
                         >
                           {m.nombre ?? "archivo"}
                         </Button>
@@ -385,6 +480,13 @@ function CardChatEstudiante({
                     )}
                   </div>
                 </div>
+                {!deSoporte && (
+                  <Avatar
+                    size="large"
+                    icon={<UserOutlined />}
+                    className="bg-gray-100 text-gray-600 shrink-0"
+                  />
+                )}
               </div>
             );
           })
@@ -396,7 +498,11 @@ function CardChatEstudiante({
       </Divider>
 
       {inputsDisabled && (
-        <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 p-3">
+        <div
+          className="mb-3 rounded-lg border border-amber-200 bg-amber-50 p-3"
+          role="note"
+          aria-live="polite"
+        >
           <Space>
             <InfoCircleOutlined />
             <Text type="secondary" className="text-xs">
@@ -406,8 +512,8 @@ function CardChatEstudiante({
         </div>
       )}
 
-      {/* Redactor (solo texto; adjuntos no soportados en createMensaje) */}
-      <div className="flex flex-col gap-3">
+      {/* Redactor */}
+      <div className="flex flex-col gap-2 sm:gap-3">
         <TextArea
           rows={4}
           autoSize={{ minRows: 4, maxRows: 6 }}
@@ -419,20 +525,31 @@ function CardChatEstudiante({
           value={nuevoMensaje}
           onChange={(e) => setNuevoMensaje(e.target.value)}
           maxLength={2000}
-          showCount
+          showCount={!isMobile}
           disabled={inputsDisabled}
+          aria-label="Caja de redacción de mensaje"
+          onKeyDown={handleKeyDown}
+          style={{
+            paddingBottom: isMobile ? 12 : 26,
+            paddingRight: isMobile ? 0 : 28,
+          }}
         />
+        {isMobile && (
+          <div className="text-right text-[11px] text-gray-400">{`${nuevoMensaje.length} / 2000`}</div>
+        )}
 
-        <div className="flex justify-between items-center">
-          <Text type="secondary" className="text-xs">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sticky sm:static bottom-0 bg-white/80 backdrop-blur-md py-2">
+          <Text type="secondary" className="text-[11px] sm:text-xs">
             * Adjuntar archivos no está disponible en esta vista.
           </Text>
-          <Space>
+          <Space wrap className="w-full sm:w-auto">
             <Button
               type="primary"
               onClick={handleSend}
               loading={sending}
               disabled={inputsDisabled || !nuevoMensaje.trim()}
+              aria-label="Enviar mensaje"
+              className="w-full sm:w-auto"
             >
               Enviar
             </Button>
@@ -443,17 +560,17 @@ function CardChatEstudiante({
   );
 }
 
-/* =========================
-   Página de Detalle (Estudiante)
-========================= */
+/* =========================  Página de Detalle (Estudiante)  ======================== */
 export default function TicketDetailStudentPage() {
   const router = useRouter();
   const params = useParams<{ id: string }>();
   const idNum = Number(params?.id);
   const { token } = theme.useToken();
+  const isMobile = useIsMobile();
 
   const [ticket, setTicket] = useState<HD_Ticket | null>(null);
   const [loading, setLoading] = useState(false);
+  const [firstLoad, setFirstLoad] = useState(true);
 
   const estadoActual = toEstadoKey(
     ticket?.estado?.codigo || ticket?.estado?.nombre || "ABIERTO"
@@ -474,6 +591,7 @@ export default function TicketDetailStudentPage() {
       message.error("No se pudo cargar el ticket.");
     } finally {
       setLoading(false);
+      setFirstLoad(false);
     }
   };
 
@@ -482,14 +600,12 @@ export default function TicketDetailStudentPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [idNum]);
 
-  // Enviar mensaje usando el servicio createMensaje (solo texto)
   const handleSend = async (texto: string) => {
     if (Number.isNaN(idNum) || !texto.trim()) return;
     await createMensaje({ ticket_id: idNum, contenido: texto.trim() });
     await fetchTicket();
   };
 
-  // Crear calificación usando el servicio createCalificacion
   const crearCalificacion = async (value: number, comentario?: string) => {
     if (Number.isNaN(idNum)) return;
     try {
@@ -513,58 +629,65 @@ export default function TicketDetailStudentPage() {
       }}
     >
       {/* HERO */}
-      <div className="mx-auto max-w-7xl px-4 pt-8">
-        <div
-          className="rounded-2xl p-[1px] shadow-lg"
-          style={
-            {
-              // background: `linear-gradient(135deg, ${token.colorPrimary}CC, ${token.colorPrimaryHover}CC 60%, ${token.colorPrimaryActive}CC)`,
-            }
-          }
-        >
+      <div className="mx-auto max-w-7xl px-3 sm:px-4 pt-4 sm:pt-8">
+        <div className="rounded-2xl shadow-lg">
           <div
-            className="rounded-2xl backdrop-blur-md px-6 py-6 md:px-10"
+            className="rounded-2xl backdrop-blur-md px-3 sm:px-6 md:px-10 py-4 sm:py-6"
             style={{
               background: token.colorBgContainer,
               border: `1px solid ${token.colorBorderSecondary}`,
             }}
           >
-            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-              <div className="flex items-center gap-3">
+            {/* mobile-first en 3 filas */}
+            <div className="flex flex-col gap-3">
+              {/* Botón */}
+              <div className="flex">
                 <Button
                   icon={<ArrowLeftOutlined />}
                   onClick={() => router.push("/hd/est/mis-tickets")}
+                  aria-label="Volver a mis tickets"
+                  className="w-full sm:w-auto"
                 >
                   Mis Tickets
                 </Button>
-                <div>
-                  <Title
-                    level={3}
-                    className="m-0"
-                    style={{ color: token.colorText }}
-                  >
-                    📄 Detalle de Ticket
-                  </Title>
-                  <Text style={{ color: token.colorTextSecondary }}>
-                    Revisa el estado y conversa con Soporte.
-                  </Text>
-                </div>
               </div>
-              <div className="flex items-center gap-2">
+
+              {/* Título */}
+              <div className="min-w-0">
+                <Title
+                  level={isMobile ? 4 : 3}
+                  className="m-0 sm:!text-[22px]"
+                  style={{ color: token.colorText }}
+                >
+                  📄 Detalle de Ticket
+                </Title>
+                <Text
+                  style={{ color: token.colorTextSecondary }}
+                  className="text-xs sm:text-sm"
+                >
+                  Revisa el estado y conversa con Soporte.
+                </Text>
+              </div>
+
+              {/* Chips */}
+              <Space size={8} wrap className="justify-start">
                 <Tooltip title="Tus datos están protegidos">
                   <SafetyCertificateTwoTone twoToneColor={token.colorSuccess} />
                 </Tooltip>
-                <Tag color={estadoMeta.color}>{estadoMeta.label}</Tag>
-                <Tag color="blue">{ticket?.area?.nombre ?? "—"}</Tag>
-              </div>
+                <Tag color={estadoMeta.color} className="m-0">
+                  {estadoMeta.label}
+                </Tag>
+                {/* Si deseas mostrar el área también aquí, descomenta: */}
+                {/* <EllipsisTag>{ticket?.area?.nombre ?? "—"}</EllipsisTag> */}
+              </Space>
             </div>
 
             <Alert
-              className="mt-4"
+              className="mt-3 sm:mt-4"
               type="info"
               showIcon
               message={
-                <span className="text-[13px]">
+                <span className="text-[12px] sm:text-[13px]">
                   <InfoCircleOutlined /> Te avisaremos por tu correo
                   institucional UMA ante cambios de estado.
                 </span>
@@ -575,8 +698,18 @@ export default function TicketDetailStudentPage() {
       </div>
 
       {/* CONTENIDO */}
-      <div className="mx-auto max-w-7xl px-4 py-8">
-        {!ticket ? (
+      <div className="mx-auto max-w-7xl px-3 sm:px-4 py-5 sm:py-8">
+        {firstLoad ? (
+          <Card
+            className="rounded-2xl shadow-sm"
+            style={{
+              background: token.colorBgContainer,
+              border: `1px solid ${token.colorBorderSecondary}`,
+            }}
+          >
+            <Skeleton active paragraph={{ rows: 3 }} />
+          </Card>
+        ) : !ticket ? (
           <Card
             className="rounded-2xl shadow-sm"
             loading={loading}
@@ -587,13 +720,17 @@ export default function TicketDetailStudentPage() {
           >
             <Empty description="No se encontró el ticket solicitado" />
             <div className="mt-4">
-              <Button onClick={() => router.push("/hd/est/mis-tickets")}>
+              <Button
+                onClick={() => router.push("/hd/est/mis-tickets")}
+                className="w-full sm:w-auto"
+              >
                 Volver
               </Button>
             </div>
           </Card>
         ) : (
           <>
+            {/* Detalles del ticket */}
             <Card
               className="rounded-2xl shadow-sm mb-6"
               loading={loading}
@@ -601,55 +738,111 @@ export default function TicketDetailStudentPage() {
                 background: token.colorBgContainer,
                 border: `1px solid ${token.colorBorderSecondary}`,
               }}
+              bodyStyle={{ paddingTop: 16 }}
             >
               <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-                <div className="flex flex-col">
-                  <Text type="secondary" className="text-xs">
+                <div className="flex flex-col min-w-0">
+                  <Text type="secondary" className="text-[11px] sm:text-xs">
                     Código
                   </Text>
-                  <Text className="text-base font-semibold">
+                  <Text className="text-sm sm:text-base font-semibold truncate">
                     {ticket.codigo || `T-${ticket.id}`}
                   </Text>
                 </div>
-                <Space>
+                <Space wrap>
                   <Tag color={estadoMeta.color}>{estadoMeta.label}</Tag>
-                  <Tag>{ticket.area?.nombre ?? "—"}</Tag>
+                  {/* Área como chip con ellipsis REAL (arriba) */}
+                  <div className="max-w-[80vw] sm:max-w-none">
+                    <EllipsisTag>{ticket.area?.nombre ?? "—"}</EllipsisTag>
+                  </div>
                 </Space>
               </div>
 
-              <Descriptions
-                bordered
-                size="middle"
-                column={1}
-                labelStyle={{ width: 220 }}
-              >
-                <Descriptions.Item label="Área">
-                  <Tag>{ticket.area?.nombre ?? "—"}</Tag>
-                </Descriptions.Item>
-                <Descriptions.Item label="Descripción">
-                  <Paragraph className="!mb-0 whitespace-pre-wrap">
-                    {ticket.descripcion ?? "—"}
-                  </Paragraph>
-                </Descriptions.Item>
-                <Descriptions.Item label="Creado">
-                  <FieldTimeOutlined className="mr-1" />
-                  {fmt(
-                    ticket?.createdAt ? String(ticket.createdAt) : undefined
-                  )}
-                </Descriptions.Item>
-              </Descriptions>
+              {/* === Detalle responsive === */}
+              {isMobile ? (
+                // --- Móvil: ficha vertical, sin tabla ---
+                <div className="rounded-xl border border-gray-100">
+                  {/* Área */}
+                  <div className="px-4 py-3 border-b border-gray-100">
+                    <div className="text-[11px] text-gray-500 mb-1">Área</div>
+                    <Typography.Text style={{ display: "block" }}>
+                      {ticket.area?.nombre ?? "—"}
+                    </Typography.Text>
+                  </div>
+                  {/* Descripción */}
+                  <div className="px-4 py-3 border-b border-gray-100">
+                    <div className="text-[11px] text-gray-500 mb-1">
+                      Descripción
+                    </div>
+                    <Paragraph
+                      className="!mb-0 whitespace-pre-wrap"
+                      style={{ overflowWrap: "anywhere" }}
+                    >
+                      {ticket.descripcion ?? "—"}
+                    </Paragraph>
+                  </div>
+                  {/* Creado */}
+                  <div className="px-4 py-3">
+                    <div className="text-[11px] text-gray-500 mb-1">Creado</div>
+                    <Text>
+                      <FieldTimeOutlined className="mr-1" />
+                      {fmt(
+                        ticket?.createdAt ? String(ticket.createdAt) : undefined
+                      )}
+                    </Text>
+                  </div>
+                </div>
+              ) : (
+                // --- Desktop: tabla Descriptions ---
+                <Descriptions
+                  bordered
+                  size="middle"
+                  column={{ xs: 1, sm: 1, md: 1 }}
+                  labelStyle={{ width: 140, whiteSpace: "nowrap" }}
+                  contentStyle={{
+                    overflowWrap: "anywhere",
+                    wordBreak: "break-word",
+                  }}
+                >
+                  <Descriptions.Item label="Área">
+                    <div className="max-w-full overflow-hidden">
+                      <Typography.Text
+                        ellipsis={{ tooltip: false }}
+                        style={{ display: "block", maxWidth: "100%" }}
+                      >
+                        {ticket.area?.nombre ?? "—"}
+                      </Typography.Text>
+                    </div>
+                  </Descriptions.Item>
+
+                  <Descriptions.Item label="Descripción">
+                    <Paragraph
+                      className="!mb-0 whitespace-pre-wrap"
+                      style={{ overflowWrap: "anywhere" }}
+                    >
+                      {ticket.descripcion ?? "—"}
+                    </Paragraph>
+                  </Descriptions.Item>
+
+                  <Descriptions.Item label="Creado">
+                    <FieldTimeOutlined className="mr-1" />
+                    {fmt(
+                      ticket?.createdAt ? String(ticket.createdAt) : undefined
+                    )}
+                  </Descriptions.Item>
+                </Descriptions>
+              )}
             </Card>
 
             {/* Calificación si RESUELTO */}
-            {ticket &&
-              (ticket.estado_id === 4 ||
-                toEstadoKey(ticket.estado?.codigo) === "RESUELTO" ||
-                toEstadoKey(ticket.estado?.nombre) === "RESUELTO") && (
-                <CardCalificacionInline
-                  ticket={ticket}
-                  onCrear={crearCalificacion}
-                />
-              )}
+            {(ticket.estado_id === 4 ||
+              toEstadoKey(ticket.estado?.codigo) === "RESUELTO" ||
+              toEstadoKey(ticket.estado?.nombre) === "RESUELTO") && (
+              <CardCalificacionInline
+                ticket={ticket}
+                onCrear={crearCalificacion}
+              />
+            )}
 
             {/* Chat */}
             <CardChatEstudiante ticket={ticket} onSend={handleSend} />
