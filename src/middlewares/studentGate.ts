@@ -22,8 +22,12 @@ const isStudent = (me: any) => {
 export const studentGateMw: Mw = async (req) => {
   const { pathname } = req.nextUrl;
 
+  // console.log("===========================");
+  // console.log("pathname => ", pathname);
+  // console.log("===========================");
+
   // Solo aplica a rutas no públicas y no API
-  if (!pathname.startsWith("/hd")) return;
+  if (!pathname.startsWith("/hd") && pathname !== "/") return;
 
   const cookieHeader = req.headers.get("cookie") || "";
   try {

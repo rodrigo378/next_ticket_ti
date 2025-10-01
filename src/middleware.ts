@@ -16,7 +16,7 @@ function chain(middlewares: Mw[]): (req: NextRequest) => Promise<NextResponse> {
 }
 
 export const middleware = chain([
-  authMw, //
+  authMw, 
   studentGateMw,
 ]);
 
