@@ -216,6 +216,10 @@ export default function MainLayout({
     (async () => {
       try {
         const data: IamMenuModule[] = await getFullMenu();
+        console.log("=======================================================");
+        console.log("sidebar => ", data);
+        console.log("=======================================================");
+
         setModules(data);
       } catch (err) {
         console.error("Error menú:", err);

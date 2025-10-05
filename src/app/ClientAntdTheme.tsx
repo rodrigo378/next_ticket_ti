@@ -1,7 +1,8 @@
 // src/app/ClientAntdTheme.tsx
 "use client";
 
-import { ConfigProvider, theme as antdTheme } from "antd";
+import { ConfigProvider, theme as antdTheme, App as AntdApp } from "antd";
+
 import { useTheme } from "next-themes";
 
 export default function ClientAntdTheme({
@@ -81,7 +82,7 @@ export default function ClientAntdTheme({
         // cssVar: true,
       }}
     >
-      {children}
+      <AntdApp>{children}</AntdApp>
     </ConfigProvider>
   );
 }

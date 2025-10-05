@@ -8,6 +8,7 @@ import { HD_Area } from "@interfaces/hd";
 import AdmPanel from "../modulos/adm";
 import HDPanel from "../modulos/hd";
 import TPPanel from "../modulos/tp";
+import APIPanel from "../modulos/api";
 
 // ===================================================================================
 export interface UsuarioModuloConfigModule {
@@ -61,12 +62,13 @@ export default function DrawerModulosUsuario({
   const adm = useMemo(() => modules.find((m) => m.codigo === "ADM"), [modules]);
   const hd = useMemo(() => modules.find((m) => m.codigo === "HD"), [modules]);
   const tp = useMemo(() => modules.find((m) => m.codigo === "TP"), [modules]);
+  const api = useMemo(() => modules.find((m) => m.codigo === "API"), [modules]);
 
-  console.log("=========================================================");
-  console.log("adm => ", adm);
-  console.log("hd => ", hd);
-  console.log("tp => ", tp);
-  console.log("=========================================================");
+  // console.log("=========================================================");
+  // console.log("adm => ", adm);
+  // console.log("hd => ", hd);
+  // console.log("tp => ", tp);
+  // console.log("=========================================================");
 
   const roleOptionsADM = [
     { label: "Administrativo", value: "administrativo" },
@@ -88,6 +90,11 @@ export default function DrawerModulosUsuario({
     { label: "Personal de salud", value: "per_salud" },
     { label: "Administrativo", value: "administrativo" },
     { label: "Estudiante", value: "estudiante" },
+  ];
+
+  const roleOptionsAPI = [
+    { label: "Administrador", value: "administrador" },
+    { label: "sin rol", value: "quitar" },
   ];
 
   const items = [
@@ -128,6 +135,18 @@ export default function DrawerModulosUsuario({
         />
       ),
     },
+    {
+      key: "API",
+      label: "Api UMA (API)",
+      children: (
+        <APIPanel
+          usuario_id={usuario_id}
+          formModules={formModules}
+          initialRolApi={api?.rol ?? undefined}
+          roleOptions={roleOptionsAPI}
+        />
+      ),
+    },
   ];
 
   return (
@@ -138,7 +157,8 @@ export default function DrawerModulosUsuario({
       open={open}
       onClose={onClose}
     >
-      <Collapse items={items} defaultActiveKey={items.map((i) => i.key)} />
+      {/* <Collapse items={items} defaultActiveKey={items.map((i) => i.key)} /> */}
+      <Collapse items={items} defaultActiveKey={[]} />
     </Drawer>
   );
 }
