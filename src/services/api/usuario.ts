@@ -1,92 +1,72 @@
 // src/services/api/usuario.ts
 import axios from "axios";
 
-/* =============================
- * Usuarios
- * ============================= */
+const API_UMA_URL = process.env.NEXT_PUBLIC_API_UMA_URL!;
 
-// Obtener todos los usuarios
+// ===================================================================================
 export const getUsuarios = async () => {
-  const response = await axios.get("http://localhost:8000/admin/users", {
+  const response = await axios.get(`${API_UMA_URL}/admin/users`, {
     withCredentials: true, // Basic via cookie/sesión
   });
   return response.data;
 };
 
-// Generar/Reemitir token único por usuario
+// ===================================================================================
 export const generarTokenUsuario = async (
   userId: number,
   label = "default"
 ) => {
   const response = await axios.post(
-    `http://localhost:8000/admin/users/${userId}/token`,
-    null, // body vacío; el label va como query param
+    `${API_UMA_URL}/admin/users/${userId}/token`,
+    null,
     {
       params: { label },
-      withCredentials: true, // requiere Basic (superadmin)
-    }
-  );
-  return response.data; // { id, token_plain, label, owner_user_id, created_at }
-};
-
-/* =============================
- * Permisos (Items) y Token-Items
- * ============================= */
-
-// Listar todos los ítems de permiso
-export const getItems = async () => {
-  const response = await axios.get("http://localhost:8000/admin/items", {
-    withCredentials: true,
-  });
-  return response.data; // ItemOut[]
-};
-
-// Listar tokens (metadatos: id, label, owner_user_id, created_at)
-export const listTokens = async () => {
-  const response = await axios.get("http://localhost:8000/admin/tokens", {
-    withCredentials: true,
-  });
-  return response.data; // TokenOut[]
-};
-
-// Asignar permiso a un token
-export const assignTokenItem = async (token_id: number, item_id: number) => {
-  const response = await axios.post(
-    "http://localhost:8000/admin/token-items",
-    { token_id, item_id },
-    { withCredentials: true }
-  );
-  return response.data; // TokenItemOut
-};
-
-// Revocar permiso de un token
-export const revokeTokenItem = async (token_id: number, item_id: number) => {
-  const response = await axios.delete(
-    "http://localhost:8000/admin/token-items",
-    {
-      data: { token_id, item_id },
       withCredentials: true,
     }
   );
-  return response.data; // { deleted: number }
+  return response.data;
 };
 
-export const getAssignedItemIdsByToken = async (token_id: number) => {
-  const response = await axios.get(
-    `http://localhost:8000/admin/tokens/${token_id}/item-ids`,
+// ===================================================================================
+export const getItems = async () => {
+  const response = await axios.get(`${API_UMA_URL}/admin/items`, {
+    withCredentials: true,
+  });
+  return response.data;
+};
+
+// ===================================================================================
+export const listTokens = async () => {
+  const response = await axios.get(`${API_UMA_URL}/admin/tokens`, {
+    withCredentials: true,
+  });
+  return response.data;
+};
+
+// ===================================================================================
+export const assignTokenItem = async (token_id: number, item_id: number) => {
+  const response = await axios.post(
+    `${API_UMA_URL}/admin/token-items`,
+    { token_id, item_id },
     { withCredentials: true }
   );
-  return response.data as number[]; // [item_id, ...]
+  return response.data;
 };
 
-/* =============================
- * (Opcional) Obtener items asignados por token
- * Si agregas en backend: GET /admin/tokens/{token_id}/items -> [item_id,...]
- * ============================= */
-// export const getAssignedItemsByToken = async (token_id: number) => {
-//   const response = await axios.get(
-//     `http://localhost:8000/admin/tokens/${token_id}/items`,
-//     { withCredentials: true }
-//   );
-//   return response.data as number[];
-// };
+// ===================================================================================
+export const revokeTokenItem = async (token_id: number, item_id: number) => {
+  const response = await axios.delete(`${API_UMA_URL}/admin/token-items`, {
+    data: { token_id, item_id },
+    withCredentials: true,
+  });
+  return response.data;
+};
+
+// ===================================================================================
+export const getAssignedItemIdsByToken = async (token_id: number) => {
+  const response = await axios.get(
+    `${API_UMA_URL}/admin/tokens/${token_id}/item-ids`,
+    { withCredentials: true }
+  );
+  return response.data as number[];
+};
