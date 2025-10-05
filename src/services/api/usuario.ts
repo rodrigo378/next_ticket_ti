@@ -5,21 +5,21 @@ const BASE = "/api/admin/admin";
 
 /**
  * GET /api/admin/admin/users
- * El caller define el tipo de respuesta con <T>
+ * El caller define el tipo de respuesta con
  */
-export const getUsuarios = async <T>(): Promise<T> => {
-  const { data } = await api.get<T>(`${BASE}/users`);
+export const getUsuarios = async () => {
+  const { data } = await api.get(`${BASE}/users`);
   return data;
 };
 
 /**
  * POST /api/admin/admin/users/:userId/token?label=...
  */
-export const generarTokenUsuario = async <T>(
+export const generarTokenUsuario = async (
   userId: number,
   label = "default"
-): Promise<T> => {
-  const { data } = await api.post<T>(
+) => {
+  const { data } = await api.post(
     `${BASE}/users/${encodeURIComponent(String(userId))}/token`,
     null,
     { params: { label } }
@@ -30,27 +30,24 @@ export const generarTokenUsuario = async <T>(
 /**
  * GET /api/admin/admin/items
  */
-export const getItems = async <T>(): Promise<T> => {
-  const { data } = await api.get<T>(`${BASE}/items`);
+export const getItems = async () => {
+  const { data } = await api.get(`${BASE}/items`);
   return data;
 };
 
 /**
  * GET /api/admin/admin/tokens
  */
-export const listTokens = async <T>(): Promise<T> => {
-  const { data } = await api.get<T>(`${BASE}/tokens`);
+export const listTokens = async () => {
+  const { data } = await api.get(`${BASE}/tokens`);
   return data;
 };
 
 /**
  * POST /api/admin/admin/token-items  { token_id, item_id }
  */
-export const assignTokenItem = async <T>(
-  token_id: number,
-  item_id: number
-): Promise<T> => {
-  const { data } = await api.post<T>(`${BASE}/token-items`, {
+export const assignTokenItem = async (token_id: number, item_id: number) => {
+  const { data } = await api.post(`${BASE}/token-items`, {
     token_id,
     item_id,
   });
@@ -60,11 +57,8 @@ export const assignTokenItem = async <T>(
 /**
  * DELETE /api/admin/admin/token-items  { token_id, item_id }
  */
-export const revokeTokenItem = async <T>(
-  token_id: number,
-  item_id: number
-): Promise<T> => {
-  const { data } = await api.delete<T>(`${BASE}/token-items`, {
+export const revokeTokenItem = async (token_id: number, item_id: number) => {
+  const { data } = await api.delete(`${BASE}/token-items`, {
     data: { token_id, item_id },
   });
   return data;
