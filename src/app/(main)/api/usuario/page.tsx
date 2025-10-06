@@ -1,10 +1,24 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Table, Input, Card, Button, Modal, Tooltip, App, Space } from "antd";
+import {
+  Table,
+  Input,
+  Card,
+  Button,
+  Modal,
+  Tooltip,
+  App,
+  Space,
+  Form,
+} from "antd";
 import type { ColumnsType } from "antd/es/table";
-import { generarTokenUsuario, getUsuarios } from "@/services/api/usuario";
+import {
+  generarTokenUsuario,
+  getUsuarios,
+  setBasicAuth,
+} from "@/services/api/usuario";
 
 const { Search } = Input;
 
@@ -16,30 +30,78 @@ interface User {
   token_activo: boolean;
 }
 
+type Creds = { email: string; password: string };
+
 export default function Page() {
   const { modal, message } = App.useApp();
   const [usuarios, setUsuarios] = useState<User[]>([]);
   const [filtro, setFiltro] = useState("");
   const [loading, setLoading] = useState(true);
 
+  // Modal Token
   const [modalVisible, setModalVisible] = useState(false);
   const [tokenGenerado, setTokenGenerado] = useState<string | null>(null);
   const [usuarioActual, setUsuarioActual] = useState<User | null>(null);
 
+  // Modal Basic Auth
+  const [authVisible, setAuthVisible] = useState(false);
+  const [authForm] = Form.useForm();
+  // resolver para “pausar” hasta que el usuario envíe credenciales
+  const credResolverRef = useRef<((c: Creds) => void) | null>(null);
+
+  // --- helpers ---
+  const isAuthRequired = (err: unknown) => {
+    // axios error shape: err.response.status === 401 && err.response.data.detail === "Basic auth requerido"
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const anyErr = err as { response?: { status?: number; data?: any } };
+    return (
+      anyErr?.response?.status === 401 &&
+      anyErr?.response?.data?.detail?.toString?.() === "Basic auth requerido"
+    );
+  };
+
+  const askForCreds = (): Promise<Creds> =>
+    new Promise((resolve) => {
+      credResolverRef.current = resolve;
+      setAuthVisible(true);
+      // limpiar formulario
+      authForm.setFieldsValue({ email: "", password: "" });
+    });
+
+  const withAuth = async <T,>(action: () => Promise<T>): Promise<T> => {
+    try {
+      return await action();
+    } catch (err) {
+      if (!isAuthRequired(err)) throw err;
+
+      // pedir credenciales
+      const { email, password } = await askForCreds();
+      setBasicAuth(email, password);
+
+      // reintentar
+      return await action();
+    }
+  };
+
+  // --- efectos ---
   useEffect(() => {
-    const fetchUsuarios = async () => {
+    const run = async () => {
       try {
-        const data = await getUsuarios();
+        setLoading(true);
+        const data = await withAuth(() => getUsuarios());
         setUsuarios(data);
       } catch (error) {
         console.error("Error al obtener usuarios:", error);
+        message.error("No se pudieron obtener los usuarios.");
       } finally {
         setLoading(false);
       }
     };
-    fetchUsuarios();
+    run();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // --- acciones UI ---
   const mostrarToken = (token: string, user: User) => {
     setTokenGenerado(token);
     setUsuarioActual(user);
@@ -58,7 +120,7 @@ export default function Page() {
       cancelText: "Cancelar",
       onOk: async () => {
         try {
-          const data = await generarTokenUsuario(user.id);
+          const data = await withAuth(() => generarTokenUsuario(user.id));
           mostrarToken(data.token_plain, user);
           setUsuarios((prev) =>
             prev.map((u) =>
@@ -133,7 +195,6 @@ export default function Page() {
             {record.token_activo ? "Regenerar" : "Generar"}
           </Button>
 
-          {/* 👇 Botón Permisos solo si hay token */}
           {record.token_activo && (
             <Link href={`/api/usuario/${record.id}`} passHref>
               <Button size="small">Permisos</Button>
@@ -159,6 +220,7 @@ export default function Page() {
     u.email.toLowerCase().includes(filtro.toLowerCase())
   );
 
+  // --- render ---
   return (
     <div className="p-6">
       <Card title="Lista de Usuarios" className="shadow-md">
@@ -180,6 +242,7 @@ export default function Page() {
         />
       </Card>
 
+      {/* Modal Token */}
       <Modal
         title="Token generado"
         open={modalVisible}
@@ -196,6 +259,53 @@ export default function Page() {
         <p className="text-xs text-gray-500 mt-2">
           Usuario: {usuarioActual?.email}
         </p>
+      </Modal>
+
+      {/* Modal Basic Auth */}
+      <Modal
+        title="Autenticación requerida"
+        open={authVisible}
+        okText="Continuar"
+        cancelText="Cancelar"
+        onCancel={() => {
+          setAuthVisible(false);
+          credResolverRef.current = null; // cancelar flujo
+        }}
+        onOk={async () => {
+          const values = await authForm.validateFields();
+          const creds: Creds = {
+            email: values.email,
+            password: values.password,
+          };
+          setAuthVisible(false);
+          // resolver promesa del withAuth
+          credResolverRef.current?.(creds);
+          credResolverRef.current = null;
+        }}
+      >
+        <Form
+          form={authForm}
+          layout="vertical"
+          initialValues={{ email: "", password: "" }}
+        >
+          <Form.Item
+            name="email"
+            label="Email"
+            rules={[
+              { required: true, message: "Ingresa tu email" },
+              { type: "email", message: "Email no válido" },
+            ]}
+          >
+            <Input placeholder="tu@dominio.com" />
+          </Form.Item>
+          <Form.Item
+            name="password"
+            label="Contraseña"
+            rules={[{ required: true, message: "Ingresa tu contraseña" }]}
+          >
+            <Input.Password placeholder="••••••••" />
+          </Form.Item>
+        </Form>
       </Modal>
     </div>
   );

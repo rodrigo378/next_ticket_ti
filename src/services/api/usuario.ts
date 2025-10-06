@@ -1,11 +1,27 @@
 // src/services/api/usuario.ts
-import { api } from "../api";
+import axios from "axios";
 
-const BASE = "/api/admin/admin";
+/** ---------- Axios base (BFF Nest) ---------- */
+const api = axios.create({
+  baseURL: process.env.NEXT_PUBLIC_API_URL, // p.ej. https://mesadeayuda.uma.edu.pe
+  withCredentials: true,
+});
+
+/** ---------- Helpers Basic Auth ---------- */
+export const setBasicAuth = (email: string, password: string): void => {
+  const token = btoa(`${email}:${password}`);
+  api.defaults.headers.common["Authorization"] = `Basic ${token}`;
+};
+
+export const clearBasicAuth = (): void => {
+  delete api.defaults.headers.common["Authorization"];
+};
+
+/** ---------- Endpoints Admin (Nest -> FastAPI) ---------- */
+const BASE = "/api/admin";
 
 /**
  * GET /api/admin/admin/users
- * El caller define el tipo de respuesta con
  */
 export const getUsuarios = async () => {
   const { data } = await api.get(`${BASE}/users`);
@@ -14,6 +30,7 @@ export const getUsuarios = async () => {
 
 /**
  * POST /api/admin/admin/users/:userId/token?label=...
+ * (respuesta típica: { token_plain: string, ... })
  */
 export const generarTokenUsuario = async (
   userId: number,
