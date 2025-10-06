@@ -36,6 +36,8 @@ export const generarTokenUsuario = async (
   userId: number,
   label = "default"
 ) => {
+  console.log("cambio");
+
   const { data } = await api.post(
     `${BASE}/users/${encodeURIComponent(String(userId))}/token`,
     null,
