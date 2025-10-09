@@ -1,12 +1,11 @@
 // src/features/admin/ListUsuarios/modulos/api.tsx
 import { Button, Form, FormInstance, Select } from "antd";
-import { ApiPayload } from "../hooks/modulos.normalize";
 
 // ===================================================================================
 type Props = {
   formModules: FormInstance;
   initialRolApi?: string;
-  roleOptions: ApiPayload[];
+  roleOptions: { label: string; value: string }[];
   onSave: () => void;
   loading?: boolean;
 };

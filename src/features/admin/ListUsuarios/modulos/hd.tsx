@@ -4,14 +4,13 @@ import { HD_Area, HD_Subarea } from "@/interfaces/hd";
 import { useEffect, useState } from "react";
 import { getSubareas } from "@/services/hd";
 import { UsuarioModuloConfigModule } from "../components/DrawerModuloUsuario";
-import { HdPayload } from "../hooks/modulos.normalize";
 
 // ===================================================================================
 type Props = {
   formModules: FormInstance;
   hdModule?: UsuarioModuloConfigModule;
   areas: HD_Area[];
-  roleOptions: HdPayload[];
+  roleOptions: { label: string; value: string }[];
   onSave: () => void;
   loading?: boolean;
 };

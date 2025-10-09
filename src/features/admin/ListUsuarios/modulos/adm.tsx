@@ -1,12 +1,11 @@
 // src/features/admin/ListUsuarios/modulos/adm.tsx
 import { Button, Form, FormInstance, Select } from "antd";
-import { AdmPayload } from "../hooks/modulos.normalize";
 
 // ===================================================================================
 type Props = {
   formModules: FormInstance;
   initialRolAdm?: string;
-  roleOptions: AdmPayload[];
+  roleOptions: { label: string; value: string }[];
   onSave: () => void;
   loading?: boolean;
 };

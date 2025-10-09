@@ -1,12 +1,11 @@
 // src/features/admin/ListUsuarios/modulos/tp.tsx
 import { Button, Form, FormInstance, Select } from "antd";
-import { TpPayload } from "../hooks/modulos.normalize";
 
 // ===================================================================================
 type Props = {
   formModules: FormInstance;
   initialRolTp?: string;
-  roleOptions: TpPayload[];
+  roleOptions: { label: string; value: string }[];
   onSave: () => void;
   loading?: boolean;
 };

@@ -9,7 +9,12 @@ import AdmPanel from "../modulos/adm";
 import HDPanel from "../modulos/hd";
 import TPPanel from "../modulos/tp";
 import APIPanel from "../modulos/api";
-import { ADM_ROLES, API_ROLES, HD_ROLES, TP_ROLES } from "@/const/rol.const";
+import {
+  ADM_ROLES,
+  API_ROLES,
+  HD_ROLES,
+  TP_ROLES,
+} from "@/const/modulos.const";
 
 // ===================================================================================
 export interface UsuarioModuloConfigModule {
