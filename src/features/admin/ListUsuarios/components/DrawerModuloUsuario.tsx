@@ -1,4 +1,4 @@
-// components/DrawerModulo.tsx
+// src/features/admin/ListUsuarios/components/DrawerModulosUsuario.tsx
 "use client";
 
 import { useMemo } from "react";
@@ -9,6 +9,7 @@ import AdmPanel from "../modulos/adm";
 import HDPanel from "../modulos/hd";
 import TPPanel from "../modulos/tp";
 import APIPanel from "../modulos/api";
+import { ADM_ROLES, API_ROLES, HD_ROLES, TP_ROLES } from "@/const/rol.const";
 
 // ===================================================================================
 export interface UsuarioModuloConfigModule {
@@ -25,88 +26,45 @@ export interface UsuarioModuloConfigModule {
 }
 
 // ===================================================================================
-// export interface UsuarioModuloConfig {
-//   user: { id: number; nombre: string; apellidos: string; email: string };
-//   modules: UsuarioModuloConfigModule[];
-// }
-
 type Props = {
   usuario_id: number | null;
   open: boolean;
   onClose: () => void;
   formModules: FormInstance;
-
   modules: UsuarioModuloConfigModule[];
   areas: HD_Area[];
-
-  onFinishModulos: (values: {
-    adm?: { rol?: string };
-    hd?: {
-      rol?: string;
-      area_id?: number;
-      subarea_id?: number;
-      areas_id?: number[];
-    };
-  }) => void;
+  saveModulo: (code: "ADM" | "HD" | "TP" | "API") => void;
+  savingByModule: Partial<Record<"ADM" | "HD" | "TP" | "API", boolean>>;
 };
 
 // ===================================================================================
 export default function DrawerModulosUsuario({
-  usuario_id,
   open,
   onClose,
   formModules,
   modules,
   areas,
+  saveModulo,
+  savingByModule,
 }: Props) {
+  // ===================================================================================
   const adm = useMemo(() => modules.find((m) => m.codigo === "ADM"), [modules]);
   const hd = useMemo(() => modules.find((m) => m.codigo === "HD"), [modules]);
   const tp = useMemo(() => modules.find((m) => m.codigo === "TP"), [modules]);
   const api = useMemo(() => modules.find((m) => m.codigo === "API"), [modules]);
 
-  // console.log("=========================================================");
-  // console.log("adm => ", adm);
-  // console.log("hd => ", hd);
-  // console.log("tp => ", tp);
-  // console.log("=========================================================");
-
-  const roleOptionsADM = [
-    { label: "Administrativo", value: "administrativo" },
-    { label: "Estudiante", value: "estudiante" },
-  ];
-
-  const roleOptionsHD = [
-    { label: "nivel_1", value: "nivel_1" },
-    { label: "nivel_2", value: "nivel_2" },
-    { label: "nivel_3", value: "nivel_3" },
-    { label: "nivel_4", value: "nivel_4" },
-    { label: "nivel_5", value: "nivel_5" },
-    { label: "Administrativo", value: "administrativo" },
-    { label: "Estudiante", value: "estudiante" },
-  ];
-
-  const roleOptionsTP = [
-    { label: "Supervisor", value: "supervisor" },
-    { label: "Personal de salud", value: "per_salud" },
-    { label: "Administrativo", value: "administrativo" },
-    { label: "Estudiante", value: "estudiante" },
-  ];
-
-  const roleOptionsAPI = [
-    { label: "Administrador", value: "administrador" },
-    { label: "sin rol", value: "quitar" },
-  ];
-
+  // ===================================================================================
   const items = [
     {
       key: "ADM",
       label: "Administrador (ADM)",
       children: (
         <AdmPanel
-          usuario_id={usuario_id}
           formModules={formModules}
           initialRolAdm={adm?.rol ?? undefined}
-          roleOptions={roleOptionsADM}
+          roleOptions={ADM_ROLES}
+          onSave={() => saveModulo("ADM")}
+          loading={!!savingByModule.ADM}
         />
       ),
     },
@@ -115,40 +73,44 @@ export default function DrawerModulosUsuario({
       label: "Mesa de ayuda (HD)",
       children: (
         <HDPanel
-          usuario_id={usuario_id}
           formModules={formModules}
           hdModule={hd}
           areas={areas}
-          roleOptions={roleOptionsHD}
+          roleOptions={HD_ROLES}
+          onSave={() => saveModulo("HD")}
+          loading={!!savingByModule.HD}
         />
       ),
     },
     {
       key: "TP",
-      label: "Topico (TP)",
+      label: "Tópico (TP)",
       children: (
         <TPPanel
-          usuario_id={usuario_id}
           formModules={formModules}
           initialRolTp={tp?.rol ?? undefined}
-          roleOptions={roleOptionsTP}
+          roleOptions={TP_ROLES}
+          onSave={() => saveModulo("TP")}
+          loading={!!savingByModule.TP}
         />
       ),
     },
     {
       key: "API",
-      label: "Api UMA (API)",
+      label: "API UMA (API)",
       children: (
         <APIPanel
-          usuario_id={usuario_id}
           formModules={formModules}
           initialRolApi={api?.rol ?? undefined}
-          roleOptions={roleOptionsAPI}
+          roleOptions={API_ROLES}
+          onSave={() => saveModulo("API")}
+          loading={!!savingByModule.API}
         />
       ),
     },
   ];
 
+  // ===================================================================================
   return (
     <Drawer
       title="Perfiles por módulo"
@@ -157,7 +119,6 @@ export default function DrawerModulosUsuario({
       open={open}
       onClose={onClose}
     >
-      {/* <Collapse items={items} defaultActiveKey={items.map((i) => i.key)} /> */}
       <Collapse items={items} defaultActiveKey={[]} />
     </Drawer>
   );

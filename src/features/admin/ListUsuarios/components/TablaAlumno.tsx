@@ -4,11 +4,14 @@ import { Core_Usuario } from "@interfaces/core";
 import { Table } from "antd";
 import type { ColumnsType } from "antd/es/table";
 
+// ===================================================================================
 interface Props {
   usuarios: Core_Usuario[];
+  loading?: boolean;
 }
 
-export default function TableUsuarioAlumno({ usuarios }: Props) {
+// ===================================================================================
+export default function TableUsuarioAlumno({ usuarios, loading }: Props) {
   const columnas: ColumnsType<Core_Usuario> = [
     {
       title: "Usuario",
@@ -24,6 +27,7 @@ export default function TableUsuarioAlumno({ usuarios }: Props) {
     },
   ];
 
+  // ===================================================================================
   return (
     <Table
       rowKey="id"
@@ -31,6 +35,7 @@ export default function TableUsuarioAlumno({ usuarios }: Props) {
       dataSource={usuarios}
       pagination={{ pageSize: 20 }}
       bordered
+      loading={loading}
     />
   );
 }

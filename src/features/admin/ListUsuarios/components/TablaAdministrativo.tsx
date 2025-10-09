@@ -3,25 +3,30 @@ import { EyeOutlined } from "@ant-design/icons";
 import { Button, Table, Tag } from "antd";
 import { ColumnsType } from "antd/es/table";
 
+// ===================================================================================
 interface Props {
   usuarios: Core_Usuario[];
-  showDrawerAdministrativo: (usuario_id: number) => void;
+  loading?: boolean;
+  showDrawerAdministrativo: (usuario_id?: number) => void;
   showDrawerModulo: (usuario_id: number) => void;
 }
 
+// ===================================================================================
 export default function TableUsuarioAdministrativo({
   usuarios,
+  loading,
   showDrawerAdministrativo,
   showDrawerModulo,
 }: Props) {
+  // ===================================================================================
   const columnas: ColumnsType<Core_Usuario> = [
     {
       title: "Usuario",
       dataIndex: "nombre",
       key: "nombre",
       sorter: (a, b) => a.nombre.localeCompare(b.nombre),
-      render: (text, record) => (
-        <div className="">
+      render: (_text, record) => (
+        <div>
           <p className="font-semibold text-slate-700">{record.nombre}</p>
           <p className="text-sm text-slate-500">{record.email}</p>
         </div>
@@ -64,6 +69,7 @@ export default function TableUsuarioAdministrativo({
     },
   ];
 
+  // ===================================================================================
   return (
     <Table
       rowKey="id"
@@ -71,6 +77,7 @@ export default function TableUsuarioAdministrativo({
       dataSource={usuarios}
       pagination={{ pageSize: 20 }}
       bordered
+      loading={loading}
     />
   );
 }
