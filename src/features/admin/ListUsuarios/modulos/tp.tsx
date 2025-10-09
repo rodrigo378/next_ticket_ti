@@ -1,65 +1,42 @@
-import { Button, Form, FormInstance, Select, message } from "antd";
-import { useState } from "react";
-import { upsertUsuarioModulo } from "@/services/core/usuario";
+// src/features/admin/ListUsuarios/modulos/tp.tsx
+import { Button, Form, FormInstance, Select } from "antd";
 
+// ===================================================================================
 type Props = {
-  usuario_id: number | null;
   formModules: FormInstance;
   initialRolTp?: string;
   roleOptions: { label: string; value: string }[];
+  onSave: () => void;
+  loading?: boolean;
 };
 
+// ===================================================================================
 export default function TPPanel({
-  usuario_id,
   formModules,
   initialRolTp,
   roleOptions,
+  onSave,
+  loading,
 }: Props) {
-  const [saving, setSaving] = useState(false);
-
+  // ===================================================================================
   const rolTp: string | undefined =
     Form.useWatch(["tp", "rol"], formModules) ?? initialRolTp;
 
-  const handleTpRolChange = (next: string) => {
-    formModules.setFieldValue(["tp", "rol"], next);
-  };
-
-  const handleSave = async () => {
-    if (!usuario_id) {
-      message.error("Primero selecciona un usuario.");
-      return;
-    }
-    const rol = formModules.getFieldValue(["tp", "rol"]) as string | undefined;
-    if (!rol) {
-      message.info("No hay cambios por guardar.");
-      return;
-    }
-    try {
-      setSaving(true);
-      await upsertUsuarioModulo(usuario_id, "TP", { rol });
-      message.success("Rol de TP actualizado.");
-    } catch (e) {
-      console.error(e);
-      message.error("No se pudo actualizar el rol de TP.");
-    } finally {
-      setSaving(false);
-    }
-  };
-
+  // ===================================================================================
   return (
     <div className="space-y-4">
       <Form form={formModules} layout="vertical">
         <Form.Item label="Rol" name={["tp", "rol"]} initialValue={initialRolTp}>
           <Select
             value={rolTp}
-            onChange={handleTpRolChange}
+            onChange={(v) => formModules.setFieldValue(["tp", "rol"], v)}
             options={roleOptions}
             placeholder="Seleccione rol"
             allowClear
           />
         </Form.Item>
 
-        <Button type="primary" loading={saving} onClick={handleSave}>
+        <Button type="primary" loading={loading} onClick={onSave}>
           Guardar
         </Button>
       </Form>

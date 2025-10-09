@@ -12,7 +12,7 @@ export default function LoginClient() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
-  const { iam, readyIam } = useUsuario(); // 👈 { user, modules, ... }
+  const { iam, isReadyApp } = useUsuario();
 
   const [loading, setLoading] = useState(false);
   const [booting, setBooting] = useState(true);
@@ -56,7 +56,7 @@ export default function LoginClient() {
   // 🔐 Redirección automática tras login, según rol (Estudiante → /hd/est/mis-tickets)
   useEffect(() => {
     // Esperamos a que el contexto esté listo
-    if (!readyIam) return;
+    if (!isReadyApp) return;
 
     // Si no hay sesión, no redirigimos (se queda en login)
     if (!iam?.user) return;
@@ -85,7 +85,7 @@ export default function LoginClient() {
         router.replace(safeReturnTo);
       }
     }
-  }, [iam, readyIam, searchParams, router]);
+  }, [iam, isReadyApp, searchParams, router]);
 
   const handleMicrosoftLogin = () => {
     if (loading) return;

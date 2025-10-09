@@ -56,8 +56,8 @@ export default function useAsignarTicket() {
   const joinedRoomsRef = useRef<string[]>([]);
   const tabRef = useRef<string>("sin_asignar");
 
-  // Context (usuario/hd/readyIam)
-  const { usuario, hd, readyIam } = useUsuario();
+  // Context (usuario/hd/isReadyApp)
+  const { usuario, hd, isReadyApp } = useUsuario();
 
   // STATE ========================================
   const [tickets, setTickets] = useState<HD_Ticket[]>([]);
@@ -161,7 +161,7 @@ export default function useAsignarTicket() {
 
   // Efecto: cuando IAM está listo, unirse a las rooms del módulo HD
   useEffect(() => {
-    if (!readyIam) return;
+    if (!isReadyApp) return;
 
     const rooms = (hd?.extras?.rooms ?? []).filter(Boolean);
     console.log("Usuario desde contexto =>", usuario);
@@ -173,7 +173,7 @@ export default function useAsignarTicket() {
     s.emit("tickets:join", { rooms });
     joinedRoomsRef.current = rooms;
     console.log("[WS] Joined rooms =>", rooms);
-  }, [readyIam, hd, usuario]);
+  }, [isReadyApp, hd, usuario]);
 
   // Efecto: data HTTP (no WS). Re-carga por pestaña.
   useEffect(() => {

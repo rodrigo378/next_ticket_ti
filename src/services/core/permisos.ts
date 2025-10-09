@@ -19,3 +19,8 @@ export const updatePermisos = async (data: {
   const response: AxiosResponse = await api.put(`core/permiso`, data);
   return response.data;
 };
+
+export const rutasPermitidas = async () => {
+  const response = await api.get(`core/permiso/allowed`);
+  return response.data;
+};

@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { authMw } from "./middlewares/auth";
 import { studentGateMw } from "./middlewares/studentGate";
 import { Mw } from "./middlewares/types";
+import { allowedRoutesMw } from "./middlewares/allowedRoutesMw";
 
 function chain(middlewares: Mw[]): (req: NextRequest) => Promise<NextResponse> {
   return async (req) => {
@@ -15,10 +16,7 @@ function chain(middlewares: Mw[]): (req: NextRequest) => Promise<NextResponse> {
   };
 }
 
-export const middleware = chain([
-  authMw, 
-  studentGateMw,
-]);
+export const middleware = chain([authMw, studentGateMw, allowedRoutesMw]);
 
 export const config = {
   matcher: ["/((?!api|_next|assets|favicon.ico).*)"],

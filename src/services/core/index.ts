@@ -2,7 +2,12 @@ export { logout } from "./auth";
 
 export { getFullMenu, getIamContext } from "./iam";
 
-export { getListPermisos, getPermisosUser, updatePermisos } from "./permisos";
+export {
+  getListPermisos,
+  getPermisosUser,
+  updatePermisos,
+  rutasPermitidas,
+} from "./permisos";
 
 export { getRoles } from "./rol";
 

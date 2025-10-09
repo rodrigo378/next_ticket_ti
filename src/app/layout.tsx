@@ -8,6 +8,7 @@ import "./globals.css";
 
 import ClientAntdTheme from "./ClientAntdTheme";
 import { UserProvider } from "@/context/UserContext";
+import Providers from "./providers";
 
 const inter = Inter({
   variable: "--font-ui",
@@ -34,16 +35,18 @@ export default function RootLayout({
   return (
     <html lang="es-PE" suppressHydrationWarning>
       <body className={`${inter.variable} ${jbMono.variable} antialiased`}>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="light"
-          enableSystem={false}
-          disableTransitionOnChange
-        >
-          <ClientAntdTheme>
-            <UserProvider>{children}</UserProvider>
-          </ClientAntdTheme>
-        </ThemeProvider>
+        <Providers>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="light"
+            enableSystem={false}
+            disableTransitionOnChange
+          >
+            <ClientAntdTheme>
+              <UserProvider>{children}</UserProvider>
+            </ClientAntdTheme>
+          </ThemeProvider>
+        </Providers>
       </body>
     </html>
   );
