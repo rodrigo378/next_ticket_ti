@@ -1,0 +1,92 @@
+/* src/components/layout/Sidebar/sidebar.styles.css */
+
+/* =================================================================================== */
+.fixed-sider {
+  background: #1f2937 !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+  position: fixed;
+  inset-block: 0;
+  left: 0;
+  z-index: 100;
+}
+
+/* =================================================================================== */
+.fixed-sider .ant-layout-sider-trigger {
+  background: #334155 !important;
+  color: #cbd5e1;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* =================================================================================== */
+.fixed-sider__brand {
+  color: #ffffff;
+}
+
+/* =================================================================================== */
+.fixed-sider__menu,
+.fixed-sider .ant-menu-dark,
+.fixed-sider .ant-menu {
+  background: #1f2937 !important;
+}
+
+/* =================================================================================== */
+.fixed-sider .ant-menu-item,
+.fixed-sider .ant-menu-submenu-title {
+  color: #cbd5e1 !important;
+}
+
+/* =================================================================================== */
+.fixed-sider .ant-menu-item:hover,
+.fixed-sider .ant-menu-submenu-title:hover {
+  background: #243447 !important;
+  color: #ffffff !important;
+}
+
+/* =================================================================================== */
+.fixed-sider .ant-menu-item-selected {
+  background: #334155 !important;
+  color: #ffffff !important;
+}
+
+/* =================================================================================== */
+.fixed-sider .ant-menu-item-selected .fixed-sider__link {
+  color: #ffffff !important;
+}
+
+/* =================================================================================== */
+.fixed-sider__link {
+  color: #cbd5e1 !important;
+}
+
+/* =================================================================================== */
+.fixed-sider__icon {
+  filter: invert(0.86);
+}
+
+/* =================================================================================== */
+.fixed-sider__section {
+  color: #94a3b8;
+}
+
+/* =================================================================================== */
+.fixed-sider__group {
+  color: #cbd5e1;
+}
+
+/* =================================================================================== */
+/* =================================================================================== */
+.fixed-sider__drawer .ant-drawer-content,
+.fixed-sider__drawer .ant-drawer-body {
+  background: #1f2937 !important;
+}
+
+/* =================================================================================== */
+.fixed-sider__drawer .ant-drawer-content-wrapper {
+  box-shadow: none;
+}
+
+/* =================================================================================== */
+.fixed-sider__drawer .ant-menu,
+.fixed-sider__drawer .ant-menu-dark {
+  background: #1f2937 !important;
+}

@@ -11,7 +11,7 @@ import useUsuarioModuloConfig from "./hooks/useUsuarioModuloConfig";
 import TabsUsuario from "./components/TabsUsuario";
 import DrawerAdministrativo from "./components/DrawerAdministrativo";
 import DrawerModulosUsuario from "./components/DrawerModuloUsuario";
-import { CoreRol_Id } from "@/const/rol.const";
+import { CoreRol } from "@/const/rol.const";
 
 const { Search } = Input;
 
@@ -25,7 +25,7 @@ export default function ListUsuarioView() {
     refetchUsuarios,
     q,
     onSearchChange,
-  } = useUsuariosList([CoreRol_Id.SUPERADMIN, CoreRol_Id.ADMINISTRATIVO]);
+  } = useUsuariosList([CoreRol.SUPERADMIN, CoreRol.ADMINISTRATIVO]);
 
   const {
     usuario,

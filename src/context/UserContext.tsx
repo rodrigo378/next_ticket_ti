@@ -1,62 +1,21 @@
 // src/context/UserContext.tsx
 "use client";
 
-import { Core_Rol } from "@interfaces/core/core_rol";
-import { getIamContext } from "@/services/core/iam";
-import { Spin } from "antd";
-import { useRouter } from "next/navigation";
 import {
   createContext,
-  ReactNode,
   useContext,
-  useEffect,
   useMemo,
-  useState,
+  ReactNode,
   useCallback,
 } from "react";
+import { Spin, message } from "antd";
+import { useRouter } from "next/navigation";
+import type { IamCtx, UserContextValue } from "./user.types";
+import { useIamContextQuery, useLogoutMutation } from "./useIamQueries";
 
-/* ===== Tipos para autocompletado ===== */
-type Area = { id: number; nombre: string; abreviado: string };
-type HdExtras = { areas: Area[]; rooms: string[] };
-type ModuleBase = {
-  code: string;
-  name: string;
-  icon: string;
-  role: string | null;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  perfil: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  extras?: any;
-};
-type HdModule = ModuleBase & { code: "HD"; extras: HdExtras };
-type IamCtx = {
-  user: {
-    id: number;
-    nombre: string;
-    apellidos: string;
-    email: string;
-    rol: Core_Rol;
-  };
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  perfil_global: any;
-  modules: ModuleBase[];
-};
-/* ===================================== */
-
-type UserContextType = {
-  usuario: IamCtx["user"] | null;
-  iam: IamCtx | null;
-  hd?: HdModule;
-  ready: boolean;
-  readyIam: boolean;
-  refreshIam: () => Promise<void>;
-  logout: () => void;
-};
-
-const UserContext = createContext<UserContextType | undefined>(undefined);
-
-/* ---------------- Loader con branding UMA ---------------- */
-export const Loader = () => {
+// ===================================================================================
+function LoaderUMA() {
+  // ===================================================================================
   return (
     <div
       style={{
@@ -147,92 +106,111 @@ export const Loader = () => {
       `}</style>
     </div>
   );
-};
-/* --------------------------------------------------------- */
+}
 
-export const UserProvider = ({ children }: { children: ReactNode }) => {
-  const [iam, setIam] = useState<IamCtx | null>(null);
-  const [ready, setReady] = useState(false);
-  const [readyIam, setReadyIam] = useState(false);
+// ===================================================================================
+const Ctx = createContext<UserContextValue | undefined>(undefined);
 
+// ===================================================================================
+export function UserProvider({ children }: { children: ReactNode }) {
+  // ===================================================================================
   const router = useRouter();
+  const iamQ = useIamContextQuery();
+  const logoutMut = useLogoutMutation();
 
-  const refreshIam = useCallback(async () => {
-    setReadyIam(false);
-    try {
-      const ctx = await getIamContext();
-      console.log("ctx => ", ctx);
-
-      setIam(ctx);
-    } catch {
-      // 401/403/etc → sin sesión
-      setIam(null);
-    } finally {
-      setReadyIam(true);
-    }
-  }, []);
-
-  const logout = useCallback(() => {
-    (async () => {
-      try {
-        await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? ""}/logout`, {
-          method: "POST",
-          credentials: "include",
-        });
-      } catch {}
-      setIam(null);
-      setReady(false);
-      setReadyIam(false);
-      router.replace("/login");
-    })();
-  }, [router]);
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        await refreshIam();
-      } finally {
-        if (!cancelled) setReady(true);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-    // Si quieres refrescar al cambiar de ruta (opcional), incluye `pathname`:
-  }, [refreshIam /* , pathname */]);
-
+  const iam: IamCtx | null = iamQ.data ?? null;
   const usuario = iam?.user ?? null;
 
-  const hd = useMemo(() => {
-    const mod = iam?.modules.find((m) => m.code === "HD");
-    return mod ? ({ ...mod, code: "HD" } as HdModule) : undefined;
+  // ===================================================================================
+  const modulesByCode = useMemo(() => {
+    const dict: Record<string, IamCtx["modules"][number] | undefined> = {};
+    for (const m of iam?.modules ?? []) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const anyM = m as any;
+      const code: string | undefined =
+        anyM.code ?? anyM.codigo ?? anyM.key ?? anyM.slug ?? anyM.modulo;
+      if (typeof code === "string" && code.length) dict[code] = m;
+    }
+    return dict;
   }, [iam]);
 
-  const value = useMemo<UserContextType>(
+  // ===================================================================================
+  const isReadyIam = !iamQ.isLoading && !iamQ.isFetching;
+  const isAuthenticated = !!usuario;
+  const isReadyApp = isReadyIam;
+
+  // ===================================================================================
+  const refreshIam = useCallback(async () => {
+    await iamQ.refetch();
+  }, [iamQ]);
+
+  // ===================================================================================
+  const logout = useCallback(async () => {
+    try {
+      await logoutMut.mutateAsync();
+    } catch {
+      // no bloquear UX si falla
+    } finally {
+      message.success("Sesión cerrada");
+      router.replace("/login");
+    }
+  }, [logoutMut, router]);
+
+  // ===================================================================================
+  const hasModule = useCallback(
+    (code: string) => !!modulesByCode[code],
+    [modulesByCode]
+  );
+
+  // ===================================================================================
+  const hasRole = useCallback(
+    (code: string, roles: string | string[]) => {
+      const m = modulesByCode[code];
+      if (!m?.role) return false;
+      const arr = Array.isArray(roles) ? roles : [roles];
+      return arr.includes(m.role);
+    },
+    [modulesByCode]
+  );
+
+  // ===================================================================================
+  const value = useMemo<UserContextValue>(
     () => ({
       usuario,
       iam,
-      hd,
-      ready,
-      readyIam,
+      modulesByCode,
+      isReadyApp,
+      isReadyIam,
+      isAuthenticated,
       refreshIam,
       logout,
+      hasModule,
+      hasRole,
     }),
-    [usuario, iam, hd, ready, readyIam, refreshIam, logout]
+    [
+      usuario,
+      iam,
+      modulesByCode,
+      isReadyApp,
+      isReadyIam,
+      isAuthenticated,
+      refreshIam,
+      logout,
+      hasModule,
+      hasRole,
+    ]
   );
 
-  const FORCE_LOADER = false;
+  // ===================================================================================
+  if (!isReadyApp) return <LoaderUMA />;
 
-  return (
-    <UserContext.Provider value={value}>
-      {FORCE_LOADER ? <Loader /> : ready ? children : <Loader />}
-    </UserContext.Provider>
-  );
-};
+  // ===================================================================================
+  return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
+}
 
+// ===================================================================================
 export const useUsuario = () => {
-  const ctx = useContext(UserContext);
+  const ctx = useContext(Ctx);
   if (!ctx) throw new Error("useUsuario debe usarse dentro del UserProvider");
   return ctx;
 };

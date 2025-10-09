@@ -5,7 +5,7 @@ import { useCallback, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getRoles, getUsuarios } from "@/services/core";
 import { Core_Rol, Core_Usuario } from "@interfaces/core";
-import { CoreRol_Id } from "@/const/rol.const";
+import { CoreRol } from "@/const/rol.const";
 
 // ===================================================================================
 export type TabKey = "administrativo" | "alumno";
@@ -19,7 +19,7 @@ const normalize = (s: string) =>
 
 // ===================================================================================
 export default function useUsuariosList(
-  defaultRoles: number[] = [CoreRol_Id.SUPERADMIN, CoreRol_Id.ADMINISTRATIVO]
+  defaultRoles: number[] = [CoreRol.SUPERADMIN, CoreRol.ADMINISTRATIVO]
 ) {
   // ===================================================================================
   const [rolesFiltro, setRolesFiltro] = useState<number[]>(defaultRoles);
@@ -67,9 +67,9 @@ export default function useUsuariosList(
   // ===================================================================================
   const onChangeTab = useCallback((tab: TabKey) => {
     if (tab === "administrativo") {
-      setRolesFiltro([CoreRol_Id.SUPERADMIN, CoreRol_Id.ADMINISTRATIVO]);
+      setRolesFiltro([CoreRol.SUPERADMIN, CoreRol.ADMINISTRATIVO]);
     } else {
-      setRolesFiltro([CoreRol_Id.ESTUDIANTE]);
+      setRolesFiltro([CoreRol.ESTUDIANTE]);
     }
   }, []);
 
