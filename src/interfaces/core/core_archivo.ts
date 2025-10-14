@@ -16,6 +16,7 @@ export interface Core_Archivo {
 
   url: string;
   previewUrl: string;
+  openUrl: string;
 
   HD_DocumentoTicket: HD_DocumentoTicket[];
 }
