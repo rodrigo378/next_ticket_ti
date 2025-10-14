@@ -193,25 +193,42 @@ export default function DrawerTicket({
             </Descriptions.Item>
           </Descriptions>
 
-          {ticket.documentos && ticket.documentos?.length > 0 && (
+          {Array.isArray(ticket.documentos) && ticket.documentos.length > 0 && (
             <>
               <Divider orientation="left">📎 Archivos Adjuntos</Divider>
               <ul className="list-disc pl-5 space-y-1">
-                {ticket.documentos.map((archivo, index) => {
-                  const fileUrl = `http://localhost:4000${archivo.url.replace(
-                    /\\/g,
-                    "/"
-                  )}`;
+                {ticket.documentos.map((doc, idx) => {
+                  const a = doc?.archivo;
+                  if (!a) return null;
+
+                  const label = a.contentType?.startsWith("image/")
+                    ? "🖼️"
+                    : a.contentType === "application/pdf"
+                    ? "📕"
+                    : "📄";
+
                   return (
-                    <li key={index}>
+                    <li key={idx} className="flex items-center gap-2">
                       <a
-                        href={fileUrl}
+                        href={a.previewUrl}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-blue-600 hover:underline"
                       >
-                        📄 {archivo.nombre}
+                        {label} {a.nombre}
                       </a>
+
+                      {a.url && (
+                        <a
+                          href={a.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-gray-500 hover:underline text-xs"
+                          title="Descargar archivo"
+                        >
+                          (descargar)
+                        </a>
+                      )}
                     </li>
                   );
                 })}

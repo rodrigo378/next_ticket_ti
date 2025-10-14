@@ -16,7 +16,11 @@ function chain(middlewares: Mw[]): (req: NextRequest) => Promise<NextResponse> {
   };
 }
 
-export const middleware = chain([authMw, studentGateMw, allowedRoutesMw]);
+export const middleware = chain([
+  authMw,
+  studentGateMw,
+  // allowedRoutesMw
+]);
 
 export const config = {
   matcher: ["/((?!api|_next|assets|favicon.ico).*)"],

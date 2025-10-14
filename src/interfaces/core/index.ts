@@ -1,3 +1,5 @@
+export type { Core_Archivo } from "./core_archivo";
+
 export type { Core_Item } from "./core_item";
 
 export type { Core_LogAuditoria } from "./core_log";
