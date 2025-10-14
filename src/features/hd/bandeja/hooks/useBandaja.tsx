@@ -3,17 +3,25 @@ import { HD_Ticket } from "@interfaces/hd";
 import { getTickets } from "@services/hd";
 import { message } from "antd";
 import { useEffect, useState } from "react";
+import type { HdModule } from "@/interfaces/hd/config.modulo";
 
 export default function useBandeja() {
   // USESTATE ========================
   const [tabKey, setTabKey] = useState("mis_tickets");
   const [loading, setLoading] = useState(false);
   const [tickets, setTickets] = useState<HD_Ticket[]>([]);
-  const { usuario } = useUsuario();
+  const { usuario, modulesByCode } = useUsuario();
+
+  const hdModule = modulesByCode["HD"] as HdModule | undefined;
+  const hdConfig = hdModule?.perfil ?? null;
+  const hdRole = hdModule?.role ?? null;
 
   // USEEFFECT ======================
   useEffect(() => {
     fetchTickets("true", ["2", "3"]);
+    // console.log("=======================");
+    // console.log("hdModule => ", hdModule);
+    // console.log("=======================");
   }, []);
 
   // FETCHS =========================
@@ -44,5 +52,8 @@ export default function useBandeja() {
     tickets,
     onChangeTabs,
     usuario,
+    hdModule,
+    hdRole,
+    hdConfig,
   };
 }

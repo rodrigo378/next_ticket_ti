@@ -1,6 +1,6 @@
 export { logout } from "./auth";
 
-export { getFullMenu, getIamContext } from "./iam";
+export { getFullMenu, getIamContext, upsertConfig } from "./iam";
 
 export {
   getListPermisos,

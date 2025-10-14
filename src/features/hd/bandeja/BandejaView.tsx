@@ -3,12 +3,12 @@ import { Flex, Typography, theme } from "antd";
 import TabsSoporte from "./components/Tabs";
 import useBandeja from "./hooks/useBandaja";
 import Title from "antd/es/typography/Title";
-import TableTickets from "./components/TableTickets";
 
 const { Text } = Typography;
 
 export default function BandejaView() {
-  const { tabKey, loading, tickets, onChangeTabs, usuario } = useBandeja();
+  const { tabKey, loading, tickets, onChangeTabs, usuario, hdRole, hdConfig } =
+    useBandeja();
   const { token } = theme.useToken();
 
   return (
@@ -24,9 +24,15 @@ export default function BandejaView() {
         </div>
       </Flex>
 
-      <TabsSoporte tabKey={tabKey} onChangeTabs={onChangeTabs} />
-
-      <TableTickets usuario={usuario!} tickets={tickets} loading={loading} />
+      <TabsSoporte
+        usuario={usuario}
+        loading={loading}
+        tickets={tickets}
+        tabKey={tabKey}
+        onChangeTabs={onChangeTabs}
+        hdRole={hdRole}
+        hdConfig={hdConfig}
+      />
     </div>
   );
 }

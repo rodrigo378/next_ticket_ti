@@ -35,7 +35,6 @@ interface Props {
   ticket: HD_Ticket;
 }
 
-/** Helpers */
 const formatBytes = (bytes?: number) => {
   if (!bytes || bytes <= 0) return "";
   const units = ["B", "KB", "MB", "GB"];
@@ -77,17 +76,16 @@ export default function CardArchivos({ ticket }: Props) {
   );
 }
 
-/** Item de archivo (preview seguro vía /preview-info + Modal con header sticky) */
 function ArchivoItem({ doc }: { doc: HD_DocumentoTicket }) {
   const a: Core_Archivo | undefined = doc?.archivo;
 
-  // Hooks
+  // Hooks SIEMPRE arriba
   const [previewSrc, setPreviewSrc] = useState<string | null>(null);
   const [open, setOpen] = useState<boolean>(false);
 
   // Flags
-  const ct = a?.contentType || "";
-  const name = a?.nombre || "";
+  const ct = a?.contentType ?? "";
+  const name = a?.nombre ?? "";
 
   const isImage =
     ct.startsWith("image/") ||
@@ -98,23 +96,41 @@ function ArchivoItem({ doc }: { doc: HD_DocumentoTicket }) {
   const isPpt = ct.includes("powerpoint") || hasExt(name, [".ppt", ".pptx"]);
   const isOffice = isWord || isExcel || isPpt;
 
-  // Cargar preview embebible desde /preview-info
+  // Cargar preview embebible desde /preview-info (no aplica a imágenes)
   useEffect(() => {
+    const ctrl = new AbortController();
+
     const fetchPreview = async () => {
       if (!a?.previewUrl || !a.previewUrl.includes("/preview-info") || isImage)
         return;
       try {
-        const res = await fetch(a.previewUrl);
+        const res = await fetch(a.previewUrl, { signal: ctrl.signal });
+        if (!res.ok) throw new Error("preview-info fetch failed");
         const data = await res.json();
         setPreviewSrc(data.previewUrl || null);
-      } catch {
-        setPreviewSrc(null);
+      } catch (err) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        if ((err as any)?.name !== "AbortError") {
+          setPreviewSrc(null);
+        }
       }
     };
+
     fetchPreview();
+    return () => ctrl.abort();
   }, [a?.previewUrl, isImage]);
 
-  if (!a) return null;
+  // Si no hay archivo, render seguro
+  if (!a) {
+    return (
+      <>
+        <Divider style={{ margin: "12px 0" }} />
+        <Card size="small" style={{ borderRadius: 10 }}>
+          <Text type="secondary">Archivo no disponible</Text>
+        </Card>
+      </>
+    );
+  }
 
   const icon = isImage ? (
     <FileImageOutlined />
@@ -178,6 +194,7 @@ function ArchivoItem({ doc }: { doc: HD_DocumentoTicket }) {
             }}
           >
             {isImage ? (
+              // IMAGEN: sin botón de maximizar (usa preview nativo)
               <Image
                 src={a.url}
                 alt={name}
@@ -188,14 +205,49 @@ function ArchivoItem({ doc }: { doc: HD_DocumentoTicket }) {
                 fallback=""
               />
             ) : previewSrc ? (
-              <iframe
-                src={previewSrc}
-                title={name}
-                width="100%"
-                height="100%"
-                style={{ border: 0 }}
-                allow="fullscreen"
-              />
+              // Otros tipos: iframe con overlay clickeable en toda el área
+              <>
+                <iframe
+                  src={previewSrc}
+                  title={name}
+                  width="100%"
+                  height="100%"
+                  style={{ border: 0 }}
+                  allowFullScreen
+                />
+                {/* Overlay clickable en toda el área */}
+                <div
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => setOpen(true)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") setOpen(true);
+                  }}
+                  title="Maximizar"
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    cursor: "zoom-in",
+                    background: "transparent",
+                  }}
+                />
+                {/* Ícono centrado (decorativo) */}
+                <div
+                  style={{
+                    position: "absolute",
+                    top: "50%",
+                    left: "50%",
+                    transform: "translate(-50%, -50%)",
+                    pointerEvents: "none",
+                    background: "rgba(255,255,255,0.9)",
+                    borderRadius: 999,
+                    padding: 8,
+                    boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+                  }}
+                >
+                  <FullscreenOutlined style={{ fontSize: 18 }} />
+                </div>
+              </>
             ) : isPDF ? (
               <object
                 data={a.url}
@@ -216,27 +268,6 @@ function ArchivoItem({ doc }: { doc: HD_DocumentoTicket }) {
               </object>
             ) : (
               <Text type="secondary">Vista previa no disponible</Text>
-            )}
-
-            {/* Botón Maximizar (desplazado para no chocar con scroll) */}
-            {(isImage || !!previewSrc) && (
-              <Tooltip title="Maximizar">
-                <Button
-                  type="default"
-                  shape="circle"
-                  size="small"
-                  icon={<FullscreenOutlined />}
-                  onClick={() => setOpen(true)}
-                  style={{
-                    position: "absolute",
-                    right: 12, // más margen
-                    bottom: 12,
-                    background: "rgba(255,255,255,0.88)",
-                    backdropFilter: "blur(2px)",
-                    borderColor: "#e5e7eb",
-                  }}
-                />
-              </Tooltip>
             )}
           </div>
 
@@ -291,18 +322,17 @@ function ArchivoItem({ doc }: { doc: HD_DocumentoTicket }) {
         </div>
       </Card>
 
-      {/* Modal con header sticky y scroll solo en el cuerpo */}
+      {/* Modal */}
       <Modal
         open={open}
         onCancel={() => setOpen(false)}
-        closable={false} // oculto la X nativa para que no choque
+        closable={false}
         footer={null}
         width="90vw"
         centered
-        destroyOnClose
+        destroyOnHidden
         styles={{ body: { padding: 0 } }}
       >
-        {/* Header propio (no se desplaza) */}
         <div
           style={{
             position: "sticky",
@@ -337,13 +367,8 @@ function ArchivoItem({ doc }: { doc: HD_DocumentoTicket }) {
           />
         </div>
 
-        {/* Cuerpo con scroll propio */}
         <div
-          style={{
-            height: "80vh",
-            overflow: "auto",
-            background: "#fafafa",
-          }}
+          style={{ height: "80vh", overflow: "auto", background: "#fafafa" }}
         >
           {isImage ? (
             <Image
@@ -359,7 +384,7 @@ function ArchivoItem({ doc }: { doc: HD_DocumentoTicket }) {
               width="100%"
               height="100%"
               style={{ border: 0 }}
-              allow="fullscreen"
+              allowFullScreen
             />
           ) : (
             <div

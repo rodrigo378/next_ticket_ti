@@ -21,7 +21,7 @@ export default function CardDetalle({ ticket }: Props) {
     : null;
 
   return (
-    <Card title="🎟️ Detalle del Ticket" className="rounded-xl shadow-sm">
+    <Card title="🎟️ Detalle del Ticket" className="rounded-xl shadow-sm mb-5">
       <Descriptions column={1} size="middle" bordered>
         <Descriptions.Item label="Código">
           {ticket?.codigo ?? "—"}

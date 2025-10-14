@@ -36,7 +36,6 @@ import CardDetalle from "../usuario/detalleTicket/components/CardDetalle";
 
 const { Text, Title } = Typography;
 
-/* ========= Extensión de tipos (local a este archivo) ========= */
 /** Estudiante (getInfoEstudiante) */
 interface HD_InfoUsuarioEstudiante {
   c_codalu?: string;
