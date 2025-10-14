@@ -64,6 +64,15 @@ const ESTADO_META: Record<string, { label: string; color: string }> = {
   DERIVADO: { label: "Derivado", color: "geekblue" },
 };
 
+// NUEVO: listas de estados por pestaña
+const ACTIVE_STATE_IDS = [
+  String(ESTADO_ID.ABIERTO),
+  String(ESTADO_ID.ASIGNADO),
+  String(ESTADO_ID.EN_PROCESO),
+];
+
+const FINALIZED_STATE_IDS = [String(ESTADO_ID.RESUELTO)];
+
 type RowUI = {
   id: number;
   codigo: string;
@@ -150,12 +159,13 @@ export default function TicketListStudentView() {
 
   // Precarga: activos + conteo finalizados pendientes
   useEffect(() => {
-    fetchTickets([String(ESTADO_ID.ABIERTO)]);
+    // Activos: ABIERTO, ASIGNADO, EN_PROCESO
+    fetchTickets(ACTIVE_STATE_IDS);
+
+    // Conteo de RESUELTO sin calificación
     (async () => {
       try {
-        const resp = await getTicketsMe({
-          estados_id: [String(ESTADO_ID.RESUELTO)],
-        });
+        const resp = await getTicketsMe({ estados_id: FINALIZED_STATE_IDS });
         const count = (resp as HD_Ticket[]).filter(
           (t) => !t?.calificacionTicket?.calificacion
         ).length;
@@ -169,10 +179,10 @@ export default function TicketListStudentView() {
   useEffect(() => {
     if (tabKey === "activos") {
       setActivePage(1);
-      fetchTickets([String(ESTADO_ID.ABIERTO)]);
+      fetchTickets(ACTIVE_STATE_IDS);
     } else {
       setFinalPage(1);
-      fetchTickets([String(ESTADO_ID.RESUELTO)]);
+      fetchTickets(FINALIZED_STATE_IDS);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tabKey]);
