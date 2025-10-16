@@ -118,7 +118,7 @@ export default function DrawerTicket({
     Array.isArray(ticket?.derivacionesComoDestino) &&
     ticket.derivacionesComoDestino.length > 0;
 
-  const esTicketEstudiante = ticket?.creado?.rol_id === 3; // referencia que ya usas en la tabla
+  const esTicketEstudiante = ticket?.titular?.rol_id === 3;
 
   const sinCategoria = !ticket?.categoria_id;
 
@@ -158,7 +158,7 @@ export default function DrawerTicket({
               <Tag color="blue">{ticket.estado?.nombre}</Tag>
             </Descriptions.Item>
             <Descriptions.Item label="Creado por">
-              {ticket.creado?.nombre} {ticket.creado?.apellidos}
+              {ticket.titular?.nombre} {ticket.titular?.apellidos}
             </Descriptions.Item>
             <Descriptions.Item label="Fecha de creación">
               {ticket.createdAt

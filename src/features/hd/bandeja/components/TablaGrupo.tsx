@@ -6,6 +6,9 @@ import {
   PushpinOutlined,
   SettingOutlined,
   SearchOutlined,
+  InboxOutlined,
+  CheckCircleFilled,
+  CloseCircleFilled,
 } from "@ant-design/icons";
 import {
   Button,
@@ -175,15 +178,14 @@ export default function TableGrupo({
   hdRole,
   hdConfig,
   saveConfig,
+  usuario,
 }: Props) {
   const { token } = theme.useToken();
 
   // Normalizo rol para evitar problemas de casing/espacios
   const role = (hdRole ?? "").toString().trim().toLowerCase();
   console.log("===================");
-  console.log("hdRole => ", hdRole);
-
-  console.log("role => ", role);
+  console.log("usuario => ", usuario);
   console.log("===================");
 
   // ===================================================================================
@@ -250,7 +252,18 @@ export default function TableGrupo({
       () => ({
         // Generales
         // ===================================================================================
-        codigo: { title: "Código", dataIndex: "codigo", key: "codigo" },
+        codigo: {
+          title: <span style={{ whiteSpace: "nowrap" }}>Código</span>,
+          dataIndex: "codigo",
+          key: "codigo",
+          sorter: (a, b) => a.codigo.localeCompare(b.codigo),
+          render: (v) => (
+            <Space size={6}>
+              <InboxOutlined />
+              <Typography.Text code>{v}</Typography.Text>
+            </Space>
+          ),
+        },
 
         // ===================================================================================
         area: {
@@ -386,18 +399,18 @@ export default function TableGrupo({
             />
           ),
           onFilter: (value, record) => {
-            const fullName = `${record.creado?.nombre ?? ""} ${
-              record.creado?.apellidos ?? ""
+            const fullName = `${record.titular?.nombre ?? ""} ${
+              record.titular?.apellidos ?? ""
             }`.toLowerCase();
             return fullName.includes(String(value).toLowerCase());
           },
           render: (_, record: HD_Ticket) => (
             <div className="flex flex-col !items-start">
-              <span>{`${record.creado?.nombre ?? ""} ${
-                record.creado?.apellidos ?? ""
+              <span>{`${record.titular?.nombre ?? ""} ${
+                record.titular?.apellidos ?? ""
               }`}</span>
-              <Tag color={record.creado?.rol_id === 3 ? "blue" : "green"}>
-                {record.creado?.rol_id === 3 ? "Alumno" : "Administrativo"}
+              <Tag color={record.titular?.rol_id === 3 ? "blue" : "green"}>
+                {record.titular?.rol_id === 3 ? "Alumno" : "Administrativo"}
               </Tag>
             </div>
           ),
@@ -407,7 +420,33 @@ export default function TableGrupo({
         estado: {
           title: "Estado",
           key: "estado",
-          dataIndex: ["estado", "nombre"],
+          render: (record: HD_Ticket) => {
+            const asignado = record.asignado_id === usuario?.id;
+            return (
+              <Space>
+                {asignado ? (
+                  <CheckCircleFilled
+                    style={{ color: token.colorSuccess }}
+                    aria-label="Asignado a mí"
+                  />
+                ) : (
+                  <CloseCircleFilled
+                    style={{ color: token.colorError }}
+                    aria-label="No asignado a mí"
+                  />
+                )}
+                <Tag
+                  style={{
+                    color: token.colorInfoText,
+                    background: token.colorInfoBg,
+                    borderColor: token.colorInfo,
+                  }}
+                >
+                  {record.estado?.nombre || "Sin estado"}
+                </Tag>
+              </Space>
+            );
+          },
         },
 
         // ===================================================================================
@@ -602,9 +641,30 @@ export default function TableGrupo({
               </Button>
             </Link>
           ),
+
+          // render: (record: HD_Ticket) => {
+          //   const estaAsignado = record.asignado_id === usuario?.id;
+          //   return estaAsignado ? (
+          //     <Link href={`/hd/bandeja/${record.id}`}>
+          //       <Button
+          //         type="link"
+          //         icon={<EyeOutlined />}
+          //         style={{ color: token.colorLink }}
+          //       >
+          //         Ver
+          //       </Button>
+          //     </Link>
+          //   ) : (
+          //     <Tooltip title="Solo el técnico asignado puede ver este ticket">
+          //       <Button type="link" icon={<EyeOutlined />} disabled>
+          //         Ver
+          //       </Button>
+          //     </Tooltip>
+          //   );
+          // },
         },
       }),
-      [token, areaOptions, areaFilter, creadoFilter, prioridadFilter]
+      [token, areaOptions, areaFilter, creadoFilter, prioridadFilter, usuario]
     );
 
   // ===================================================================================

@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 import { authMw } from "./middlewares/auth";
 import { studentGateMw } from "./middlewares/studentGate";
 import { Mw } from "./middlewares/types";
-import { allowedRoutesMw } from "./middlewares/allowedRoutesMw";
+// import { allowedRoutesMw } from "./middlewares/allowedRoutesMw";
 
 function chain(middlewares: Mw[]): (req: NextRequest) => Promise<NextResponse> {
   return async (req) => {

@@ -22,8 +22,11 @@ export interface HD_Ticket {
   estado_id: number;
   estado?: HD_EstadoTicket;
 
-  creado_id: number;
-  creado?: Core_Usuario;
+  titular_id: number;
+  titular?: Core_Usuario;
+
+  registrado_por_id?: number;
+  registrado_por?: Core_Usuario;
 
   asignado_id?: number | null;
   asignado?: Core_Usuario | null;

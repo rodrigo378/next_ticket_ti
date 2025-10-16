@@ -108,14 +108,14 @@ export default function TicketTableAdmin({
     },
     {
       title: "Creado por",
-      key: "creado_id",
+      key: "titular_id",
       render: (record: HD_Ticket) => (
         <div className="flex flex-col !items-start">
-          <span>{`${record.creado?.nombre || ""} ${
-            record.creado?.apellidos || ""
+          <span>{`${record.titular?.nombre || ""} ${
+            record.titular?.apellidos || ""
           }`}</span>
-          <Tag color={record.creado?.rol_id === 3 ? "blue" : "green"}>
-            {record.creado?.rol_id === 3 ? `Alumno` : `Administrativo`}
+          <Tag color={record.titular?.rol_id === 3 ? "blue" : "green"}>
+            {record.titular?.rol_id === 3 ? `Alumno` : `Administrativo`}
           </Tag>
         </div>
       ),

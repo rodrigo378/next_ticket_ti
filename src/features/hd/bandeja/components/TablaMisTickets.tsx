@@ -6,6 +6,7 @@ import {
   PushpinOutlined,
   SettingOutlined,
   SearchOutlined,
+  InboxOutlined,
 } from "@ant-design/icons";
 import {
   Button,
@@ -182,7 +183,18 @@ export default function TableTicketsAsignados({
       () => ({
         // Generales
         // ===================================================================================
-        codigo: { title: "Código", dataIndex: "codigo", key: "codigo" },
+        codigo: {
+          title: <span style={{ whiteSpace: "nowrap" }}>Código</span>,
+          dataIndex: "codigo",
+          key: "codigo",
+          sorter: (a, b) => a.codigo.localeCompare(b.codigo),
+          render: (v) => (
+            <Space size={6}>
+              <InboxOutlined />
+              <Typography.Text code>{v}</Typography.Text>
+            </Space>
+          ),
+        },
 
         // ===================================================================================
         area: {
@@ -319,18 +331,18 @@ export default function TableTicketsAsignados({
             />
           ),
           onFilter: (value, record) => {
-            const fullName = `${record.creado?.nombre ?? ""} ${
-              record.creado?.apellidos ?? ""
+            const fullName = `${record.titular?.nombre ?? ""} ${
+              record.titular?.apellidos ?? ""
             }`.toLowerCase();
             return fullName.includes(String(value).toLowerCase());
           },
           render: (_, record: HD_Ticket) => (
             <div className="flex flex-col !items-start">
-              <span>{`${record.creado?.nombre ?? ""} ${
-                record.creado?.apellidos ?? ""
+              <span>{`${record.titular?.nombre ?? ""} ${
+                record.titular?.apellidos ?? ""
               }`}</span>
-              <Tag color={record.creado?.rol_id === 3 ? "blue" : "green"}>
-                {record.creado?.rol_id === 3 ? "Alumno" : "Administrativo"}
+              <Tag color={record.titular?.rol_id === 3 ? "blue" : "green"}>
+                {record.titular?.rol_id === 3 ? "Alumno" : "Administrativo"}
               </Tag>
             </div>
           ),

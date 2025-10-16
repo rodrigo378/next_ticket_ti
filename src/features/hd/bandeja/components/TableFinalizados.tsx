@@ -1,6 +1,6 @@
 "use client";
 import { HD_Ticket } from "@interfaces/hd";
-import { EyeOutlined, SettingOutlined } from "@ant-design/icons";
+import { EyeOutlined, InboxOutlined, SettingOutlined } from "@ant-design/icons";
 import {
   Button,
   Divider,
@@ -296,12 +296,22 @@ export default function TablaFinalizados({
   };
 
   // ===================================================================================
-  // Columnas
   const columnsByKey: Record<ColumnKey, ColumnsType<HD_Ticket>[number]> =
     useMemo(
       () => ({
         // Generales
-        codigo: { title: "Código", dataIndex: "codigo", key: "codigo" },
+        codigo: {
+          title: <span style={{ whiteSpace: "nowrap" }}>Código</span>,
+          dataIndex: "codigo",
+          key: "codigo",
+          sorter: (a, b) => a.codigo.localeCompare(b.codigo),
+          render: (v) => (
+            <Space size={6}>
+              <InboxOutlined />
+              <Typography.Text code>{v}</Typography.Text>
+            </Space>
+          ),
+        },
 
         area: {
           title: "Área",
@@ -353,7 +363,7 @@ export default function TablaFinalizados({
           title: "Creado por",
           key: "creado",
           render: (r: HD_Ticket) => {
-            const u = r.creado as UsuarioLike;
+            const u = r.titular as UsuarioLike;
             const full = `${u?.nombre ?? ""} ${u?.apellidos ?? ""}`.trim();
             return full || "—";
           },

@@ -64,7 +64,7 @@ export default function CardMensajeUsuario({
     if (!ticket) return false;
 
     // Si el emisor es el creador del ticket, NO es soporte
-    if (m.emisor_id === ticket.creado_id) return false;
+    if (m.emisor_id === ticket.titular_id) return false;
 
     // Si trae rol, normalizamos y chequeamos contra lista conocida
     const rol = m?.emisor?.rol?.nombre?.toLowerCase?.() ?? "";
