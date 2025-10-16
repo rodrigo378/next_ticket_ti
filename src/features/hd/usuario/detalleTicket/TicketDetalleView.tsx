@@ -53,7 +53,6 @@ export default function TicketDetalleView() {
       )}
 
       <CardDetalle ticket={ticket} />
-      <CardArchivos ticket={ticket} />
 
       <CardMensaje
         ticket={ticket}
@@ -62,6 +61,8 @@ export default function TicketDetalleView() {
         setNuevoMensaje={setNuevoMensaje}
         handleEnviarMensaje={handleEnviarMensaje}
       />
+
+      <CardArchivos ticket={ticket} />
     </div>
   );
 }

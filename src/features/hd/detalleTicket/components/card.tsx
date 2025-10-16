@@ -7,11 +7,13 @@ import {
   Space,
   Typography,
   theme,
+  Tooltip,
 } from "antd";
 import { useEffect, useRef, useState } from "react";
 import ComponenteModal from "./modal";
 import { HD_Ticket, HD_EstadoTicket } from "@interfaces/hd";
 import { cambiarEstado, getEstados } from "@services/hd";
+import { useUsuario } from "@/context/UserContext";
 
 const { Title, Text } = Typography;
 
@@ -34,10 +36,23 @@ interface ModalHandle {
 export const CardOpcionesRapidas = ({ ticket, onTicketUpdate }: Props) => {
   const { token } = theme.useToken();
   const modalRef = useRef<ModalHandle>(null);
-  const abrirModal = () => modalRef.current?.openModal();
+
+  const { usuario } = useUsuario();
 
   const [estados, setEstados] = useState<HD_EstadoTicket[]>([]);
   const [loadingEstados, setLoadingEstados] = useState(false);
+
+  // ✅ Permiso: solo el asignado puede gestionar
+  const puedeGestionar =
+    String(usuario?.id ?? "") === String(ticket?.asignado_id ?? "");
+
+  const abrirModal = () => {
+    if (!puedeGestionar) {
+      message.warning("No puedes derivar un ticket que no te pertenece.");
+      return;
+    }
+    modalRef.current?.openModal();
+  };
 
   useEffect(() => {
     (async () => {
@@ -54,6 +69,12 @@ export const CardOpcionesRapidas = ({ ticket, onTicketUpdate }: Props) => {
   }, []);
 
   const cambiarEstadoHandle = async (value: number) => {
+    if (!puedeGestionar) {
+      message.warning(
+        "No puedes cambiar el estado de un ticket que no te pertenece."
+      );
+      return;
+    }
     Modal.confirm({
       title: "¿Cambiar el estado del ticket?",
       content: "Esto actualizará el estado en el sistema.",
@@ -78,6 +99,8 @@ export const CardOpcionesRapidas = ({ ticket, onTicketUpdate }: Props) => {
         transiciones[ticket.estado_id!]?.includes(e.id)
     )
     .map((e) => ({ label: e.nombre, value: e.id }));
+
+  const disableControles = loadingEstados || !puedeGestionar;
 
   return (
     <>
@@ -112,22 +135,26 @@ export const CardOpcionesRapidas = ({ ticket, onTicketUpdate }: Props) => {
             >
               Estado
             </Text>
-            <Select
-              className="op-quick__select"
-              /* ✅ en Select v5: usar popupClassName */
-              style={{ width: "100%" }}
-              value={ticket.estado_id}
-              options={opcionesEstados}
-              loading={loadingEstados}
-              onChange={cambiarEstadoHandle}
-              showSearch
-              optionFilterProp="label"
-              placeholder="Selecciona un estado"
-              getPopupContainer={(trigger) =>
-                trigger.parentElement as HTMLElement
-              }
-              size="middle"
-            />
+            <Tooltip
+              title={!puedeGestionar ? "Este ticket no te pertenece." : ""}
+            >
+              <Select
+                className="op-quick__select"
+                style={{ width: "100%" }}
+                value={ticket.estado_id}
+                options={opcionesEstados}
+                loading={loadingEstados}
+                onChange={cambiarEstadoHandle}
+                showSearch
+                optionFilterProp="label"
+                placeholder="Selecciona un estado"
+                getPopupContainer={(trigger) =>
+                  trigger.parentElement as HTMLElement
+                }
+                size="middle"
+                disabled={disableControles}
+              />
+            </Tooltip>
           </div>
 
           <div style={{ width: "100%" }}>
@@ -141,23 +168,26 @@ export const CardOpcionesRapidas = ({ ticket, onTicketUpdate }: Props) => {
             >
               Derivar a área
             </Text>
-            <Button
-              type="primary"
-              block
-              onClick={abrirModal}
-              className="op-quick__btn-primary"
+            <Tooltip
+              title={!puedeGestionar ? "Este ticket no te pertenece." : ""}
             >
-              Derivar
-            </Button>
+              <Button
+                type="primary"
+                block
+                onClick={abrirModal}
+                className="op-quick__btn-primary"
+                disabled={disableControles}
+              >
+                Derivar
+              </Button>
+            </Tooltip>
           </div>
         </Space>
       </Card>
 
       <ComponenteModal ref={modalRef} ticket={ticket!} />
 
-      {/* Overrides para que el overlay no se vea blanco */}
       <style jsx global>{`
-        /* Botón primary sin borde blanco */
         .op-quick__btn-primary,
         .op-quick__btn-primary:hover,
         .op-quick__btn-primary:focus,

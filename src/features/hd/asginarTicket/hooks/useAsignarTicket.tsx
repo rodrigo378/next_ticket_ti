@@ -56,7 +56,7 @@ export default function useAsignarTicket() {
   const joinedRoomsRef = useRef<string[]>([]);
   const tabRef = useRef<string>("sin_asignar");
 
-  // Context (usuario/hd/isReadyApp)
+  // Context (usuario/hd/readyIam)
   const { usuario, hd, isReadyApp } = useUsuario();
 
   // STATE ========================================
@@ -221,7 +221,7 @@ export default function useAsignarTicket() {
       Array.isArray(ticket?.derivacionesComoDestino) &&
       ticket.derivacionesComoDestino.length > 0;
 
-    const esTicketEstudiante = ticket?.creado?.rol_id === 3;
+    const esTicketEstudiante = ticket?.titular?.rol_id === 3;
     const sinCategoria = !ticket?.categoria_id;
 
     // Requerir categoría en estos casos

@@ -1,14 +1,18 @@
 "use client";
 import { Flex, Typography, theme } from "antd";
-import TabsSoporte from "./components/Tabs";
-import useBandeja from "./hooks/useBandaja";
 import Title from "antd/es/typography/Title";
-import TableTickets from "./components/TableTickets";
+import TabsSoporte from "./components/Tabs";
+import useTickets from "./hooks/useTickets";
+import { useHdConfig, useHdSaveConfig } from "./hooks/useHdConfig";
+import useBandejaTabs from "./hooks/useBandaja";
 
 const { Text } = Typography;
 
 export default function BandejaView() {
-  const { tabKey, loading, tickets, onChangeTabs, usuario } = useBandeja();
+  const { tabKey, filtros, onChangeTabs } = useBandejaTabs();
+  const { data: tickets, isLoading } = useTickets(filtros);
+  const { usuario, hdRole, hdConfig } = useHdConfig();
+  const { saveConfig } = useHdSaveConfig();
   const { token } = theme.useToken();
 
   return (
@@ -24,9 +28,16 @@ export default function BandejaView() {
         </div>
       </Flex>
 
-      <TabsSoporte tabKey={tabKey} onChangeTabs={onChangeTabs} />
-
-      <TableTickets usuario={usuario!} tickets={tickets} loading={loading} />
+      <TabsSoporte
+        usuario={usuario}
+        loading={isLoading}
+        tickets={tickets ?? []}
+        tabKey={tabKey}
+        onChangeTabs={onChangeTabs}
+        hdRole={hdRole}
+        hdConfig={hdConfig}
+        saveConfig={saveConfig}
+      />
     </div>
   );
 }

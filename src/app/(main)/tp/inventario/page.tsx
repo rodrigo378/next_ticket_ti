@@ -25,7 +25,7 @@ import {
   InboxOutlined,
 } from "@ant-design/icons";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import dayjs from "dayjs";
 import { getInventarios, getLotesByInventario } from "@/services/tp/inventario";
@@ -136,15 +136,15 @@ export default function InventarioList() {
   // ==============================
   // Helpers
   // ==============================
-  const resolveUbicacionNombre = (row: {
-    ubicacion?: string | null;
-    ubicacion_id?: number | null;
-  }) => {
-    if (row.ubicacion && row.ubicacion.trim() !== "") return row.ubicacion;
-    if (row.ubicacion_id != null)
-      return ubicacionMap.get(row.ubicacion_id) ?? `ID ${row.ubicacion_id}`;
-    return null;
-  };
+  const resolveUbicacionNombre = useCallback(
+    (row: { ubicacion?: string | null; ubicacion_id?: number | null }) => {
+      if (row.ubicacion && row.ubicacion.trim() !== "") return row.ubicacion;
+      if (row.ubicacion_id != null)
+        return ubicacionMap.get(row.ubicacion_id) ?? `ID ${row.ubicacion_id}`;
+      return null;
+    },
+    [ubicacionMap] // dependencia
+  );
 
   // ==============================
   // Filtros
@@ -172,7 +172,7 @@ export default function InventarioList() {
 
       return matchesQuery && matchesPerecible && matchesEstado && matchesUbic;
     });
-  }, [data, query, perecible, estado, filtroUbic, ubicacionMap]);
+  }, [data, query, perecible, estado, filtroUbic, resolveUbicacionNombre]);
 
   // ==============================
   // Lotes helpers

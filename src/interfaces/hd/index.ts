@@ -1,3 +1,5 @@
+export type { HdConfig, HdModule } from "./config.modulo";
+
 export type { HD_Area } from "./hd_area";
 
 export type { HD_CalificacionTicket } from "./hd_calificacionTicket";
@@ -41,4 +43,5 @@ export type { HD_Ticket } from "./hd_ticket";
 export type { HD_UsuarioArea } from "./hd_usuarioArea";
 
 export type { HdErrorCode, HdApiError } from "./error";
+
 export { isHdApiError } from "./error";

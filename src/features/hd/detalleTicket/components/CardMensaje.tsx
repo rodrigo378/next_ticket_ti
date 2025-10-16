@@ -87,7 +87,7 @@ export default function CardMensajeSoporte({
   const esMensajeDelEquipo = useCallback(
     (m: HD_MensajeTicket) => {
       if (!ticket) return false;
-      if (m.emisor_id === ticket.creado_id) return false; // solicitante
+      if (m.emisor_id === ticket.titular_id) return false; // solicitante
       if (ticket.asignado_id && m.emisor_id === ticket.asignado_id) return true;
       const rol = m?.emisor?.rol?.nombre?.toLowerCase?.() ?? "";
       const tokens = [

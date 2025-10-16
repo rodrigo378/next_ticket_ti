@@ -271,9 +271,9 @@ function CardChatEstudiante({
         "operador",
       ];
       if (rol && soporteTokens.some((tok) => rol.includes(tok))) return true;
-      return m.emisor_id !== ticket.creado_id;
+      return m.emisor_id !== ticket.titular_id;
     },
-    [ticket.creado_id]
+    [ticket.titular_id]
   );
 
   const mensajesOrdenados = useMemo(() => {

@@ -36,7 +36,6 @@ import CardDetalle from "../usuario/detalleTicket/components/CardDetalle";
 
 const { Text, Title } = Typography;
 
-/* ========= Extensión de tipos (local a este archivo) ========= */
 /** Estudiante (getInfoEstudiante) */
 interface HD_InfoUsuarioEstudiante {
   c_codalu?: string;
@@ -121,7 +120,7 @@ function CardUsuarioCreador({ ticket }: { ticket?: TicketWithUserInfo }) {
 
   // Nombre: 1) nombre/apellidos del creador 2) nombreCompleto del infoUsuario 3) fallback
   const nombre =
-    [ticket?.creado?.nombre, ticket?.creado?.apellidos]
+    [ticket?.titular?.nombre, ticket?.titular?.apellidos]
       .filter(Boolean)
       .join(" ") ||
     (info as HD_InfoUsuarioEstudiante | HD_InfoUsuarioAdmin)?.nombreCompleto ||

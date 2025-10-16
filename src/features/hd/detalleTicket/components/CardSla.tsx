@@ -1,4 +1,14 @@
-import { Alert, Card, Divider, Progress, Tag, Typography, Space } from "antd";
+// components/hd/CardSla.tsx
+import {
+  Alert,
+  Card,
+  Divider,
+  Progress,
+  Tag,
+  Typography,
+  Space,
+  Statistic,
+} from "antd";
 import { HD_Ticket } from "@interfaces/hd";
 import dayjs from "@shared/date/dayjs";
 
@@ -56,6 +66,17 @@ export default function CardSla({ ticket }: Props) {
     return `Faltan ${e.toNow(true)}`;
   };
 
+  // Helper de duración exacta d HH:mm para visibilidad
+  const formatDurationDHm = (ms: number) => {
+    if (!ms || ms < 0) return "—";
+    const d = Math.floor(ms / 86_400_000);
+    const h = Math.floor((ms % 86_400_000) / 3_600_000);
+    const m = Math.floor((ms % 3_600_000) / 60_000);
+    const hh = String(h).padStart(2, "0");
+    const mm = String(m).padStart(2, "0");
+    return d > 0 ? `${d}d ${hh}:${mm}` : `${hh}:${mm}`;
+  };
+
   const nowForRespuesta = (t?: HD_Ticket | null) =>
     t?.respondidoAt ? dayjs(t.respondidoAt) : dayjs();
   const nowForResolucion = (t?: HD_Ticket | null) =>
@@ -78,6 +99,7 @@ export default function CardSla({ ticket }: Props) {
         ticket?.slaTicket?.tiempo_estimado_respuesta,
         respNow
       );
+
   const respCumplido =
     responded && estimadoResp
       ? respondedAt!.isSameOrBefore(estimadoResp)
@@ -128,6 +150,7 @@ export default function CardSla({ ticket }: Props) {
         ticket?.slaTicket?.tiempo_estimado_resolucion || "",
         resoNow
       );
+
   const resCumplido =
     finalized && estimadoRes
       ? finalizedAt!.isSameOrBefore(estimadoRes)
@@ -162,8 +185,49 @@ export default function CardSla({ ticket }: Props) {
     resoNow
   );
 
+  // --- ASIGNACIÓN (informativo visible) ---
+  const creadoAt = ticket?.createdAt ? dayjs(ticket.createdAt) : null;
+  const asignacionMs = creadoAt
+    ? asignadoAt
+      ? asignadoAt.diff(creadoAt)
+      : dayjs().diff(creadoAt)
+    : 0;
+  const asignacionExacta = creadoAt ? formatDurationDHm(asignacionMs) : "—";
+  const asignacionHumana = creadoAt
+    ? asignadoAt
+      ? creadoAt.to(asignadoAt, true)
+      : `Transcurridos ${creadoAt.to(dayjs(), true)}`
+    : "—";
+
   return (
     <Card title="⏱️ SLA del Ticket" className="mb-6 rounded-xl shadow-sm">
+      {/* ASIGNACIÓN */}
+      <section className="mb-4">
+        <Space align="baseline" className="w-full justify-between">
+          <Text strong className="uppercase text-xs tracking-wide">
+            Tiempo de ASIGNACIÓN
+          </Text>
+          <Tag color={asignadoAt ? "blue" : "gold"}>
+            {asignadoAt ? "Asignado" : "Pendiente"}
+          </Tag>
+        </Space>
+
+        <div className="mt-2">
+          <Space size={16} wrap>
+            <Statistic title="Total (exacto)" value={asignacionExacta} />
+            <Text type="secondary">(~{asignacionHumana})</Text>
+          </Space>
+
+          <div className="mt-2 text-xs text-gray-600">
+            Creado: {creadoAt ? creadoAt.format("DD/MM/YYYY HH:mm") : "—"}
+            <br />
+            Asignado: {asignadoAt ? asignadoAt.format("DD/MM/YYYY HH:mm") : "—"}
+          </div>
+        </div>
+      </section>
+
+      <Divider className="my-4" />
+
       {/* RESPUESTA */}
       <section>
         <Space align="baseline" className="w-full justify-between">
