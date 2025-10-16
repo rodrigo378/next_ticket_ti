@@ -5,13 +5,13 @@ import {
   ExclamationCircleFilled,
   PushpinOutlined,
   SettingOutlined,
-  CheckCircleFilled,
-  CloseCircleFilled,
+  SearchOutlined,
 } from "@ant-design/icons";
 import {
   Button,
   Checkbox,
   Divider,
+  Input,
   Modal,
   Space,
   Table,
@@ -20,84 +20,255 @@ import {
   Typography,
   theme,
 } from "antd";
-import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import type { TableProps } from "antd/es/table";
 import type { ColumnsType } from "antd/es/table";
+import Link from "next/link";
+import { useMemo, useState } from "react";
 import { Core_Usuario } from "@/interfaces/core";
+import dayjs from "@shared/date/dayjs";
 
+// ===================================================================================
+// Helpers de fecha/SLA (fuera del componente para evitar deps de hooks)
+type DateLike = string | Date | number | null | undefined;
+
+const toDayjs = (v: DateLike) => (v != null ? dayjs(v) : null);
+
+const fmt = (v: DateLike) => {
+  const d = toDayjs(v);
+  return d ? d.format("DD/MM/YYYY HH:mm") : "—";
+};
+
+const fromNow = (v: DateLike) => {
+  const d = toDayjs(v);
+  return d ? d.fromNow() : "—";
+};
+
+const secondsLeft = (v: DateLike) => {
+  const d = toDayjs(v);
+  return d ? d.diff(dayjs(), "second") : null;
+};
+
+const toISO = (v: DateLike): string | undefined => {
+  const d = toDayjs(v);
+  return d ? d.toISOString() : undefined;
+};
+
+const SLA_TAG = (v: DateLike) => {
+  const d = toDayjs(v);
+  if (!d) return <Tag>—</Tag>;
+  const secs = d.diff(dayjs(), "second");
+  const human = d.fromNow(true); // sin sufijo
+  if (secs > 3600) return <Tag>{`${human} restantes`}</Tag>;
+  if (secs > 0) return <Tag color="gold">{`${human} restantes`}</Tag>;
+  return <Tag color="red">{`VENCIDO hace ${human}`}</Tag>;
+};
+
+const SLA_ESTADO = (r: HD_Ticket) => {
+  const respLeft = secondsLeft(r.slaTicket?.tiempo_estimado_respuesta) ?? 0;
+  const resolLeft = secondsLeft(r.slaTicket?.tiempo_estimado_resolucion) ?? 0;
+
+  if (r.slaTicket?.cumplido) return <Tag color="blue">Cumplido</Tag>;
+  if (resolLeft < 0) return <Tag color="red">Vencido resolución</Tag>;
+  if (respLeft < 0) return <Tag color="gold">Vencido respuesta</Tag>;
+  return <Tag color="green">Dentro de SLA</Tag>;
+};
+
+// ===================================================================================
 const { Text, Title } = Typography;
+const TABKEY = "bandeja.table.grupo";
 
-interface Props {
-  usuario: Partial<Core_Usuario>;
-  tickets: HD_Ticket[];
-  loading: boolean;
-}
-
-/** Identificadores únicos de columnas (generales + L4 + L5 + acciones) */
+// ===================================================================================
 type ColumnKey =
   | "codigo"
   | "tipo"
   | "clasificacion"
   | "creado"
+  | "fecha_creacion"
+  | "estado"
   | "prioridad"
-  | "estado_asignado"
   | "asunto"
-  | "asignado_a" // <- exclusivo de grupo
-  // L4
+  // L4 (existentes)
+  | "area"
   | "col_l4"
   | "n4_sla_objetivo"
   | "n4_observaciones"
-  // L5
+  // L5 (existentes)
   | "col_l5"
   | "n5_impacto"
   | "n5_costo_estimado"
+  // NUEVOS GENERALES
+  | "asignado_a"
+  // NUEVOS L4 (auditoría)
+  | "l4_estado_sla"
+  | "l4_resp_combo"
+  | "l4_resp_termino"
+  | "l4_resol_combo"
+  | "asignado_el"
   // acción
   | "acciones";
 
-/** Columnas obligatorias */
+// ===================================================================================
 const MANDATORY_COLUMNS: ColumnKey[] = ["acciones"];
 
-/** Defaults para “Del grupo” */
+// ===================================================================================
 const getDefaultKeys = (): ColumnKey[] => [
   "codigo",
   "tipo",
   "clasificacion",
   "creado",
+  "fecha_creacion",
+  "estado",
   "prioridad",
-  "estado_asignado",
   "asunto",
   "asignado_a",
   "acciones",
 ];
 
-const STORAGE_KEY = "hd_columns_grupo";
+// ===================================================================================
+// Orden sugerido (sin duplicados)
+const DISPLAY_ORDER: ColumnKey[] = [
+  "codigo",
+  "area",
+  "tipo",
+  "clasificacion",
+  "creado",
+  "asignado_a",
+  "estado",
+  "prioridad",
+  "fecha_creacion",
+  "asunto",
+  // Auditoría L4
+  "l4_estado_sla",
+  "l4_resp_combo",
+  "l4_resp_termino",
+  "l4_resol_combo",
+  "asignado_el",
+  // Pruebas L4
+  "col_l4",
+  "n4_sla_objetivo",
+  "n4_observaciones",
+  // Pruebas L5
+  "col_l5",
+  "n5_impacto",
+  "n5_costo_estimado",
+  // Acción
+  "acciones",
+];
 
-export default function TableTicketsGrupo({
+// ===================================================================================
+interface Props {
+  usuario: Partial<Core_Usuario>;
+  tickets: HD_Ticket[];
+  loading: boolean;
+  hdRole: string | null;
+  hdConfig: Record<string, unknown>;
+  saveConfig: (data: {
+    tabKey: string;
+    config: Record<string, unknown>;
+  }) => void;
+}
+
+// ===================================================================================
+export default function TableGrupo({
   tickets,
   loading,
-  usuario,
+  hdRole,
+  hdConfig,
+  saveConfig,
 }: Props) {
   const { token } = theme.useToken();
 
-  const prioridadColor: Record<string, string> = {
-    Alta: token.colorError,
-    Media: token.colorWarning,
-    Baja: token.colorSuccess,
-  };
-  const prioridadBg: Record<string, string> = {
-    Alta: token.colorErrorBg,
-    Media: token.colorWarningBg,
-    Baja: token.colorSuccessBg,
-  };
-  const iconStyle = { fontSize: 16, lineHeight: 1 };
+  // Normalizo rol para evitar problemas de casing/espacios
+  const role = (hdRole ?? "").toString().trim().toLowerCase();
+  console.log("===================");
+  console.log("hdRole => ", hdRole);
 
-  /** TODAS las columnas disponibles para este tab */
+  console.log("role => ", role);
+  console.log("===================");
+
+  // ===================================================================================
+  const cfg = (hdConfig?.[TABKEY] ?? {}) as {
+    visibleKeys?: ColumnKey[];
+    filtros?: { area?: string | string[] };
+  };
+
+  // ===================================================================================
+  const [visibleKeys, setVisibleKeys] = useState<ColumnKey[]>(
+    cfg.visibleKeys?.length
+      ? (cfg.visibleKeys as ColumnKey[])
+      : getDefaultKeys()
+  );
+
+  // ===================================================================================
+  const areaOptions = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          (tickets ?? []).map((t) => t.area?.nombre).filter(Boolean) as string[]
+        )
+      ).map((n) => ({ label: n, value: n })),
+    [tickets]
+  );
+
+  // ===================================================================================
+  const [areaFilter, setAreaFilter] = useState<string[]>(
+    cfg.filtros?.area
+      ? Array.isArray(cfg.filtros.area)
+        ? cfg.filtros.area
+        : [cfg.filtros.area]
+      : []
+  );
+
+  // ===================================================================================
+  const [creadoFilter, setCreadoFilter] = useState<string | null>(null);
+  const [prioridadFilter, setPrioridadFilter] = useState<string[]>([]);
+
+  // ===================================================================================
+  const persistVisible = (keys: ColumnKey[]) => {
+    const finalKeys = Array.from(new Set([...keys, ...MANDATORY_COLUMNS]));
+    setVisibleKeys(finalKeys);
+    saveConfig({
+      tabKey: TABKEY,
+      config: { visibleKeys: finalKeys },
+    });
+  };
+
+  // ===================================================================================
+  const onTableChange: TableProps<HD_Ticket>["onChange"] = (_, filters) => {
+    const fArea = (filters.area as string[]) ?? [];
+    const fPri = (filters.prioridad as string[]) ?? [];
+    const fCre = (filters.creado as string[]) ?? [];
+
+    setAreaFilter(fArea);
+    setPrioridadFilter(fPri);
+    setCreadoFilter(fCre[0] ?? null);
+  };
+
+  // ===================================================================================
   const columnsByKey: Record<ColumnKey, ColumnsType<HD_Ticket>[number]> =
     useMemo(
       () => ({
         // Generales
+        // ===================================================================================
         codigo: { title: "Código", dataIndex: "codigo", key: "codigo" },
 
+        // ===================================================================================
+        area: {
+          title: "Área",
+          dataIndex: ["area", "nombre"],
+          key: "area",
+          filters: areaOptions.map((o) => ({ text: o.label, value: o.value })),
+          filterSearch: true,
+          filteredValue: areaFilter.length ? areaFilter : null,
+          onFilter: (value, record) =>
+            (record.area?.nombre ?? "").toLowerCase() ===
+            String(value).toLowerCase(),
+          render: (_, record: HD_Ticket) => (
+            <span>{record.area?.nombre ?? "—"}</span>
+          ),
+        },
+
+        // ===================================================================================
         tipo: {
           title: "Tipo",
           key: "tipo",
@@ -108,13 +279,14 @@ export default function TableTicketsGrupo({
             const color = isReq ? token.colorTextSecondary : token.colorWarning;
             return (
               <span style={{ color: token.colorText }}>
-                <Icono style={{ ...iconStyle, color, marginRight: 6 }} />
+                <Icono style={{ color, marginRight: 6 }} />
                 {tipo}
               </span>
             );
           },
         },
 
+        // ===================================================================================
         clasificacion: {
           title: "Clasificación",
           key: "clasificacion",
@@ -128,68 +300,162 @@ export default function TableTicketsGrupo({
           ),
         },
 
+        // ===================================================================================
+        fecha_creacion: {
+          title: "Fecha de creación",
+          key: "fecha_creacion",
+          dataIndex: "createdAt",
+          defaultSortOrder: "descend",
+          sorter: (a: HD_Ticket, b: HD_Ticket) => {
+            const da = a.createdAt ? dayjs(a.createdAt).valueOf() : 0;
+            const db = b.createdAt ? dayjs(b.createdAt).valueOf() : 0;
+            return da - db;
+          },
+          onCell: (record: HD_Ticket) => {
+            const p = record.prioridad?.nombre;
+            let bg: string | undefined;
+            if (p === "Alta") bg = "#fff1f0";
+            else if (p === "Media") bg = "#fff8db";
+            else if (p === "Baja") bg = "#e6ffed";
+            return bg ? { style: { backgroundColor: bg } } : {};
+          },
+          render: (fecha?: string | Date) => {
+            if (!fecha) return "—";
+            return (
+              <Tooltip title={toISO(fecha)}>
+                <div>
+                  <span>{fmt(fecha)}</span>
+                  <br />
+                  <Text type="secondary" style={{ fontSize: 12 }}>
+                    {fromNow(fecha)}
+                  </Text>
+                </div>
+              </Tooltip>
+            );
+          },
+        },
+
+        // ===================================================================================
         creado: {
           title: "Creado por",
-          key: "creado_id",
-          render: (record: HD_Ticket) => (
+          key: "creado",
+          dataIndex: "creado",
+          filteredValue: creadoFilter ? [creadoFilter] : null,
+          filterDropdown: ({
+            setSelectedKeys,
+            selectedKeys,
+            confirm,
+            clearFilters,
+          }) => (
+            <div style={{ padding: 8 }}>
+              <Input
+                autoFocus
+                placeholder="Buscar por nombre"
+                value={selectedKeys[0]}
+                onChange={(e) =>
+                  setSelectedKeys(e.target.value ? [e.target.value] : [])
+                }
+                onPressEnter={() => confirm()}
+                style={{ width: 188, marginBottom: 8, display: "block" }}
+              />
+              <Space>
+                <Button
+                  type="primary"
+                  onClick={() => confirm()}
+                  icon={<SearchOutlined />}
+                  size="small"
+                >
+                  Buscar
+                </Button>
+                <Button
+                  onClick={() => {
+                    clearFilters?.();
+                    setSelectedKeys([]);
+                    confirm();
+                  }}
+                  size="small"
+                >
+                  Reset
+                </Button>
+              </Space>
+            </div>
+          ),
+          filterIcon: (filtered: boolean) => (
+            <SearchOutlined
+              style={{ color: filtered ? "#1677ff" : undefined }}
+            />
+          ),
+          onFilter: (value, record) => {
+            const fullName = `${record.creado?.nombre ?? ""} ${
+              record.creado?.apellidos ?? ""
+            }`.toLowerCase();
+            return fullName.includes(String(value).toLowerCase());
+          },
+          render: (_, record: HD_Ticket) => (
             <div className="flex flex-col !items-start">
-              <span>{`${record.creado?.nombre || ""} ${
-                record.creado?.apellidos || ""
+              <span>{`${record.creado?.nombre ?? ""} ${
+                record.creado?.apellidos ?? ""
               }`}</span>
               <Tag color={record.creado?.rol_id === 3 ? "blue" : "green"}>
-                {record.creado?.rol_id === 3 ? `Alumno` : `Administrativo`}
+                {record.creado?.rol_id === 3 ? "Alumno" : "Administrativo"}
               </Tag>
             </div>
           ),
         },
 
+        // ===================================================================================
+        estado: {
+          title: "Estado",
+          key: "estado",
+          dataIndex: ["estado", "nombre"],
+        },
+
+        // ===================================================================================
         prioridad: {
           title: "Prioridad",
           key: "prioridad",
+          filters: [
+            { text: "Alta", value: "Alta" },
+            { text: "Media", value: "Media" },
+            { text: "Baja", value: "Baja" },
+          ],
+          filteredValue: prioridadFilter.length ? prioridadFilter : null,
+          onFilter: (value, record) =>
+            (record.prioridad?.nombre ?? "").toLowerCase() ===
+            String(value).toLowerCase(),
           render: (record: HD_Ticket) => {
-            const prioridad = record.prioridad?.nombre;
-            const color = prioridadColor[prioridad ?? ""] ?? token.colorText;
-            const bg = prioridadBg[prioridad ?? ""] ?? token.colorFillTertiary;
-            return (
-              <Tag style={{ color, background: bg, borderColor: color }}>
-                {prioridad ?? "—"}
-              </Tag>
-            );
+            const prioridad = record.prioridad?.nombre ?? "—";
+            let style: React.CSSProperties = {};
+            switch (prioridad) {
+              case "Alta":
+                style = {
+                  color: "#a8071a",
+                  background: "#fff1f0",
+                  borderColor: "#ffa39e",
+                };
+                break;
+              case "Media":
+                style = {
+                  color: "#ad6800",
+                  background: "#fff7e6",
+                  borderColor: "#ffd591",
+                };
+                break;
+              case "Baja":
+                style = {
+                  color: "#135200",
+                  background: "#f6ffed",
+                  borderColor: "#b7eb8f",
+                };
+                break;
+              default:
+                style = {};
+            }
+            return <Tag style={style}>{prioridad}</Tag>;
           },
         },
 
-        estado_asignado: {
-          title: "Estado / Asignado",
-          key: "estado",
-          render: (record: HD_Ticket) => {
-            const asignado = record.asignado_id === usuario?.id;
-            return (
-              <Space>
-                {asignado ? (
-                  <CheckCircleFilled
-                    style={{ ...iconStyle, color: token.colorSuccess }}
-                    aria-label="Asignado a mí"
-                  />
-                ) : (
-                  <CloseCircleFilled
-                    style={{ ...iconStyle, color: token.colorError }}
-                    aria-label="No asignado a mí"
-                  />
-                )}
-                <Tag
-                  style={{
-                    color: token.colorInfoText,
-                    background: token.colorInfoBg,
-                    borderColor: token.colorInfo,
-                  }}
-                >
-                  {record.estado?.nombre || "Sin estado"}
-                </Tag>
-              </Space>
-            );
-          },
-        },
-
+        // ===================================================================================
         asunto: {
           title: "Asunto",
           key: "asunto",
@@ -211,22 +477,19 @@ export default function TableTicketsGrupo({
           ),
         },
 
+        // --- NUEVO GENERAL ---
         asignado_a: {
           title: "Asignado a",
           key: "asignado_a",
-          render: (record: HD_Ticket) =>
-            record.asignado ? (
-              <div className="flex flex-col !items-start">
-                <span>{`${record.asignado?.nombre || ""} ${
-                  record.asignado?.apellidos || ""
-                }`}</span>
-              </div>
-            ) : (
-              <Tag color="default">Sin asignación</Tag>
-            ),
+          render: (r: HD_Ticket) => {
+            const full = `${r.asignado?.nombre ?? ""} ${
+              r.asignado?.apellidos ?? ""
+            }`.trim();
+            return full || "—";
+          },
         },
 
-        // --- nivel_4 (campos de prueba) ---
+        // --- nivel_4 (campos de prueba existentes) ---
         col_l4: {
           title: "L4 • Indicador",
           key: "col_l4",
@@ -243,7 +506,71 @@ export default function TableTicketsGrupo({
           render: () => <span>Validación proveedor</span>,
         },
 
-        // --- nivel_5 (campos de prueba) ---
+        // --- NUEVOS NIVEL_4 (auditoría SLA) ---
+        l4_estado_sla: {
+          title: "L4 • Estado SLA",
+          key: "l4_estado_sla",
+          render: (r: HD_Ticket) => SLA_ESTADO(r),
+        },
+
+        l4_resp_combo: {
+          title: "L4 • Respuesta (vence/restante)",
+          key: "l4_resp_combo",
+          render: (r: HD_Ticket) => {
+            const vence = r.slaTicket?.tiempo_estimado_respuesta;
+            return (
+              <div className="flex flex-col !items-start">
+                <span>{fmt(vence)}</span>
+                {SLA_TAG(vence)}
+              </div>
+            );
+          },
+        },
+
+        l4_resp_termino: {
+          title: "L4 • Hora fin respuesta",
+          key: "l4_resp_termino",
+          render: (r: HD_Ticket) => {
+            const vence = r.slaTicket?.tiempo_estimado_respuesta;
+            const left = secondsLeft(vence);
+            return left != null && left <= 0 ? fmt(vence) : "—";
+          },
+        },
+
+        l4_resol_combo: {
+          title: "L4 • Resolución (vence/restante)",
+          key: "l4_resol_combo",
+          render: (r: HD_Ticket) => {
+            const vence = r.slaTicket?.tiempo_estimado_resolucion;
+            return (
+              <div className="flex flex-col !items-start">
+                <span>{fmt(vence)}</span>
+                {SLA_TAG(vence)}
+              </div>
+            );
+          },
+        },
+
+        asignado_el: {
+          title: "Asignado el",
+          key: "asignado_el",
+          render: (r: HD_Ticket) =>
+            r.asignadoAt ? (
+              <Tooltip title={toISO(r.asignadoAt)}>
+                <div>
+                  <span>{fmt(r.asignadoAt)}</span>
+                  <br />
+                  <Text type="secondary" style={{ fontSize: 12 }}>
+                    {fromNow(r.asignadoAt)}
+                  </Text>
+                </div>
+              </Tooltip>
+            ) : (
+              "—"
+            ),
+        },
+
+        // --- nivel_5 (campos de prueba existentes) ---
         col_l5: {
           title: "L5 • Indicador",
           key: "col_l5",
@@ -277,26 +604,34 @@ export default function TableTicketsGrupo({
           ),
         },
       }),
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-      [token]
+      [token, areaOptions, areaFilter, creadoFilter, prioridadFilter]
     );
 
-  /** Etiquetas para el selector */
+  // ===================================================================================
   const OPTION_LABELS: Record<ColumnKey, string> = {
     // generales
     codigo: "Código",
     tipo: "Tipo",
     clasificacion: "Clasificación",
     creado: "Creado por",
+    fecha_creacion: "Creado",
+    estado: "Estado",
     prioridad: "Prioridad",
-    estado_asignado: "Estado / Asignado",
     asunto: "Asunto",
+    area: "Área",
+    // nuevo general
     asignado_a: "Asignado a",
-    // L4
+    // L4 pruebas existentes
     col_l4: "L4 • Indicador",
     n4_sla_objetivo: "L4 • SLA objetivo",
     n4_observaciones: "L4 • Observaciones",
-    // L5
+    // L4 nuevos
+    l4_estado_sla: "L4 • Estado SLA",
+    l4_resp_combo: "L4 • Respuesta (vence/restante)",
+    l4_resp_termino: "L4 • Hora fin respuesta",
+    l4_resol_combo: "L4 • Resolución (vence/restante)",
+    asignado_el: "Asignado el",
+    // L5 pruebas existentes
     col_l5: "L5 • Indicador",
     n5_impacto: "L5 • Impacto",
     n5_costo_estimado: "L5 • Costo estimado",
@@ -304,52 +639,54 @@ export default function TableTicketsGrupo({
     acciones: "Acciones",
   };
 
-  /** Estado y persistencia (solo para este tab) */
-  const [visibleKeys, setVisibleKeys] = useState<ColumnKey[]>(getDefaultKeys());
+  // ===================================================================================
   const [modalOpen, setModalOpen] = useState(false);
 
-  useEffect(() => {
-    const saved =
-      typeof window !== "undefined" ? localStorage.getItem(STORAGE_KEY) : null;
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved) as ColumnKey[];
-        const merged = Array.from(
-          new Set([...parsed, ...MANDATORY_COLUMNS, ...getDefaultKeys()])
-        );
-        setVisibleKeys(merged);
-        return;
-      } catch {}
-    }
-    setVisibleKeys(getDefaultKeys());
-  }, []);
+  // ===================================================================================
+  const tableColumns: ColumnsType<HD_Ticket> = useMemo(() => {
+    const orderIndex = (k: ColumnKey) => {
+      const i = DISPLAY_ORDER.indexOf(k);
+      return i === -1 ? Number.MAX_SAFE_INTEGER : i;
+    };
+    return visibleKeys
+      .slice()
+      .sort((a, b) => orderIndex(a) - orderIndex(b))
+      .map((k) => columnsByKey[k])
+      .filter(Boolean);
+  }, [visibleKeys, columnsByKey]);
 
-  const persist = (keys: ColumnKey[]) => {
-    const finalKeys = Array.from(new Set([...keys, ...MANDATORY_COLUMNS]));
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(finalKeys));
-    setVisibleKeys(finalKeys);
-  };
-
-  /** Columnas finales (respeta el orden en visibleKeys) */
-  const tableColumns: ColumnsType<HD_Ticket> = useMemo(
-    () => visibleKeys.map((k) => columnsByKey[k]).filter(Boolean),
-    [visibleKeys, columnsByKey]
-  );
-
-  /** Grupos del modal */
+  // ===================================================================================
   const baseKeys: ColumnKey[] = [
     "codigo",
     "tipo",
     "clasificacion",
     "creado",
+    "fecha_creacion",
+    "estado",
     "prioridad",
-    "estado_asignado",
     "asunto",
     "asignado_a",
   ];
-  const l4Keys: ColumnKey[] = ["col_l4", "n4_sla_objetivo", "n4_observaciones"];
-  const l5Keys: ColumnKey[] = ["col_l5", "n5_impacto", "n5_costo_estimado"];
 
+  // ===================================================================================
+  const l4Keys: ColumnKey[] = [
+    "area",
+    // pruebas L4 existentes
+    "col_l4",
+    "n4_sla_objetivo",
+    "n4_observaciones",
+    // nuevos L4
+    "l4_estado_sla",
+    "l4_resp_combo",
+    "l4_resp_termino",
+    "l4_resol_combo",
+    "asignado_el",
+  ];
+
+  // ===================================================================================
+  const l5Keys: ColumnKey[] = ["col_l5", "n5_impacto", "n5_costo_estimado"]; // sin cambios
+
+  // ===================================================================================
   const renderCheckboxGrid = (keys: ColumnKey[]) => (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
       {keys.map((key) => (
@@ -369,11 +706,11 @@ export default function TableTicketsGrupo({
     </div>
   );
 
-  /** Render */
+  // ===================================================================================
   return (
-    <div className="rounded-lg shadow p-4">
+    <div className="rounded-lg shadow p-4 overflow-x-auto">
       <div className="flex items-center justify-between mb-3">
-        <Text strong>Tickets • Del grupo</Text>
+        <Text strong>Tickets • Asignados a mi área (grupo)</Text>
         <Space>
           <Button icon={<SettingOutlined />} onClick={() => setModalOpen(true)}>
             Columnas
@@ -386,16 +723,20 @@ export default function TableTicketsGrupo({
         dataSource={tickets}
         rowKey="id"
         loading={loading}
-        pagination={{ pageSize: 5 }}
-        scroll={{ x: 1200 }}
+        pagination={{ pageSize: 10, responsive: true }}
+        sticky
+        scroll={{ x: "max-content" }}
         onRow={(record) => {
           const p = record.prioridad?.nombre;
           let bg: string | undefined;
-          if (p === "Alta") bg = token.colorErrorBg;
-          else if (p === "Media") bg = token.colorWarningBg;
-          else if (p === "Baja") bg = token.colorSuccessBg;
-          return bg ? { style: { background: bg } } : {};
+
+          if (p === "Alta") bg = "#fff1f0";
+          else if (p === "Media") bg = "#fff8db";
+          else if (p === "Baja") bg = "#e6ffed";
+
+          return bg ? { style: { backgroundColor: bg } } : {};
         }}
+        onChange={onTableChange}
       />
 
       <Modal
@@ -405,13 +746,13 @@ export default function TableTicketsGrupo({
         footer={
           <Space style={{ width: "100%", justifyContent: "space-between" }}>
             <div>
-              <Button onClick={() => persist(getDefaultKeys())}>
+              <Button onClick={() => persistVisible(getDefaultKeys())}>
                 Restablecer
               </Button>
               <Button
                 style={{ marginLeft: 8 }}
                 onClick={() =>
-                  persist(Object.keys(columnsByKey) as ColumnKey[])
+                  persistVisible(Object.keys(columnsByKey) as ColumnKey[])
                 }
               >
                 Seleccionar todo
@@ -424,7 +765,8 @@ export default function TableTicketsGrupo({
         }
       >
         <Text type="secondary">
-          Personaliza columnas para <b>Del grupo</b>. Se guarda localmente.
+          Personaliza columnas para <b>Asignados a mi área</b>. Se guarda por
+          usuario en el módulo HD.
         </Text>
 
         <Divider style={{ margin: "12px 0" }} />
@@ -432,9 +774,8 @@ export default function TableTicketsGrupo({
         <Checkbox.Group
           style={{ width: "100%" }}
           value={visibleKeys}
-          onChange={(v) => persist(v as ColumnKey[])}
+          onChange={(v) => persistVisible(v as ColumnKey[])}
         >
-          {/* Generales */}
           <Title level={5} style={{ marginTop: 0 }}>
             Campos generales
           </Title>
@@ -442,19 +783,25 @@ export default function TableTicketsGrupo({
 
           <Divider style={{ margin: "12px 0" }} />
 
-          {/* nivel_4 */}
-          <Title level={5} style={{ marginTop: 0 }}>
-            nivel_4
-          </Title>
-          {renderCheckboxGrid(l4Keys)}
+          {["nivel_4", "nivel_5"].includes(role) && (
+            <>
+              <Title level={5} style={{ marginTop: 0 }}>
+                nivel_4
+              </Title>
+              {renderCheckboxGrid(l4Keys)}
 
-          <Divider style={{ margin: "12px 0" }} />
+              <Divider style={{ margin: "12px 0" }} />
+            </>
+          )}
 
-          {/* nivel_5 */}
-          <Title level={5} style={{ marginTop: 0 }}>
-            nivel_5
-          </Title>
-          {renderCheckboxGrid(l5Keys)}
+          {role === "nivel_5" && (
+            <>
+              <Title level={5} style={{ marginTop: 0 }}>
+                nivel_5
+              </Title>
+              {renderCheckboxGrid(l5Keys)}
+            </>
+          )}
         </Checkbox.Group>
       </Modal>
     </div>

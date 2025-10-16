@@ -13,7 +13,7 @@ export const getIamContext = async () => {
 export const upsertConfig = async (data: {
   modulo: string;
   tabKey: string;
-  config: string;
+  config: Record<string, unknown>;
 }) => {
   const response = await api.post("/core/iam/config", data);
   return response.data;

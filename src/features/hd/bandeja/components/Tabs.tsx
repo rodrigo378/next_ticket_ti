@@ -2,6 +2,7 @@ import { Tabs } from "antd";
 import TableTicketsAsignados from "./TablaMisTickets";
 import { HD_Ticket } from "@/interfaces/hd";
 import TableTicketsGrupo from "./TablaGrupo";
+import TablaFinalizados from "./TableFinalizados";
 
 interface Props {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -15,14 +16,12 @@ interface Props {
 
   tabKey: string;
   onChangeTabs: (key: string) => void;
+  saveConfig: (data: {
+    tabKey: string;
+    config: Record<string, unknown>;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  }) => Promise<any>;
 }
-
-// const items = [
-//   { key: "mis_tickets", label: "🎧 Asignados a mí" },
-//   { key: "grupo", label: "👥 Del grupo" },
-//   { key: "finalizados", label: "✅ Finalizados" },
-//   { key: "Cancelados", label: "✅ Cancelados" },
-// ];
 
 export default function TabsSoporte({
   usuario,
@@ -31,6 +30,7 @@ export default function TabsSoporte({
   hdRole,
   hdConfig,
   tabKey,
+  saveConfig,
   onChangeTabs,
 }: Props) {
   return (
@@ -47,7 +47,8 @@ export default function TabsSoporte({
               loading={loading}
               tickets={tickets}
               hdRole={hdRole}
-              hdConfig={hdConfig} // ⬅️ pasar config
+              hdConfig={hdConfig}
+              saveConfig={saveConfig}
             ></TableTicketsAsignados>
           ),
         },
@@ -60,7 +61,25 @@ export default function TabsSoporte({
               usuario={usuario}
               loading={loading}
               tickets={tickets}
+              hdRole={hdRole}
+              hdConfig={hdConfig}
+              saveConfig={saveConfig}
             ></TableTicketsGrupo>
+          ),
+        },
+
+        {
+          key: "finalizaods",
+          label: "👥 Finalizados",
+          children: (
+            <TablaFinalizados
+              usuario={usuario}
+              loading={loading}
+              tickets={tickets}
+              hdRole={hdRole}
+              hdConfig={hdConfig}
+              saveConfig={saveConfig}
+            ></TablaFinalizados>
           ),
         },
       ]}

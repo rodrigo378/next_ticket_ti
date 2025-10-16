@@ -5,11 +5,13 @@ import {
   ExclamationCircleFilled,
   PushpinOutlined,
   SettingOutlined,
+  SearchOutlined,
 } from "@ant-design/icons";
 import {
   Button,
   Checkbox,
   Divider,
+  Input,
   Modal,
   Space,
   Table,
@@ -23,19 +25,20 @@ import type { ColumnsType } from "antd/es/table";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { Core_Usuario } from "@/interfaces/core";
-import { upsertConfig } from "@/services/core";
+import dayjs from "@shared/date/dayjs";
 
+// ===================================================================================
 const { Text, Title } = Typography;
-
-// --- clave única de esta tabla ---
 const TABKEY = "bandeja.table.mis_tickets";
 
-/** Identificadores únicos de columnas (generales + L4 + L5 + acciones) */
+// ===================================================================================
 type ColumnKey =
   | "codigo"
   | "tipo"
   | "clasificacion"
   | "creado"
+  | "fecha_creacion"
+  | "estado"
   | "prioridad"
   | "asunto"
   // L4
@@ -50,26 +53,31 @@ type ColumnKey =
   // acción
   | "acciones";
 
-/** Columnas obligatorias */
+// ===================================================================================
 const MANDATORY_COLUMNS: ColumnKey[] = ["acciones"];
 
-/** Defaults para Asignados a mí (solo generales + acciones) */
+// ===================================================================================
 const getDefaultKeys = (): ColumnKey[] => [
   "codigo",
   "tipo",
   "clasificacion",
   "creado",
+  "fecha_creacion",
+  "estado",
   "prioridad",
   "asunto",
   "acciones",
 ];
 
+// ===================================================================================
 const DISPLAY_ORDER: ColumnKey[] = [
   "codigo",
-  "area", // <- justo después de "codigo"
+  "area",
   "tipo",
   "clasificacion",
   "creado",
+  "fecha_creacion",
+  "estado",
   "prioridad",
   "asunto",
   // L4
@@ -84,47 +92,43 @@ const DISPLAY_ORDER: ColumnKey[] = [
   "acciones",
 ];
 
+// ===================================================================================
 interface Props {
   usuario: Partial<Core_Usuario>;
   tickets: HD_Ticket[];
   loading: boolean;
   hdRole: string | null;
-  // ⬇️ configuración del módulo traída del context (/core/iam/context)
-  // esperada forma:
-  // {
-  //   "bandeja.table.mis_tickets": {
-  //     visibleKeys?: ColumnKey[],
-  //     filtros?: { area?: string | string[] }
-  //   },
-  //   ...
-  // }
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  hdConfig: any;
+  hdConfig: Record<string, unknown>;
+  saveConfig: (data: {
+    tabKey: string;
+    config: Record<string, unknown>;
+  }) => void;
 }
 
+// ===================================================================================
 export default function TableTicketsAsignados({
-  usuario,
   tickets,
   loading,
   hdRole,
   hdConfig,
+  saveConfig,
 }: Props) {
   const { token } = theme.useToken();
 
-  // ====== CONFIG INICIAL DESDE hdConfig ======
+  // ===================================================================================
   const cfg = (hdConfig?.[TABKEY] ?? {}) as {
     visibleKeys?: ColumnKey[];
     filtros?: { area?: string | string[] };
   };
 
-  // columnas visibles (con fallback)
+  // ===================================================================================
   const [visibleKeys, setVisibleKeys] = useState<ColumnKey[]>(
     cfg.visibleKeys?.length
       ? (cfg.visibleKeys as ColumnKey[])
       : getDefaultKeys()
   );
 
-  // Opciones únicas desde los tickets para Área
+  // ===================================================================================
   const areaOptions = useMemo(
     () =>
       Array.from(
@@ -135,7 +139,7 @@ export default function TableTicketsAsignados({
     [tickets]
   );
 
-  // Filtro controlado de Área (inicia desde config)
+  // ===================================================================================
   const [areaFilter, setAreaFilter] = useState<string[]>(
     cfg.filtros?.area
       ? Array.isArray(cfg.filtros.area)
@@ -144,60 +148,50 @@ export default function TableTicketsAsignados({
       : []
   );
 
-  // ====== persistencia remota SOLO de este tab ======
-  const saveConfig = async (partial: Record<string, unknown>) => {
-    try {
-      await upsertConfig({
-        modulo: "HD",
-        tabKey: TABKEY,
-        // axios serializa; lado servidor haces merge por tabKey
-        config: partial,
-      });
-    } catch (e) {
-      console.error("upsertConfig error", e);
-    }
-  };
+  // ===================================================================================
+  const [creadoFilter, setCreadoFilter] = useState<string | null>(null);
+  const [prioridadFilter, setPrioridadFilter] = useState<string[]>([]);
 
-  // ====== Persistencia de columnas ======
+  // ===================================================================================
   const persistVisible = (keys: ColumnKey[]) => {
     const finalKeys = Array.from(new Set([...keys, ...MANDATORY_COLUMNS]));
     setVisibleKeys(finalKeys);
-    saveConfig({ visibleKeys: finalKeys });
+    saveConfig({
+      tabKey: TABKEY,
+      config: { visibleKeys: finalKeys },
+    });
   };
 
-  // ====== Cambios de filtros de la tabla (header de Área) ======
+  // ===================================================================================
   const onTableChange: TableProps<HD_Ticket>["onChange"] = (_, filters) => {
-    const f = (filters.area as string[]) ?? [];
-    setAreaFilter(f);
-    saveConfig({ filtros: { area: f } });
+    const fArea = (filters.area as string[]) ?? [];
+    const fPri = (filters.prioridad as string[]) ?? [];
+    const fCre = (filters.creado as string[]) ?? [];
+
+    setAreaFilter(fArea);
+    setPrioridadFilter(fPri);
+    setCreadoFilter(fCre[0] ?? null);
+
+    // si quieres guardar en config solo el área, lo dejas igual:
+    // saveConfig({ tabKey: TABKEY, config: { filtros: { area: fArea } } });
   };
 
-  const prioridadColor: Record<string, string> = {
-    Alta: token.colorError,
-    Media: token.colorWarning,
-    Baja: token.colorSuccess,
-  };
-  const prioridadBg: Record<string, string> = {
-    Alta: token.colorErrorBg,
-    Media: token.colorWarningBg,
-    Baja: token.colorSuccessBg,
-  };
-  const iconStyle = { fontSize: 16, lineHeight: 1 };
-
-  /** TODAS las columnas disponibles para este tab */
+  // ===================================================================================
   const columnsByKey: Record<ColumnKey, ColumnsType<HD_Ticket>[number]> =
     useMemo(
       () => ({
         // Generales
+        // ===================================================================================
         codigo: { title: "Código", dataIndex: "codigo", key: "codigo" },
 
+        // ===================================================================================
         area: {
           title: "Área",
           dataIndex: ["area", "nombre"],
           key: "area",
           filters: areaOptions.map((o) => ({ text: o.label, value: o.value })),
           filterSearch: true,
-          filteredValue: areaFilter.length ? areaFilter : null, // controlado
+          filteredValue: areaFilter.length ? areaFilter : null,
           onFilter: (value, record) =>
             (record.area?.nombre ?? "").toLowerCase() ===
             String(value).toLowerCase(),
@@ -206,6 +200,7 @@ export default function TableTicketsAsignados({
           ),
         },
 
+        // ===================================================================================
         tipo: {
           title: "Tipo",
           key: "tipo",
@@ -216,13 +211,14 @@ export default function TableTicketsAsignados({
             const color = isReq ? token.colorTextSecondary : token.colorWarning;
             return (
               <span style={{ color: token.colorText }}>
-                <Icono style={{ ...iconStyle, color, marginRight: 6 }} />
+                <Icono style={{ color, marginRight: 6 }} />
                 {tipo}
               </span>
             );
           },
         },
 
+        // ===================================================================================
         clasificacion: {
           title: "Clasificación",
           key: "clasificacion",
@@ -236,36 +232,163 @@ export default function TableTicketsAsignados({
           ),
         },
 
+        // ===================================================================================
+        fecha_creacion: {
+          title: "Fecha de creación",
+          key: "fecha_creacion",
+          dataIndex: "createdAt",
+          defaultSortOrder: "descend",
+          sorter: (a: HD_Ticket, b: HD_Ticket) => {
+            const da = a.createdAt ? dayjs(a.createdAt).valueOf() : 0;
+            const db = b.createdAt ? dayjs(b.createdAt).valueOf() : 0;
+            return da - db;
+          },
+          onCell: (record: HD_Ticket) => {
+            const p = record.prioridad?.nombre;
+            let bg: string | undefined;
+            if (p === "Alta") bg = "#fff1f0";
+            else if (p === "Media") bg = "#fff8db";
+            else if (p === "Baja") bg = "#e6ffed";
+            return bg ? { style: { backgroundColor: bg } } : {};
+          },
+          render: (fecha?: string) => {
+            if (!fecha) return "—";
+            const d = dayjs(fecha);
+            return (
+              <Tooltip title={d.toISOString()}>
+                <div>
+                  <span>{d.format("DD/MM/YYYY HH:mm")}</span>
+                  <br />
+                  <Text type="secondary" style={{ fontSize: 12 }}>
+                    {d.fromNow()}
+                  </Text>
+                </div>
+              </Tooltip>
+            );
+          },
+        },
+
+        // ===================================================================================
         creado: {
           title: "Creado por",
-          key: "creado_id",
-          render: (record: HD_Ticket) => (
+          key: "creado",
+          dataIndex: "creado",
+          filteredValue: creadoFilter ? [creadoFilter] : null,
+          filterDropdown: ({
+            setSelectedKeys,
+            selectedKeys,
+            confirm,
+            clearFilters,
+          }) => (
+            <div style={{ padding: 8 }}>
+              <Input
+                autoFocus
+                placeholder="Buscar por nombre"
+                value={selectedKeys[0]}
+                onChange={(e) =>
+                  setSelectedKeys(e.target.value ? [e.target.value] : [])
+                }
+                onPressEnter={() => confirm()}
+                style={{ width: 188, marginBottom: 8, display: "block" }}
+              />
+              <Space>
+                <Button
+                  type="primary"
+                  onClick={() => confirm()}
+                  icon={<SearchOutlined />}
+                  size="small"
+                >
+                  Buscar
+                </Button>
+                <Button
+                  onClick={() => {
+                    clearFilters?.();
+                    setSelectedKeys([]);
+                    confirm();
+                  }}
+                  size="small"
+                >
+                  Reset
+                </Button>
+              </Space>
+            </div>
+          ),
+          filterIcon: (filtered: boolean) => (
+            <SearchOutlined
+              style={{ color: filtered ? "#1677ff" : undefined }}
+            />
+          ),
+          onFilter: (value, record) => {
+            const fullName = `${record.creado?.nombre ?? ""} ${
+              record.creado?.apellidos ?? ""
+            }`.toLowerCase();
+            return fullName.includes(String(value).toLowerCase());
+          },
+          render: (_, record: HD_Ticket) => (
             <div className="flex flex-col !items-start">
-              <span>{`${record.creado?.nombre || ""} ${
-                record.creado?.apellidos || ""
+              <span>{`${record.creado?.nombre ?? ""} ${
+                record.creado?.apellidos ?? ""
               }`}</span>
               <Tag color={record.creado?.rol_id === 3 ? "blue" : "green"}>
-                {record.creado?.rol_id === 3 ? `Alumno` : `Administrativo`}
+                {record.creado?.rol_id === 3 ? "Alumno" : "Administrativo"}
               </Tag>
             </div>
           ),
         },
 
+        // ===================================================================================
+        estado: {
+          title: "Estado",
+          key: "estado",
+          dataIndex: ["estado", "nombre"],
+        },
+
+        // ===================================================================================
         prioridad: {
           title: "Prioridad",
           key: "prioridad",
+          filters: [
+            { text: "Alta", value: "Alta" },
+            { text: "Media", value: "Media" },
+            { text: "Baja", value: "Baja" },
+          ],
+          filteredValue: prioridadFilter.length ? prioridadFilter : null,
+          onFilter: (value, record) =>
+            (record.prioridad?.nombre ?? "").toLowerCase() ===
+            String(value).toLowerCase(),
           render: (record: HD_Ticket) => {
-            const prioridad = record.prioridad?.nombre;
-            const color = prioridadColor[prioridad ?? ""] ?? token.colorText;
-            const bg = prioridadBg[prioridad ?? ""] ?? token.colorFillTertiary;
-            return (
-              <Tag style={{ color, background: bg, borderColor: color }}>
-                {prioridad ?? "—"}
-              </Tag>
-            );
+            const prioridad = record.prioridad?.nombre ?? "—";
+            let style: React.CSSProperties = {};
+            switch (prioridad) {
+              case "Alta":
+                style = {
+                  color: "#a8071a",
+                  background: "#fff1f0",
+                  borderColor: "#ffa39e",
+                };
+                break;
+              case "Media":
+                style = {
+                  color: "#ad6800",
+                  background: "#fff7e6",
+                  borderColor: "#ffd591",
+                };
+                break;
+              case "Baja":
+                style = {
+                  color: "#135200",
+                  background: "#f6ffed",
+                  borderColor: "#b7eb8f",
+                };
+                break;
+              default:
+                style = {};
+            }
+            return <Tag style={style}>{prioridad}</Tag>;
           },
         },
 
+        // ===================================================================================
         asunto: {
           title: "Asunto",
           key: "asunto",
@@ -338,17 +461,18 @@ export default function TableTicketsAsignados({
           ),
         },
       }),
-      // deps
-      [usuario?.id, token, areaOptions, areaFilter]
+      [token, areaOptions, areaFilter, creadoFilter, prioridadFilter]
     );
 
-  /** Etiquetas para el selector del modal */
+  // ===================================================================================
   const OPTION_LABELS: Record<ColumnKey, string> = {
     // generales
     codigo: "Código",
     tipo: "Tipo",
     clasificacion: "Clasificación",
     creado: "Creado por",
+    fecha_creacion: "Creado",
+    estado: "Estado",
     prioridad: "Prioridad",
     asunto: "Asunto",
     // L4
@@ -364,9 +488,10 @@ export default function TableTicketsAsignados({
     acciones: "Acciones",
   };
 
-  // Modal de columnas
+  // ===================================================================================
   const [modalOpen, setModalOpen] = useState(false);
 
+  // ===================================================================================
   const tableColumns: ColumnsType<HD_Ticket> = useMemo(() => {
     const orderIndex = (k: ColumnKey) => {
       const i = DISPLAY_ORDER.indexOf(k);
@@ -379,23 +504,30 @@ export default function TableTicketsAsignados({
       .filter(Boolean);
   }, [visibleKeys, columnsByKey]);
 
-  /** Grupos del modal */
+  // ===================================================================================
   const baseKeys: ColumnKey[] = [
     "codigo",
     "tipo",
     "clasificacion",
     "creado",
+    "fecha_creacion",
+    "estado",
     "prioridad",
     "asunto",
   ];
+
+  // ===================================================================================
   const l4Keys: ColumnKey[] = [
     "area",
     "col_l4",
     "n4_sla_objetivo",
     "n4_observaciones",
   ];
+
+  // ===================================================================================
   const l5Keys: ColumnKey[] = ["col_l5", "n5_impacto", "n5_costo_estimado"];
 
+  // ===================================================================================
   const renderCheckboxGrid = (keys: ColumnKey[]) => (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
       {keys.map((key) => (
@@ -415,6 +547,7 @@ export default function TableTicketsAsignados({
     </div>
   );
 
+  // ===================================================================================
   return (
     <div className="rounded-lg shadow p-4">
       <div className="flex items-center justify-between mb-3">
@@ -431,15 +564,18 @@ export default function TableTicketsAsignados({
         dataSource={tickets}
         rowKey="id"
         loading={loading}
-        pagination={{ pageSize: 5 }}
-        scroll={{ x: 1200 }}
+        pagination={{ pageSize: 10, responsive: true }}
+        sticky
+        scroll={{ x: "max-content" }}
         onRow={(record) => {
           const p = record.prioridad?.nombre;
           let bg: string | undefined;
-          if (p === "Alta") bg = token.colorErrorBg;
-          else if (p === "Media") bg = token.colorWarningBg;
-          else if (p === "Baja") bg = token.colorSuccessBg;
-          return bg ? { style: { background: bg } } : {};
+
+          if (p === "Alta") bg = "#fff1f0";
+          else if (p === "Media") bg = "#fff8db";
+          else if (p === "Baja") bg = "#e6ffed";
+
+          return bg ? { style: { backgroundColor: bg } } : {};
         }}
         onChange={onTableChange}
       />

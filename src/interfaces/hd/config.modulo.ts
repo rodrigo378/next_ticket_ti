@@ -14,13 +14,9 @@ export interface HdConfig {
 
 export interface HdModule {
   codigo: string;
-
   name: string;
-
   role: string;
-
   perfil?: Record<string, unknown>;
-
   configuracion: HdConfig;
 }
 

@@ -1,59 +1,20 @@
-import { useUsuario } from "@/context/UserContext";
-import { HD_Ticket } from "@interfaces/hd";
-import { getTickets } from "@services/hd";
-import { message } from "antd";
-import { useEffect, useState } from "react";
-import type { HdModule } from "@/interfaces/hd/config.modulo";
+import { useMemo, useState } from "react";
 
-export default function useBandeja() {
-  // USESTATE ========================
-  const [tabKey, setTabKey] = useState("mis_tickets");
-  const [loading, setLoading] = useState(false);
-  const [tickets, setTickets] = useState<HD_Ticket[]>([]);
-  const { usuario, modulesByCode } = useUsuario();
+export enum BandejaTabKey {
+  MisTickets = "mis_tickets",
+  Grupo = "grupo",
+  Finalizados = "finalizados",
+}
 
-  const hdModule = modulesByCode["HD"] as HdModule | undefined;
-  const hdConfig = hdModule?.perfil ?? null;
-  const hdRole = hdModule?.role ?? null;
+const TAB_QUERIES = {
+  [BandejaTabKey.MisTickets]: { me: "true", estados_id: ["2", "3"] },
+  [BandejaTabKey.Grupo]: { estados_id: ["2", "3", "5"] },
+  [BandejaTabKey.Finalizados]: { estados_id: ["4", "7"] },
+};
 
-  // USEEFFECT ======================
-  useEffect(() => {
-    fetchTickets("true", ["2", "3"]);
-    // console.log("=======================");
-    // console.log("hdModule => ", hdModule);
-    // console.log("=======================");
-  }, []);
-
-  // FETCHS =========================
-  const fetchTickets = async (me?: string, estados_id?: string[]) => {
-    try {
-      setLoading(true);
-      const data = await getTickets({ me, estados_id });
-      setTickets(data);
-    } catch (error) {
-      console.error("error => ", error);
-      message.error("Error al cargar los tickets");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // ONCHANGE ========================
-  const onChangeTabs = (key: string) => {
-    setTabKey(key);
-    if (key === "mis_tickets") fetchTickets("true", ["2", "3"]);
-    else if (key === "grupo") fetchTickets(undefined, ["2", "3", "5"]);
-    else if (key === "finalizados") fetchTickets(undefined, ["4", "7"]);
-  };
-
-  return {
-    tabKey,
-    loading,
-    tickets,
-    onChangeTabs,
-    usuario,
-    hdModule,
-    hdRole,
-    hdConfig,
-  };
+export default function useBandejaTabs() {
+  const [tabKey, setTabKey] = useState<BandejaTabKey>(BandejaTabKey.MisTickets);
+  const filtros = useMemo(() => TAB_QUERIES[tabKey], [tabKey]);
+  const onChangeTabs = (key: string) => setTabKey(key as BandejaTabKey);
+  return { tabKey, filtros, onChangeTabs };
 }
