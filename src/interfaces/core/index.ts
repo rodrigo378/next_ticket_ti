@@ -17,3 +17,9 @@ export type { Core_Usuario } from "./core_usuario";
 export type { Core_UsuarioModulo } from "./core_usuarioModulo";
 
 export type { IamMenuItem, IamMenuGroup, IamMenuModule } from "./layout";
+
+export type { Core_Ubigeo_Distrito } from "./core_ubigeo_distrito";
+
+export type { Core_Ubigeo_Provincia } from "./core_ubigeo_provincia";
+
+export type { Core_Ubigeo_Departamento } from "./core_ubigeo_departamento";

@@ -1,8 +1,14 @@
 import { Core_Usuario } from "@/interfaces/core";
 
-enum SexoTipo {
-  M,
-  F,
+export enum SexoTipo {
+  M = "V",
+  F = "F",
+}
+
+export enum GeneroTipo {
+  M = "M",
+  F = "F",
+  O = "O",
 }
 
 export interface TP_Ficha {
@@ -11,16 +17,22 @@ export interface TP_Ficha {
   usuario_id: number;
   usuario?: Core_Usuario | null;
 
-  codigoEstudiante?: string | null;
+  codigoEstudiante: string; // requerido y único
   dni?: string | null;
   apellidoPaterno?: string | null;
   apellidoMaterno?: string | null;
   nombres?: string | null;
-  edad?: number | null;
+
   sexo?: SexoTipo | null;
-  genero?: string | null;
-  fechaNacimiento?: Date | null;
+  genero?: GeneroTipo | null;
+  fechaNacimiento?: string | Date | null;
+
   domicilioActual?: string | null;
+  departamento?: string | null;
+  provincia?: string | null;
+  distrito?: string | null;
+  ubigeo?: string | null;
+
   distritoResidencia?: string | null;
   telefonoPersonal?: string | null;
   carreraProfesional?: string | null;
@@ -36,14 +48,16 @@ export interface TP_Ficha {
 
   tipoSeguro?: string | null;
   seguroOtro?: string | null;
+
   sufreEnfermedad: boolean;
   enfermedades?: string | null;
   antecedentesFamiliares?: string | null;
   alergias: boolean;
   alergiasDetalle?: string | null;
+
   peso?: number | null;
   estatura?: number | null;
 
-  createdAt?: Date | null;
-  updatedAt?: Date | null;
+  createdAt?: Date | string | null;
+  updatedAt?: Date | string | null;
 }
