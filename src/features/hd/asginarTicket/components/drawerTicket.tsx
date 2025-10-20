@@ -12,11 +12,26 @@ import {
   Tag,
   TreeSelect,
   Typography,
+  Space,
+  Empty,
+  List,
+  Tooltip,
 } from "antd";
 import React, { useMemo } from "react";
 import { HD_Ticket, HD_DerivacionTicket, TreeNode } from "@interfaces/hd";
 import { Core_Usuario } from "@interfaces/core";
 import dayjs from "@shared/date/dayjs";
+
+import {
+  PaperClipOutlined,
+  DownloadOutlined,
+  FilePdfOutlined,
+  FileWordOutlined,
+  FileExcelOutlined,
+  FilePptOutlined,
+  FileImageOutlined,
+  FileOutlined,
+} from "@ant-design/icons";
 
 const { Text } = Typography;
 const { Option } = Select;
@@ -132,6 +147,72 @@ export default function DrawerTicket({
     ? { color: "blue" as const, text: "Ticket de estudiante" }
     : { color: "default" as const, text: "Sin categoría" };
 
+  // ===================== Helpers Archivos (simple, sin preview) =====================
+  const documentos = Array.isArray(ticket?.documentos) ? ticket.documentos : [];
+
+  const formatBytes = (bytes?: number) => {
+    if (!bytes || bytes <= 0) return "";
+    const units = ["B", "KB", "MB", "GB"];
+    let i = 0;
+    let n = bytes;
+    while (n >= 1024 && i < units.length - 1) {
+      n /= 1024;
+      i++;
+    }
+    return `${n.toFixed(2)} ${units[i]}`;
+  };
+
+  const iconByType = (name = "", ct = "") => {
+    const lower = name.toLowerCase();
+    const isImg =
+      ct.startsWith("image/") ||
+      [".png", ".jpg", ".jpeg", ".gif", ".webp"].some((e) => lower.endsWith(e));
+    const isPDF = ct === "application/pdf" || lower.endsWith(".pdf");
+    const isWord = ct.includes("word") || /\.(docx?|rtf)$/i.test(lower);
+    const isExcel = ct.includes("excel") || /\.(xlsx?|csv)$/i.test(lower);
+    const isPpt = ct.includes("powerpoint") || /\.(pptx?)$/i.test(lower);
+
+    if (isImg) return <FileImageOutlined />;
+    if (isPDF) return <FilePdfOutlined />;
+    if (isWord) return <FileWordOutlined />;
+    if (isExcel) return <FileExcelOutlined />;
+    if (isPpt) return <FilePptOutlined />;
+    return <FileOutlined />;
+  };
+
+  const typeTag = (name = "", ct = "") => {
+    const lower = name.toLowerCase();
+    const isImg =
+      ct.startsWith("image/") ||
+      [".png", ".jpg", ".jpeg", ".gif", ".webp"].some((e) => lower.endsWith(e));
+    const isPDF = ct === "application/pdf" || lower.endsWith(".pdf");
+    const isWord = ct.includes("word") || /\.(docx?|rtf)$/i.test(lower);
+    const isExcel = ct.includes("excel") || /\.(xlsx?|csv)$/i.test(lower);
+    const isPpt = ct.includes("powerpoint") || /\.(pptx?)$/i.test(lower);
+
+    const color = isImg
+      ? "blue"
+      : isPDF
+      ? "red"
+      : isWord || isExcel || isPpt
+      ? "green"
+      : "default";
+    const text = isImg
+      ? "Imagen"
+      : isPDF
+      ? "PDF"
+      : isWord
+      ? "Word"
+      : isExcel
+      ? "Excel"
+      : isPpt
+      ? "PowerPoint"
+      : "Archivo";
+
+    return <Tag color={color}>{text}</Tag>;
+  };
+  // ================================================================================
+
   return (
     <Drawer
       title={
@@ -145,9 +226,7 @@ export default function DrawerTicket({
       open={drawerVisible}
     >
       {ticket && (
-        <div
-          style={{ display: "flex", flexDirection: "column", gap: "1rem 0rem" }}
-        >
+        <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
           {/* Información general */}
           <Divider orientation="left">📄 Información General</Divider>
           <Descriptions bordered column={1} size="small">
@@ -193,46 +272,106 @@ export default function DrawerTicket({
             </Descriptions.Item>
           </Descriptions>
 
-          {Array.isArray(ticket.documentos) && ticket.documentos.length > 0 && (
+          {/* 📎 Archivos Adjuntos (compacto, sin preview; solo Ver/Descargar) */}
+          {documentos.length > 0 && (
             <>
               <Divider orientation="left">📎 Archivos Adjuntos</Divider>
-              <ul className="list-disc pl-5 space-y-1">
-                {ticket.documentos.map((doc, idx) => {
-                  const a = doc?.archivo;
-                  if (!a) return null;
+              <Card size="small" style={{ borderRadius: 10 }}>
+                <List
+                  itemLayout="horizontal"
+                  dataSource={documentos}
+                  locale={{
+                    emptyText: <Empty description="No hay archivos adjuntos" />,
+                  }}
+                  renderItem={(doc, idx) => {
+                    const a = doc?.archivo;
+                    if (!a) {
+                      return (
+                        <List.Item key={`no-file-${idx}`}>
+                          <List.Item.Meta
+                            title={
+                              <Text type="secondary">
+                                Archivo no disponible
+                              </Text>
+                            }
+                          />
+                        </List.Item>
+                      );
+                    }
+                    const name = a.nombre ?? "archivo";
+                    const ct = a.contentType ?? "";
+                    const openHref = a.openUrl || a.webUrl || a.url || "#"; // Ver
+                    const downloadHref = a.url || a.webUrl || "#"; // Descargar
 
-                  const label = a.contentType?.startsWith("image/")
-                    ? "🖼️"
-                    : a.contentType === "application/pdf"
-                    ? "📕"
-                    : "📄";
-
-                  return (
-                    <li key={idx} className="flex items-center gap-2">
-                      <a
-                        href={a.previewUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-600 hover:underline"
+                    return (
+                      <List.Item
+                        key={doc.id ?? idx}
+                        actions={[
+                          <Tooltip title="Ver / Abrir" key="ver">
+                            <Button
+                              size="small"
+                              icon={<EyeOutlined />}
+                              href={openHref}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              disabled={openHref === "#"}
+                            >
+                              Ver
+                            </Button>
+                          </Tooltip>,
+                          <Tooltip title="Descargar" key="desc">
+                            <Button
+                              size="small"
+                              type="primary"
+                              icon={<DownloadOutlined />}
+                              href={downloadHref}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              disabled={downloadHref === "#"}
+                            >
+                              Descargar
+                            </Button>
+                          </Tooltip>,
+                        ]}
                       >
-                        {label} {a.nombre}
-                      </a>
-
-                      {a.url && (
-                        <a
-                          href={a.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-gray-500 hover:underline text-xs"
-                          title="Descargar archivo"
-                        >
-                          (descargar)
-                        </a>
-                      )}
-                    </li>
-                  );
-                })}
-              </ul>
+                        <List.Item.Meta
+                          avatar={
+                            <div
+                              style={{
+                                width: 36,
+                                height: 36,
+                                borderRadius: 8,
+                                display: "grid",
+                                placeItems: "center",
+                                background: "#f5f5f5",
+                                border: "1px solid #eee",
+                              }}
+                            >
+                              {iconByType(name, ct)}
+                            </div>
+                          }
+                          title={
+                            <Space size={6} wrap>
+                              <PaperClipOutlined />
+                              <Text strong>{name}</Text>
+                            </Space>
+                          }
+                          description={
+                            <Space size={6} wrap>
+                              {typeTag(name, ct)}
+                              {a.size ? (
+                                <Text type="secondary">
+                                  {formatBytes(a.size)}
+                                </Text>
+                              ) : null}
+                            </Space>
+                          }
+                        />
+                      </List.Item>
+                    );
+                  }}
+                />
+              </Card>
             </>
           )}
 
@@ -367,7 +506,7 @@ export default function DrawerTicket({
               </Select>
             </div>
 
-            {/* === NUEVO: Clasificación disponible también para tickets de ESTUDIANTE o sin categoría === */}
+            {/* Clasificación para estudiante/derivado/sin categoría */}
             {debeMostrarClasificacion && (
               <Card
                 size="small"
