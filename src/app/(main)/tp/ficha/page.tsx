@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // app/tp/ficha/crear/page.tsx
 "use client";
 
@@ -182,11 +183,22 @@ export default function CrearFichaPage() {
     })();
   }, [fichaExistente]);
 
+  // ------------------- FIX 1: normalizar ubigeo y estabilizar dependencias -------------------
+  // Observa el valor crudo del form (puede ser string | string[] | undefined)
+  const rawUbigeo = Form.useWatch("ubigeo", form) as unknown;
+
+  // Normaliza SIEMPRE a string[] (estable y tipeado)
+  const ubigeoPath = useMemo<string[]>(() => {
+    if (Array.isArray(rawUbigeo)) return rawUbigeo.map(String);
+    if (typeof rawUbigeo === "string" && /^\d{6}$/.test(rawUbigeo))
+      return [rawUbigeo];
+    return [];
+  }, [rawUbigeo]);
+
   // Resolver nombres de ubigeo en vivo (si el usuario selecciona distrito)
-  const ubigeoPath: string[] = Form.useWatch("ubigeo", form) ?? [];
   useEffect(() => {
     (async () => {
-      if (ubigeoPath && ubigeoPath.length === 3) {
+      if (ubigeoPath.length === 3) {
         const lastValue = String(ubigeoPath[2]);
         const ubigeo6 = /^\d{6}$/.test(lastValue) ? lastValue : undefined;
         if (!ubigeo6) {
@@ -205,6 +217,7 @@ export default function CrearFichaPage() {
       }
     })();
   }, [ubigeoPath]);
+  // ------------------------------------------------------------------------------------------
 
   // Watches
   const sufreEnfermedad = Form.useWatch("sufreEnfermedad", form) ?? false;
@@ -382,8 +395,6 @@ export default function CrearFichaPage() {
           peso: values.peso,
           estatura: values.estatura,
         };
-
-        // console.log("DEBUG ubigeo", values.ubigeo, ubigeo6);
 
         const res = await createFicha(payload);
         console.log("✅ Respuesta del servidor:", res);
@@ -1630,7 +1641,11 @@ export default function CrearFichaPage() {
             form={form}
             layout="vertical"
             requiredMark="optional"
-            initialValues={{ sufreEnfermedad: false, alergias: false }}
+            initialValues={{
+              sufreEnfermedad: false,
+              alergias: false,
+              ubigeo: [], // <- mantiene el tipo estable
+            }}
           >
             <Divider orientation="left" style={{ marginTop: 0 }}>
               <Space>
