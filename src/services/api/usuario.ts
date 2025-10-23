@@ -141,7 +141,9 @@ export const convalidar = async (
     {
       timeout: opts?.timeoutMs ?? 300_000, // 5 min (match con Nest)
       signal: opts?.signal,
-      onUploadProgress: opts?.onUploadProgress,
+      onUploadProgress: opts?.onUploadProgress as  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        | ((progressEvent: any) => void)
+        | undefined,
     }
   );
 
