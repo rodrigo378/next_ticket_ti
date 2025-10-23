@@ -94,3 +94,56 @@ export const getAssignedItemIdsByToken = async (
   );
   return data;
 };
+
+/** -------------------------------------------------------
+ * POST /api/admin/convalidar
+ * Envía archivos + c_codesp (+ c_codmod opcional)
+ * ------------------------------------------------------- */
+export type ConvalidarResponse = {
+  status: "ok";
+  total_archivos: number;
+  resultado_extraccion: unknown;
+  resultado_convalidacion: unknown;
+  convalidadas: number;
+  porcentaje_convalidacion_plan: number;
+  porcentaje_convalidacion_real: number;
+  costo_total_usd: number;
+};
+
+export const convalidar = async (
+  files: File[], // del input <input type="file" multiple />
+  c_codesp: string, // ej: 'E4'
+  c_codmod: number = 2, // por defecto 2
+  opts?: {
+    signal?: AbortSignal; // opcional: para cancelar
+    onUploadProgress?: (e: ProgressEvent) => void; // opcional: barra de progreso
+    timeoutMs?: number; // opcional: override timeout
+  }
+): Promise<ConvalidarResponse> => {
+  if (!files?.length) {
+    throw new Error("Debes adjuntar al menos un archivo.");
+  }
+  if (!c_codesp) {
+    throw new Error("El parámetro c_codesp es obligatorio.");
+  }
+
+  const fd = new FormData();
+  for (const f of files) fd.append("files", f);
+  fd.append("c_codesp", c_codesp);
+  if (typeof c_codmod !== "undefined" && c_codmod !== null) {
+    fd.append("c_codmod", String(c_codmod));
+  }
+
+  // ¡No seteamos Content-Type manualmente! El browser agrega el boundary.
+  const { data } = await api.post<ConvalidarResponse>(
+    `${BASE}/convalidar`,
+    fd,
+    {
+      timeout: opts?.timeoutMs ?? 300_000, // 5 min (match con Nest)
+      signal: opts?.signal,
+      onUploadProgress: opts?.onUploadProgress,
+    }
+  );
+
+  return data;
+};
