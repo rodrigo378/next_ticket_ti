@@ -11,9 +11,15 @@ export function useIamContextQuery(userKey?: number | string) {
   return useQuery<IamCtx>({
     queryKey: ["iam-context", userKey ?? "anon"],
     queryFn: getIamContext,
-    staleTime: 5 * 60_000,
+    staleTime: 4 * 60 * 60_000, // 15 min “fresh” (ajústalo a tu gusto)
     gcTime: 30 * 60_000,
     retry: 1,
+
+    // 👇 clave para que no dispare refetch cuando regresas a la pestaña
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    refetchOnMount: false, // si ya hay cache, no revalida al montar
+    // keepPreviousData: true,     // opcional si cambias userKey dinámicamente
   });
 }
 
