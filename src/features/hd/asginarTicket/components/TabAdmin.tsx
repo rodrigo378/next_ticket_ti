@@ -1,3 +1,4 @@
+// TabAdmin.tsx
 import { Tabs } from "antd";
 const items = [
   { key: "sin_asignar", label: "Sin asignar" },

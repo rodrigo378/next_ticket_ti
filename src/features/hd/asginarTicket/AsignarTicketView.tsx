@@ -1,74 +1,131 @@
+// features/helpdesk/components/AsignarTicketView.tsx
 "use client";
 
+import React from "react";
 import { Flex, Typography } from "antd";
-import DrawerTicket from "./components/drawerTicket";
+import Title from "antd/es/typography/Title";
+
+import type { HD_Ticket } from "@interfaces/hd";
+import { message } from "antd";
+import { useAsignarTabs } from "./hooks/useAsignarTabs";
+import { useTicketsQuery } from "./hooks/useTicketsQuery";
+import { useUsuariosSoporteQuery } from "./hooks/useUsuariosSoporteQuery";
+import { useTicketForm } from "./hooks/useTicketForm";
+import { useTicketDetalleQuery } from "./hooks/useTicketDetalleQuery";
+import { useArbolIncidenciasQuery } from "./hooks/useArbolIncidenciasQuery";
+import { useAsignarTicketMutation } from "./hooks/useAsignarTicketMutation";
 import TabsAdmin from "./components/TabAdmin";
 import TicketTableAdmin from "./components/TicketTable";
-import useAsignarTicket from "./hooks/useAsignarTicket";
-import Title from "antd/es/typography/Title";
+import DrawerTicket from "./components/drawerTicket";
+
 const { Text } = Typography;
 
 export default function AsignarTicketView() {
-  const {
-    categoriaId,
-    setCategoriaId,
+  // 1) Tabs (estado local)
+  const { tabKey, estados_id, onChangeTabs } = useAsignarTabs();
 
-    arbol,
+  // 2) Tickets (server state con useQuery)
+  const { data: tickets = [], isLoading } = useTicketsQuery(estados_id);
 
-    tabKey,
-    tickets,
-    ticket,
-    loading,
-    drawerVisible,
-    setDrawerVisible,
-    asignadoId,
+  // 3) Usuarios soporte
+  const { data: usuarios = [] } = useUsuariosSoporteQuery(1);
 
-    usuarios,
+  // 4) Form (UI Drawer)
+  const form = useTicketForm();
 
-    prioridadId,
-    setPrioridadId,
+  // 5) Ticket seleccionado (detalle con useQuery)
+  const [ticketId, setTicketId] = React.useState<number | undefined>(undefined);
+  const { data: ticket } = useTicketDetalleQuery(ticketId);
 
-    setAsignadoId,
-    onChangeTabs,
-    abrirDrawer,
-    handleActualizar,
-  } = useAsignarTicket();
+  // 6) Árbol por área del ticket
+  const areaId = ticket?.area_id || 0;
+  const { data: arbol = [] } = useArbolIncidenciasQuery(areaId);
+
+  // 7) Mutación asignar
+  const asignarMut = useAsignarTicketMutation();
+
+  // abrir drawer
+  const abrirDrawer = (t: HD_Ticket) => {
+    setTicketId(t.id!);
+    form.open({
+      asignado_id: t.asignado_id ?? undefined,
+      prioridad_id: t.prioridad_id ?? undefined,
+      categoria_id: t.categoria_id ?? undefined,
+    });
+  };
+
+  // validar y asignar
+  const handleActualizar = async () => {
+    if (!ticket || !form.asignadoId || !form.prioridadId) {
+      message.warning("Debes seleccionar soporte y prioridad");
+      return;
+    }
+
+    const esDerivado =
+      Array.isArray(ticket?.derivacionesComoDestino) &&
+      ticket.derivacionesComoDestino.length > 0;
+    const esTicketEstudiante = ticket?.titular?.rol_id === 3;
+    const sinCategoria = !ticket?.categoria_id;
+    const requiereCategoria = esDerivado || esTicketEstudiante || sinCategoria;
+
+    if (requiereCategoria && typeof form.categoriaId !== "number") {
+      message.warning("Selecciona una categoría para poder asignar.");
+      return;
+    }
+
+    try {
+      await asignarMut.mutateAsync({
+        ticketId: ticket.id!,
+        payload: {
+          asignado_id: form.asignadoId,
+          prioridad_id: form.prioridadId,
+          ...(typeof form.categoriaId === "number"
+            ? { categoria_id: form.categoriaId }
+            : {}),
+        },
+      });
+      message.success("✅ Ticket actualizado correctamente");
+      form.close();
+    } catch {
+      message.error("❌ Error al actualizar el ticket");
+    }
+  };
 
   return (
-    <>
-      <div className="mx-auto p-6 rounded-xl shadow-sm">
-        <Flex justify="space-between" align="center">
-          <div className=" mb-4">
-            <Title level={3} style={{ margin: 0 }}>
-              Asignar Especialista
-            </Title>
-            <Text type="secondary">Asignar especialista y prioridad</Text>
-          </div>
-        </Flex>
+    <div className="mx-auto p-6 rounded-xl shadow-sm">
+      <Flex justify="space-between" align="center">
+        <div className="mb-4">
+          <Title level={3} style={{ margin: 0 }}>
+            Asignar Especialista
+          </Title>
+          <Text type="secondary">Asignar especialista y prioridad</Text>
+        </div>
+      </Flex>
 
-        <TabsAdmin tabKey={tabKey} onChangeTabs={onChangeTabs}></TabsAdmin>
+      <TabsAdmin tabKey={tabKey} onChangeTabs={onChangeTabs} />
 
-        <TicketTableAdmin
-          tickets={tickets}
-          loading={loading}
-          abrirDrawer={abrirDrawer}
-        ></TicketTableAdmin>
+      <TicketTableAdmin
+        tickets={tickets}
+        loading={isLoading}
+        abrirDrawer={abrirDrawer}
+      />
 
+      {ticket && (
         <DrawerTicket
-          categoriaId={categoriaId}
-          setCategoriaId={setCategoriaId}
           arbol={arbol}
-          ticket={ticket!}
-          drawerVisible={drawerVisible}
-          setDrawerVisible={setDrawerVisible}
-          asignadoId={asignadoId!}
-          setAsignadoId={setAsignadoId}
+          ticket={ticket}
+          drawerVisible={form.visible}
+          setDrawerVisible={(v) => (v ? form.open() : form.close())}
+          asignadoId={form.asignadoId!}
+          setAsignadoId={form.setAsignadoId}
           usuarios={usuarios}
-          prioridadId={prioridadId!}
-          setPrioridadId={setPrioridadId}
+          prioridadId={form.prioridadId!}
+          setPrioridadId={form.setPrioridadId}
+          categoriaId={form.categoriaId}
+          setCategoriaId={form.setCategoriaId}
           handleActualizar={handleActualizar}
-        ></DrawerTicket>
-      </div>
-    </>
+        />
+      )}
+    </div>
   );
 }

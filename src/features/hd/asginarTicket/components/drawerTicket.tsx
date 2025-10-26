@@ -1,3 +1,4 @@
+// drawerTicket.tsx
 import { EyeOutlined } from "@ant-design/icons";
 import {
   Button,
@@ -17,7 +18,7 @@ import {
   List,
   Tooltip,
 } from "antd";
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { HD_Ticket, HD_DerivacionTicket, TreeNode } from "@interfaces/hd";
 import { Core_Usuario } from "@interfaces/core";
 import dayjs from "@shared/date/dayjs";
@@ -46,7 +47,7 @@ interface Props {
   usuarios: Core_Usuario[];
   prioridadId: number;
   setPrioridadId: React.Dispatch<React.SetStateAction<number | undefined>>;
-  handleActualizar: () => void;
+  handleActualizar: () => void | Promise<void>;
 
   categoriaId: number | undefined;
   setCategoriaId: React.Dispatch<React.SetStateAction<number | undefined>>;
@@ -66,6 +67,18 @@ export default function DrawerTicket({
   categoriaId,
   setCategoriaId,
 }: Props) {
+  // Bloqueo de doble envío
+  const [saving, setSaving] = useState(false);
+  const onGuardar = async () => {
+    if (saving) return; // evita doble click
+    setSaving(true);
+    try {
+      await Promise.resolve(handleActualizar());
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const calcPercent = (
     start?: string | Date,
     end?: string | Date,
@@ -128,7 +141,7 @@ export default function DrawerTicket({
     [ticket]
   );
 
-  // === NUEVO: condiciones para mostrar clasificación ===
+  // === Condiciones para mostrar clasificación ===
   const esDerivado =
     Array.isArray(ticket?.derivacionesComoDestino) &&
     ticket.derivacionesComoDestino.length > 0;
@@ -477,6 +490,7 @@ export default function DrawerTicket({
                 value={asignadoId}
                 onChange={(value) => setAsignadoId(value)}
                 placeholder="Seleccionar soporte"
+                disabled={saving}
               >
                 {usuarios.map((usuario) => (
                   <Option key={usuario.id} value={usuario.id}>
@@ -493,6 +507,7 @@ export default function DrawerTicket({
                 value={prioridadId?.toString()}
                 onChange={(value) => setPrioridadId(Number(value))}
                 placeholder="Seleccionar prioridad"
+                disabled={saving}
               >
                 <Option value="1">
                   <Tag color="green">Baja</Tag>
@@ -541,7 +556,7 @@ export default function DrawerTicket({
                       : "Cargando árbol..."
                   }
                   allowClear
-                  disabled={!arbol?.length}
+                  disabled={saving || !arbol?.length}
                   listHeight={400}
                   filterTreeNode={(input, node) =>
                     String(node?.title ?? "")
@@ -564,7 +579,9 @@ export default function DrawerTicket({
               block
               className="mt-2"
               icon={<EyeOutlined />}
-              onClick={handleActualizar}
+              onClick={onGuardar}
+              loading={saving}
+              disabled={saving}
             >
               Guardar Cambios
             </Button>

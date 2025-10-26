@@ -1,3 +1,5 @@
+// TicketTable.tsx
+
 import { Button, Table, Tag, Tooltip } from "antd";
 import { BranchesOutlined, EyeOutlined } from "@ant-design/icons";
 import { HD_Ticket, HD_PrioridadTicket } from "@interfaces/hd";
