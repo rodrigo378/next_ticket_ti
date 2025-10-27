@@ -213,7 +213,7 @@ export default function Page() {
       const { data } = await axios.post(
         `${baseURL}/api/admin/extraer-cursos`,
         fd,
-        { withCredentials: true, timeout: 300_000 }
+        { withCredentials: true, timeout: 540_000 }
       );
 
       const extraidos = data?.resultado?.extraidos ?? [];
@@ -282,7 +282,7 @@ export default function Page() {
       const { data } = await axios.post<ConvalidarResponse>(
         `${baseURL}/api/admin/convalidar-extraidos`,
         payload,
-        { withCredentials: true, timeout: 300_000 }
+        { withCredentials: true, timeout: 540_000 }
       );
 
       // Unificamos para la UI actual (manteniendo estructura)
