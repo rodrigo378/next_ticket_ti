@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/services/api/usuario.ts
 import axios from "axios";
 
@@ -147,5 +148,85 @@ export const convalidar = async (
     }
   );
 
+  return data;
+};
+
+/** -------------------------------------------------------
+ * POST /api/admin/extraer-cursos
+ * Sube archivos (PDF/imagenes) y devuelve cursos extraídos.
+ * ------------------------------------------------------- */
+export type ExtraerCursosResponse = {
+  status: "ok";
+  total_archivos: number;
+  resultado: {
+    extraidos: Array<{ curso: string; ciclo: string | null; nota: number }>;
+    total_imagenes: number;
+    lotes: number;
+    uso: unknown;
+    uso_detalle: unknown[];
+    total_cursos_extraidos: number;
+  };
+};
+
+export const extraerCursos = async (
+  files: File[],
+  opts?: {
+    signal?: AbortSignal;
+    onUploadProgress?: (e: ProgressEvent) => void;
+    timeoutMs?: number;
+  }
+): Promise<ExtraerCursosResponse> => {
+  if (!files?.length) throw new Error("Debes adjuntar al menos un archivo.");
+
+  const fd = new FormData();
+  for (const f of files) fd.append("files", f);
+
+  const { data } = await api.post<ExtraerCursosResponse>(
+    "/api/admin/extraer-cursos",
+    fd,
+    {
+      timeout: opts?.timeoutMs ?? 300_000,
+      signal: opts?.signal,
+      onUploadProgress: opts?.onUploadProgress as any,
+    }
+  );
+  return data;
+};
+
+/** -------------------------------------------------------
+ * POST /api/admin/convalidar-extraidos
+ * Envía { c_codesp, c_codmod?, extraidos[] } y devuelve convalidación.
+ * ------------------------------------------------------- */
+export type ConvalidarExtraidosPayload = {
+  c_codesp: string;
+  c_codmod?: number;
+  extraidos: Array<{ curso: string; ciclo: string | null; nota: number }>;
+};
+
+export type ConvalidarExtraidosResponse = {
+  status: "ok";
+  resultado_convalidacion: unknown;
+  convalidadas: number;
+  porcentaje_convalidacion_plan: number;
+  porcentaje_convalidacion_real: number;
+  costo_usd: number;
+};
+
+export const convalidarExtraidos = async (
+  payload: ConvalidarExtraidosPayload,
+  opts?: { signal?: AbortSignal; timeoutMs?: number }
+): Promise<ConvalidarExtraidosResponse> => {
+  if (!payload?.c_codesp) throw new Error("c_codesp es obligatorio");
+  if (!Array.isArray(payload?.extraidos))
+    throw new Error('"extraidos" debe ser una lista');
+
+  const { data } = await api.post<ConvalidarExtraidosResponse>(
+    "/api/admin/convalidar-extraidos",
+    payload,
+    {
+      timeout: opts?.timeoutMs ?? 300_000,
+      signal: opts?.signal,
+    }
+  );
   return data;
 };

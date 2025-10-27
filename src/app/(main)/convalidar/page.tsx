@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import axios from "axios";
 import {
   Upload,
@@ -22,8 +22,9 @@ import {
   Row,
   Col,
   message,
+  Input,
 } from "antd";
-import { UploadOutlined } from "@ant-design/icons";
+import { UploadOutlined, SearchOutlined } from "@ant-design/icons";
 import type { UploadProps } from "antd";
 
 const { Option } = Select;
@@ -61,7 +62,7 @@ const CARRERAS: Record<string, Array<{ value: string; label: string }>> = {
 /** ---- Tipos ---- */
 type ConvalidarResponse = {
   status: "ok";
-  total_archivos: number;
+  total_archivos?: number;
   resultado_extraccion?: any;
   resultado_convalidacion?: any;
   convalidadas?: number;
@@ -149,13 +150,19 @@ const toRows = (payload: any): Row[] => {
 
 export default function Page() {
   const [fileList, setFileList] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<ConvalidarResponse | null>(null);
+  const [loadingExtract, setLoadingExtract] = useState(false);
+  const [loadingConv, setLoadingConv] = useState(false);
+
+  // resultados
+  const [extractionResp, setExtractionResp] = useState<any | null>(null); // respuesta de /extraer-cursos
+  const [convResult, setConvResult] = useState<ConvalidarResponse | null>(null); // respuesta de convalidación final
   const [serverError, setServerError] = useState<{
     code: string;
     message: string;
     files_checked?: number;
   } | null>(null);
+
+  const [searchText, setSearchText] = useState<string>("");
 
   const [form] = Form.useForm();
 
@@ -164,16 +171,15 @@ export default function Page() {
 
   /** Upload */
   const allowedMimes = ["image/jpeg", "image/png", "application/pdf"];
-  const props: UploadProps = {
+  const uploadProps: UploadProps = {
     multiple: true,
     beforeUpload: (file) => {
-      // Validar tipo antes de agregar
       if (!allowedMimes.includes(file.type)) {
         message.error(`Tipo no permitido: ${file.name}. Solo JPG, PNG o PDF.`);
         return Upload.LIST_IGNORE;
       }
       setFileList((prev) => [...prev, file]);
-      return false; // no subir de inmediato (controlado)
+      return false; // controlado
     },
     fileList,
     onRemove: (file) => {
@@ -187,44 +193,39 @@ export default function Page() {
   const normalizePct = (v?: number) =>
     v == null ? undefined : v <= 1 ? v * 100 : v;
 
-  /** Submit */
-  const handleSubmit = async (values: any) => {
+  /** Paso 1: EXTRAER CURSOS */
+  const handleExtract = async () => {
     if (fileList.length === 0) {
       message.error("Debes subir al menos un archivo.");
       return;
     }
-
-    const modalidadMap: Record<string, number> = {
-      presencial: 1,
-      semipresencial: 2,
-      virtual: 3,
-    };
-    const c_codmod = modalidadMap[values.modalidad];
-    const c_codfac = values.facultad; // "E" o "S"
-    const c_codesp = values.carrera; // "E1..E9" o "S1..S7"
-
-    const fd = new FormData();
-    fileList.forEach((f) => fd.append("files", f as File));
-    fd.append("c_codfac", c_codfac);
-    fd.append("c_codesp", c_codesp);
-    fd.append("c_codmod", String(c_codmod));
-
-    setResult(null);
     setServerError(null);
-    setLoading(true);
-    const hide = message.loading("Procesando convalidación …", 0);
+    setExtractionResp(null);
+    setConvResult(null);
+    setLoadingExtract(true);
+    const hide = message.loading("Extrayendo cursos…", 0);
 
     try {
       const baseURL = process.env.NEXT_PUBLIC_API_URL!;
-      const { data } = await axios.post<ConvalidarResponse>(
-        `${baseURL}/api/admin/convalidar`,
+      const fd = new FormData();
+      fileList.forEach((f) => fd.append("files", f as File));
+
+      const { data } = await axios.post(
+        `${baseURL}/api/admin/extraer-cursos`,
         fd,
         { withCredentials: true, timeout: 300_000 }
       );
-      setResult(data);
-      message.success("Convalidación completada.");
+
+      const extraidos = data?.resultado?.extraidos ?? [];
+      if (!Array.isArray(extraidos) || extraidos.length === 0) {
+        throw new Error(
+          "No se extrajeron cursos del récord. Verifica la legibilidad del documento."
+        );
+      }
+
+      setExtractionResp(data);
+      message.success(`Se extrajeron ${extraidos.length} curso(s).`);
     } catch (err: any) {
-      // detectar error estructurado del backend
       const be = err?.response?.data?.error || err?.response?.data;
       if (be?.code === "invalid_record_academic") {
         setServerError({
@@ -238,34 +239,116 @@ export default function Page() {
           "No se detectó un récord académico válido en los archivos enviados."
         );
       } else if (err?.code === "ECONNABORTED") {
-        message.error(
-          "La convalidación excedió el tiempo de espera. Inténtalo nuevamente."
-        );
+        message.error("La extracción excedió el tiempo de espera.");
       } else {
-        message.error(be?.message || err?.message || "Error al convalidar");
+        message.error(be?.message || err?.message || "Error al extraer cursos");
       }
     } finally {
       hide();
-      setLoading(false);
+      setLoadingExtract(false);
     }
   };
 
-  /** Valores de salida y helpers */
-  const pctReal = normalizePct(result?.porcentaje_convalidacion_real);
-  const pctPlan = normalizePct(result?.porcentaje_convalidacion_plan);
-  const rows = toRows(result?.resultado_convalidacion);
+  /** Paso 2: CONVALIDAR (usa rutas separadas) */
+  const handleConvalidar = async (values: any) => {
+    const modalidadMap: Record<string, number> = {
+      presencial: 1,
+      semipresencial: 2,
+      virtual: 3,
+    };
+    const c_codmod = modalidadMap[values.modalidad];
+    const c_codesp = values.carrera;
 
-  const extraidos: Array<{ curso: string; ciclo: string; nota: number }> =
-    result?.resultado_extraccion?.extraidos ?? [];
+    // extraídos desde el primer paso
+    const extraidos: Array<{
+      curso: string;
+      ciclo: string | null;
+      nota: number;
+    }> = extractionResp?.resultado?.extraidos ?? [];
 
-  const planTotal =
-    result?.resultado_convalidacion?.plan_total ??
-    result?.resultado_convalidacion?.planTotal ??
+    if (!extraidos.length) {
+      message.error("Primero debes extraer cursos.");
+      return;
+    }
+
+    setLoadingConv(true);
+    setConvResult(null);
+    const hide = message.loading("Convalidando…", 0);
+
+    try {
+      const baseURL = process.env.NEXT_PUBLIC_API_URL!;
+      const payload = { c_codesp, c_codmod, extraidos };
+
+      const { data } = await axios.post<ConvalidarResponse>(
+        `${baseURL}/api/admin/convalidar-extraidos`,
+        payload,
+        { withCredentials: true, timeout: 300_000 }
+      );
+
+      // Unificamos para la UI actual (manteniendo estructura)
+      const merged: ConvalidarResponse = {
+        status: "ok",
+        total_archivos: extractionResp?.total_archivos,
+        resultado_extraccion: extractionResp?.resultado,
+        resultado_convalidacion: data?.resultado_convalidacion,
+        convalidadas: data?.convalidadas,
+        porcentaje_convalidacion_plan: data?.porcentaje_convalidacion_plan,
+        porcentaje_convalidacion_real: data?.porcentaje_convalidacion_real,
+        // costo_total_usd: data?.costo_usd,
+      };
+      setConvResult(merged);
+      message.success("Convalidación completada.");
+    } catch (err: any) {
+      const be = err?.response?.data?.error || err?.response?.data;
+      if (err?.code === "ECONNABORTED") {
+        message.error("La convalidación excedió el tiempo de espera.");
+      } else {
+        message.error(
+          be?.message || err?.message || "Error durante la convalidación"
+        );
+      }
+    } finally {
+      hide();
+      setLoadingConv(false);
+    }
+  };
+
+  /** Valores de salida + memos */
+  const extraidos = useMemo(() => {
+    const data = extractionResp?.resultado?.extraidos;
+    return Array.isArray(data) ? data : [];
+  }, [extractionResp?.resultado?.extraidos]);
+
+  const filteredExtraidos = useMemo(() => {
+    const q = (searchText || "").trim().toLowerCase();
+    if (!q) return extraidos;
+    return extraidos.filter((x: any) => {
+      const c = (x.curso || "").toLowerCase();
+      const ci = ((x.ciclo as string) || "").toLowerCase();
+      return c.includes(q) || ci.includes(q);
+    });
+  }, [extraidos, searchText]);
+
+  const pctReal = normalizePct(convResult?.porcentaje_convalidacion_real);
+  const pctPlan = normalizePct(convResult?.porcentaje_convalidacion_plan);
+  const rows = toRows(convResult?.resultado_convalidacion);
+
+  // const planTotal =
+  //   convResult?.resultado_convalidacion?.plan_total ??
+  //   convResult?.resultado_convalidacion?.planTotal ??
+  //   undefined;
+
+  // const extraidosTotal =
+  //   extractionResp?.resultado?.total_cursos_extraidos ??
+  //   convResult?.resultado_convalidacion?.extraidos_total ??
+  //   undefined;
+
+  const convalidadas =
+    convResult?.convalidadas ??
+    convResult?.resultado_convalidacion?.convalidadas ??
     undefined;
-  const extraidosTotal =
-    result?.resultado_extraccion?.total_cursos_extraidos ??
-    result?.resultado_convalidacion?.extraidos_total ??
-    undefined;
+
+  const algoCargando = loadingExtract || loadingConv;
 
   return (
     <ConfigProvider
@@ -293,24 +376,84 @@ export default function Page() {
         >
           <Form
             layout="vertical"
-            onFinish={handleSubmit}
             form={form}
             className="space-y-4"
             onValuesChange={(changed) => {
-              // Al cambiar de facultad, limpiar carrera seleccionada
               if (Object.prototype.hasOwnProperty.call(changed, "facultad")) {
                 form.setFieldsValue({ carrera: undefined });
               }
             }}
+            onFinish={handleConvalidar}
           >
+            {/* Paso 1: subir y extraer */}
             <Form.Item label="Archivo(s)" required>
-              <Upload {...props}>
-                <Button icon={<UploadOutlined />}>Subir archivo(s)</Button>
+              <Upload {...uploadProps} disabled={algoCargando}>
+                <Button icon={<UploadOutlined />} disabled={algoCargando}>
+                  Subir archivo(s)
+                </Button>
               </Upload>
               <Text type="secondary">Formatos permitidos: JPG, PNG, PDF.</Text>
             </Form.Item>
 
-            {/* --- FACULTAD (mostrar solo nombre) --- */}
+            <div className="flex gap-2">
+              <Button
+                type="primary"
+                onClick={handleExtract}
+                loading={loadingExtract}
+                disabled={fileList.length === 0 || algoCargando}
+              >
+                {loadingExtract ? "Extrayendo…" : "Extraer cursos"}
+              </Button>
+              {extractionResp?.resultado?.extraidos?.length ? (
+                <Text type="success">
+                  Extraídos: {extractionResp.resultado.extraidos.length}
+                </Text>
+              ) : null}
+            </div>
+
+            {/* ---- ALERTA DE ERROR DEL BACKEND (validación) ---- */}
+            {!algoCargando && serverError && (
+              <Alert
+                style={{ marginTop: 8, marginBottom: 8 }}
+                type="error"
+                showIcon
+                closable
+                onClose={() => setServerError(null)}
+                message="No se encontró un récord académico válido"
+                description={
+                  <div>
+                    <div>
+                      <b>Código:</b> {serverError.code}
+                    </div>
+                    <div>
+                      <b>Mensaje:</b> {serverError.message}
+                    </div>
+                    {typeof serverError.files_checked === "number" && (
+                      <div>
+                        <b>Archivos revisados:</b> {serverError.files_checked}
+                      </div>
+                    )}
+                    <ul style={{ marginTop: 8, paddingLeft: 18 }}>
+                      <li>
+                        Verifica que el documento sea el{" "}
+                        <i>historial de notas/récord académico</i>.
+                      </li>
+                      <li>
+                        Si es foto, asegúrate de que sea <b>legible</b> (sin
+                        recortes ni sombras fuertes).
+                      </li>
+                      <li>
+                        Formatos aceptados: <b>PDF, JPG o PNG</b>.
+                      </li>
+                    </ul>
+                  </div>
+                }
+              />
+            )}
+
+            {/* Paso 2: convalidar — SOLO habilitado si ya hay extraídos */}
+            <Divider />
+
             <Row gutter={[16, 0]}>
               <Col xs={24} md={12}>
                 <Form.Item
@@ -320,7 +463,10 @@ export default function Page() {
                     { required: true, message: "Seleccione una facultad" },
                   ]}
                 >
-                  <Select placeholder="Selecciona una facultad">
+                  <Select
+                    placeholder="Selecciona una facultad"
+                    disabled={!extractionResp || algoCargando}
+                  >
                     {Object.entries(FACULTADES).map(([value, label]) => (
                       <Option key={value} value={value}>
                         {label}
@@ -330,7 +476,6 @@ export default function Page() {
                 </Form.Item>
               </Col>
 
-              {/* --- CARRERA (dependiente de facultad) --- */}
               <Col xs={24} md={12}>
                 <Form.Item
                   label="Carrera"
@@ -346,7 +491,9 @@ export default function Page() {
                         ? "Selecciona una carrera"
                         : "Primero seleccione una facultad"
                     }
-                    disabled={!facultadSeleccionada}
+                    disabled={
+                      !extractionResp || !facultadSeleccionada || algoCargando
+                    }
                     showSearch
                     optionFilterProp="children"
                   >
@@ -363,13 +510,15 @@ export default function Page() {
               </Col>
             </Row>
 
-            {/* --- MODALIDAD --- */}
             <Form.Item
               label="Modalidad"
               name="modalidad"
               rules={[{ required: true, message: "Seleccione una modalidad" }]}
             >
-              <Select placeholder="Selecciona una modalidad">
+              <Select
+                placeholder="Selecciona una modalidad"
+                disabled={!extractionResp || algoCargando}
+              >
                 <Option value="presencial">Presencial (1)</Option>
                 <Option value="semipresencial">Semipresencial (2)</Option>
                 <Option value="virtual">Virtual (3)</Option>
@@ -381,64 +530,28 @@ export default function Page() {
                 type="primary"
                 htmlType="submit"
                 className="w-full"
-                disabled={loading}
+                disabled={!extractionResp || algoCargando}
+                loading={loadingConv}
               >
-                {loading ? "Procesando…" : "Enviar solicitud"}
+                {loadingConv ? "Convalidando…" : "Convalidar"}
               </Button>
             </Form.Item>
           </Form>
 
-          {/* ---- ALERTA DE ERROR DEL BACKEND ---- */}
-          {!loading && serverError && (
-            <Alert
-              style={{ marginTop: 8, marginBottom: 8 }}
-              type="error"
-              showIcon
-              closable
-              onClose={() => setServerError(null)}
-              message="No se encontró un récord académico válido"
-              description={
-                <div>
-                  <div>
-                    <b>Código:</b> {serverError.code}
-                  </div>
-                  <div>
-                    <b>Mensaje:</b> {serverError.message}
-                  </div>
-                  {typeof serverError.files_checked === "number" && (
-                    <div>
-                      <b>Archivos revisados:</b> {serverError.files_checked}
-                    </div>
-                  )}
-                  <ul style={{ marginTop: 8, paddingLeft: 18 }}>
-                    <li>
-                      Verifica que el documento sea el{" "}
-                      <i>historial de notas/récord académico</i>.
-                    </li>
-                    <li>
-                      Si es foto, asegúrate de que sea <b>legible</b> (sin
-                      recortes ni sombras fuertes).
-                    </li>
-                    <li>
-                      Formatos aceptados: <b>PDF, JPG o PNG</b>.
-                    </li>
-                  </ul>
-                </div>
-              }
-            />
-          )}
-
-          {loading && (
+          {/* Loading global */}
+          {algoCargando && (
             <div className="w-full flex flex-col items-center justify-center mt-4 gap-2">
-              <Spin tip="Analizando documentos y convalidando" />
+              <Spin
+                tip={loadingExtract ? "Extrayendo cursos" : "Convalidando"}
+              />
               <Text type="secondary">
                 No cierres esta ventana hasta finalizar.
               </Text>
             </div>
           )}
 
-          {/* ---- RESULTADOS ---- */}
-          {!loading && result && (
+          {/* ---- RESULTADOS (post convalidar) ---- */}
+          {!!convResult && !algoCargando && (
             <>
               <Divider />
 
@@ -486,7 +599,9 @@ export default function Page() {
                   <Card>
                     <Statistic
                       title="Total del plan"
-                      value={planTotal ?? "-"}
+                      value={
+                        convResult?.resultado_convalidacion?.plan_total ?? "-"
+                      }
                     />
                     <Text type="secondary">plan_total</Text>
                   </Card>
@@ -495,18 +610,34 @@ export default function Page() {
                   <Card>
                     <Statistic
                       title="Cursos extraídos"
-                      value={extraidosTotal ?? "-"}
+                      value={
+                        extractionResp?.resultado?.total_cursos_extraidos ??
+                        convResult?.resultado_convalidacion?.extraidos_total ??
+                        "-"
+                      }
                     />
                     <Text type="secondary">extraidos_total</Text>
+                  </Card>
+                </Col>
+
+                {/* NUEVO: KPI cantidad de cursos convalidados */}
+                <Col xs={24} md={12} lg={6}>
+                  <Card>
+                    <Statistic
+                      title="Cursos convalidados"
+                      value={convalidadas ?? "-"}
+                    />
+                    <Text type="secondary">convalidadas</Text>
                   </Card>
                 </Col>
               </Row>
 
               {/* Costo estimado si está disponible */}
-              {typeof result?.costo_total_usd === "number" && (
+              {typeof convResult?.costo_total_usd === "number" && (
                 <div style={{ marginTop: 12 }}>
                   <Text type="secondary">
-                    Costo total estimado: ${result.costo_total_usd.toFixed(4)}
+                    Costo total estimado: $
+                    {convResult.costo_total_usd.toFixed(4)}
                   </Text>
                 </div>
               )}
@@ -603,17 +734,40 @@ export default function Page() {
                     label: "Cursos extraídos",
                     children: (
                       <>
-                        <Title
-                          level={5}
-                          style={{ marginTop: 0, marginBottom: 8 }}
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            gap: 12,
+                            marginBottom: 8,
+                          }}
                         >
-                          Cursos extraídos del récord
-                        </Title>
-                        {extraidos?.length ? (
-                          <Table<{ curso: string; ciclo: string; nota: number }>
+                          <Title
+                            level={5}
+                            style={{ marginTop: 0, marginBottom: 0 }}
+                          >
+                            Cursos extraídos del récord
+                          </Title>
+                          <Input
+                            allowClear
+                            value={searchText}
+                            onChange={(e) => setSearchText(e.target.value)}
+                            placeholder="Buscar por curso o ciclo…"
+                            prefix={<SearchOutlined />}
+                            style={{ maxWidth: 320 }}
+                          />
+                        </div>
+
+                        {filteredExtraidos?.length ? (
+                          <Table<{
+                            curso: string;
+                            ciclo: string | null;
+                            nota: number;
+                          }>
                             size="small"
                             rowKey={(_, i) => String(i)}
-                            dataSource={extraidos}
+                            dataSource={filteredExtraidos}
                             pagination={{
                               pageSize: 10,
                               showSizeChanger: false,
@@ -633,6 +787,8 @@ export default function Page() {
                                 title: "Ciclo",
                                 dataIndex: "ciclo",
                                 width: 180,
+                                render: (v) =>
+                                  v ?? <Text type="secondary">—</Text>,
                               },
                               {
                                 title: "Nota",
@@ -645,7 +801,11 @@ export default function Page() {
                         ) : (
                           <Alert
                             type="info"
-                            message="No hay cursos extraídos para mostrar."
+                            message={
+                              searchText
+                                ? "Sin resultados para el filtro."
+                                : "No hay cursos extraídos para mostrar."
+                            }
                             showIcon
                           />
                         )}
