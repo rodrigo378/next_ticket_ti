@@ -11,6 +11,8 @@ export {
 
 export { getRoles } from "./rol";
 
+export { buscarEstudiante } from "./sigu";
+
 export {
   getMe,
   getUsuario,
