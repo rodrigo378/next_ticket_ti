@@ -13,8 +13,10 @@ import {
   ADM_ROLES,
   API_ROLES,
   HD_ROLES,
+  HR_ROLES,
   TP_ROLES,
 } from "@/const/modulos.const";
+import HrPanel from "../modulos/hr";
 
 // ===================================================================================
 export interface UsuarioModuloConfigModule {
@@ -28,6 +30,7 @@ export interface UsuarioModuloConfigModule {
     area: { id: number; nombre: string; abreviado: string };
   } | null;
   admin_area_ids?: number[];
+  especialidades?: string[] | null;
 }
 
 // ===================================================================================
@@ -38,8 +41,8 @@ type Props = {
   formModules: FormInstance;
   modules: UsuarioModuloConfigModule[];
   areas: HD_Area[];
-  saveModulo: (code: "ADM" | "HD" | "TP" | "API") => void;
-  savingByModule: Partial<Record<"ADM" | "HD" | "TP" | "API", boolean>>;
+  saveModulo: (code: "ADM" | "HD" | "TP" | "API" | "HR") => void;
+  savingByModule: Partial<Record<"ADM" | "HD" | "TP" | "API" | "HR", boolean>>;
 };
 
 // ===================================================================================
@@ -57,6 +60,7 @@ export default function DrawerModulosUsuario({
   const hd = useMemo(() => modules.find((m) => m.codigo === "HD"), [modules]);
   const tp = useMemo(() => modules.find((m) => m.codigo === "TP"), [modules]);
   const api = useMemo(() => modules.find((m) => m.codigo === "API"), [modules]);
+  const hr = useMemo(() => modules.find((m) => m.codigo === "HR"), [modules]);
 
   // ===================================================================================
   const items = [
@@ -110,6 +114,20 @@ export default function DrawerModulosUsuario({
           roleOptions={API_ROLES}
           onSave={() => saveModulo("API")}
           loading={!!savingByModule.API}
+        />
+      ),
+    },
+    {
+      key: "HR",
+      label: "GESTIÓN HORARIOS (HR)",
+      children: (
+        <HrPanel
+          formModules={formModules}
+          hrModule={hr}
+          // initialrolHr={hr?.rol ?? undefined}
+          roleOptions={HR_ROLES}
+          onSave={() => saveModulo("HR")}
+          loading={!!savingByModule.HR}
         />
       ),
     },

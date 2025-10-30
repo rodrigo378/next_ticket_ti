@@ -4,6 +4,7 @@ import {
   normalizeADM,
   normalizeAPI,
   normalizeHD,
+  normalizeHR,
   normalizeTP,
 } from "./modulos.normalize";
 
@@ -18,6 +19,7 @@ export type FormValues = {
   };
   tp?: { rol?: string };
   api?: { rol?: string };
+  hr: { rol?: string; especialidades?: string[] };
 };
 
 // ===================================================================================
@@ -34,6 +36,7 @@ export const MODULO_REGISTRY = {
     extract: (v: FormValues) => v.api,
     normalize: normalizeAPI,
   },
+  HR: { code: "HR", extract: (v: FormValues) => v.hr, normalize: normalizeHR },
 } as const;
 
 export type ModCodigo = keyof typeof MODULO_REGISTRY;

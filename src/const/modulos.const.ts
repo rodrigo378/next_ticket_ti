@@ -35,3 +35,8 @@ export const API_ROLES = [
   { label: "Administrador", value: "administrador" },
   { label: "sin rol", value: "quitar" },
 ] as const satisfies RoleOption[];
+
+export const HR_ROLES = [
+  { label: "Decano", value: "decano" },
+  { label: "sin rol", value: "quitar" },
+] as const satisfies RoleOption[];
