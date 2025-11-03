@@ -147,8 +147,8 @@ export default function Page() {
   const [loadingConv, setLoadingConv] = useState(false);
 
   // resultados
-  const [extractionResp, setExtractionResp] = useState<any | null>(null); // respuesta de /extraer-cursos
-  const [convResult, setConvResult] = useState<ConvalidarResponse | null>(null); // respuesta de convalidación final
+  const [extractionResp, setExtractionResp] = useState<any | null>(null);
+  const [convResult, setConvResult] = useState<ConvalidarResponse | null>(null);
   const [serverError, setServerError] = useState<{
     code: string;
     message: string;
