@@ -38,15 +38,9 @@ const FACULTADES: Record<string, string> = {
 
 const CARRERAS: Record<string, Array<{ value: string; label: string }>> = {
   E: [
-    { value: "E1", label: "ADMINISTRACIÓN DE NEGOCIOS INTERNACIONALES" },
     { value: "E2", label: "ADMINISTRACIÓN Y MARKETING" },
-    { value: "E3", label: "CONTABILIDAD Y FINANZAS" },
     { value: "E4", label: "ADMINISTRACIÓN Y NEGOCIOS INTERNACIONALES" },
-    { value: "E5", label: "INGENIERÍA INDUSTRIAL" },
     { value: "E6", label: "INGENIERÍA DE INTELIGENCIA ARTIFICIAL" },
-    { value: "E7", label: "INGENIERÍA DE SISTEMAS" },
-    { value: "E8", label: "ADMINISTRACIÓN DE EMPRESAS" },
-    { value: "E9", label: "DERECHO" },
   ],
   S: [
     { value: "S1", label: "ENFERMERÍA" },
@@ -55,7 +49,6 @@ const CARRERAS: Record<string, Array<{ value: string; label: string }>> = {
     { value: "S4", label: "PSICOLOGÍA" },
     { value: "S5", label: "TEC. MÉDICA EN TERAPIA FÍSICA Y REHABILITACIÓN" },
     { value: "S6", label: "TEC. MÉDICA EN LAB. CLÍNICO Y ANATOMÍA PATOLÓGICA" },
-    { value: "S7", label: "MEDICINA" },
   ],
 };
 
@@ -66,8 +59,8 @@ type ConvalidarResponse = {
   resultado_extraccion?: any;
   resultado_convalidacion?: any;
   convalidadas?: number;
-  porcentaje_convalidacion_plan?: number; // 0–100 o 0–1
-  porcentaje_convalidacion_real?: number; // 0–100 o 0–1
+  porcentaje_convalidacion_plan?: number;
+  porcentaje_convalidacion_real?: number;
   costo_total_usd?: number;
 };
 
