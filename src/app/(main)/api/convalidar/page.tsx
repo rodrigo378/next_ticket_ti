@@ -9,7 +9,6 @@ import {
   Form,
   Button,
   Card,
-  Spin,
   Typography,
   Alert,
   Divider,
@@ -54,7 +53,8 @@ const CARRERAS: Record<string, Array<{ value: string; label: string }>> = {
 
 /** ---- Tipos ---- */
 type ConvalidarResponse = {
-  status: "ok";
+  status: "ok" | "ya_convalidado";
+  mensaje?: string;
   total_archivos?: number;
   resultado_extraccion?: any;
   resultado_convalidacion?: any;
@@ -159,6 +159,10 @@ export default function Page() {
 
   const [form] = Form.useForm();
 
+  const dni = Form.useWatch("dni", form);
+  const nombres = Form.useWatch("nombres", form);
+  const apellidos = Form.useWatch("apellidos", form);
+
   /** Observa facultad para filtrar carreras */
   const facultadSeleccionada = Form.useWatch("facultad", form);
 
@@ -203,6 +207,28 @@ export default function Page() {
       const fd = new FormData();
       fileList.forEach((f) => fd.append("files", f as File));
 
+      // ✅ Obtener los valores del formulario
+      const { dni, nombres, apellidos } = form.getFieldsValue([
+        "dni",
+        "nombres",
+        "apellidos",
+      ]);
+
+      // Validar que existan
+      if (!dni || !nombres || !apellidos) {
+        message.error(
+          "Debe ingresar DNI, nombres y apellidos antes de extraer."
+        );
+        hide();
+        setLoadingExtract(false);
+        return;
+      }
+
+      // ✅ Agregarlos al FormData
+      fd.append("dni", dni);
+      fd.append("nombres", nombres);
+      fd.append("apellidos", apellidos);
+
       const { data } = await axios.post(
         `${baseURL}/api/admin/extraer-cursos`,
         fd,
@@ -244,12 +270,11 @@ export default function Page() {
 
   /** Paso 2: CONVALIDAR (usa rutas separadas) */
   const handleConvalidar = async (values: any) => {
-    const modalidadMap: Record<string, number> = {
-      presencial: 1,
-      semipresencial: 2,
-      virtual: 3,
-    };
-    const c_codmod = modalidadMap[values.modalidad];
+    // const modalidadMap: Record<string, number> = {
+    //   presencial: 1,
+    //   semipresencial: 2,
+    //   virtual: 3,
+    // };
     const c_codesp = values.carrera;
 
     // extraídos desde el primer paso
@@ -270,15 +295,42 @@ export default function Page() {
 
     try {
       const baseURL = process.env.NEXT_PUBLIC_API_URL!;
-      const payload = { c_codesp, c_codmod, extraidos };
+      const { dni, nombres, apellidos } = form.getFieldsValue([
+        "dni",
+        "nombres",
+        "apellidos",
+      ]);
 
-      const { data } = await axios.post<ConvalidarResponse>(
+      // ✅ Ahora incluimos todos los datos esperados por el backend
+      const payload = { dni, nombres, apellidos, c_codesp, extraidos };
+
+      const { data } = (await axios.post<ConvalidarResponse>(
         `${baseURL}/api/admin/convalidar-extraidos`,
         payload,
         { withCredentials: true, timeout: 540_000 }
-      );
+      )) as any;
 
-      // Unificamos para la UI actual (manteniendo estructura)
+      // ⚡ Detectar si ya estaba convalidado
+      if (data.status === "ya_convalidado") {
+        message.warning(
+          data.mensaje || "El estudiante ya tiene convalidaciones registradas."
+        );
+
+        setConvResult({
+          status: "ya_convalidado",
+          mensaje: data.mensaje,
+          resultado_convalidacion: {
+            convalidaciones: data.data_convalidaciones ?? [],
+          },
+          convalidadas: data.convalidadas ?? 0,
+          porcentaje_convalidacion_plan: 0,
+          porcentaje_convalidacion_real: 0,
+        });
+
+        return;
+      }
+
+      // ⚡ Caso normal: convalidación recién ejecutada
       const merged: ConvalidarResponse = {
         status: "ok",
         total_archivos: extractionResp?.total_archivos,
@@ -287,10 +339,10 @@ export default function Page() {
         convalidadas: data?.convalidadas,
         porcentaje_convalidacion_plan: data?.porcentaje_convalidacion_plan,
         porcentaje_convalidacion_real: data?.porcentaje_convalidacion_real,
-        // costo_total_usd: data?.costo_usd,
+        costo_total_usd: data?.costo_usd,
       };
       setConvResult(merged);
-      message.success("Convalidación completada.");
+      message.success("Convalidación completada correctamente.");
     } catch (err: any) {
       const be = err?.response?.data?.error || err?.response?.data;
       if (err?.code === "ECONNABORTED") {
@@ -324,7 +376,11 @@ export default function Page() {
 
   const pctReal = normalizePct(convResult?.porcentaje_convalidacion_real);
   const pctPlan = normalizePct(convResult?.porcentaje_convalidacion_plan);
-  const rows = toRows(convResult?.resultado_convalidacion);
+  // const rows = toRows(convResult?.resultado_convalidacion);
+  const rows = toRows(
+    convResult?.resultado_convalidacion ||
+      convResult?.resultado_convalidacion?.convalidaciones
+  );
 
   // const planTotal =
   //   convResult?.resultado_convalidacion?.plan_total ??
@@ -335,6 +391,129 @@ export default function Page() {
   //   extractionResp?.resultado?.total_cursos_extraidos ??
   //   convResult?.resultado_convalidacion?.extraidos_total ??
   //   undefined;
+
+  /** 🔹 Exportar reporte visual a PDF */
+  // const handleDownloadPDF = async () => {
+  //   console.log("click");
+
+  //   try {
+  //     const html2canvas = (await import("html2canvas")).default;
+  //     const { jsPDF } = await import("jspdf");
+
+  //     const reportElement = document.getElementById("reporte-convalidacion");
+  //     if (!reportElement) {
+  //       message.error("No se encontró el contenido para generar el PDF.");
+  //       return;
+  //     }
+
+  //     // Capturar todo el contenido como imagen
+  //     const canvas = await html2canvas(reportElement, {
+  //       scale: 2,
+  //       useCORS: true,
+  //       backgroundColor: "#ffffff",
+  //       windowWidth: reportElement.scrollWidth,
+  //       windowHeight: reportElement.scrollHeight,
+  //     });
+
+  //     const imgData = canvas.toDataURL("image/png");
+  //     const pdf = new jsPDF({
+  //       orientation: "portrait",
+  //       unit: "mm",
+  //       format: "a4",
+  //     });
+
+  //     // Encabezado con título y fecha
+  //     pdf.setFontSize(14);
+  //     pdf.text("Reporte de Convalidación Académica", 10, 15);
+  //     pdf.setFontSize(10);
+  //     pdf.text(`Generado el ${new Date().toLocaleDateString()}`, 10, 21);
+
+  //     // Calcular dimensiones y generar páginas
+  //     const pageWidth = pdf.internal.pageSize.getWidth();
+  //     const pageHeight = pdf.internal.pageSize.getHeight();
+  //     const margin = 10;
+  //     const imgWidth = pageWidth - margin * 2;
+  //     const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+  //     let heightLeft = imgHeight;
+  //     let position = 30;
+
+  //     // Primera página
+  //     pdf.addImage(imgData, "PNG", margin, position, imgWidth, imgHeight);
+  //     heightLeft -= pageHeight - position;
+
+  //     // Agregar páginas adicionales si el contenido es más largo
+  //     while (heightLeft > 0) {
+  //       position = heightLeft - imgHeight + 30;
+  //       pdf.addPage();
+
+  //       // Repetir encabezado en cada página
+  //       pdf.setFontSize(14);
+  //       pdf.text("Reporte de Convalidación Académica", 10, 15);
+  //       pdf.setFontSize(10);
+  //       pdf.text(`Generado el ${new Date().toLocaleDateString()}`, 10, 21);
+
+  //       pdf.addImage(imgData, "PNG", margin, position, imgWidth, imgHeight);
+  //       heightLeft -= pageHeight;
+  //     }
+
+  //     // Guardar el archivo
+  //     const dni = form.getFieldValue("dni") || "estudiante";
+  //     pdf.save(`reporte_convalidacion_${dni}.pdf`);
+  //   } catch (err) {
+  //     console.error("Error generando PDF:", err);
+  //     message.error("Error al generar el PDF.");
+  //   }
+  // };
+  const handleDownloadPDF = async () => {
+    console.log("click");
+
+    try {
+      const { utils, writeFile } = await import("xlsx");
+
+      if (!rows || !rows.length) {
+        message.warning("No hay datos de convalidación para exportar.");
+        return;
+      }
+
+      const dni = form.getFieldValue("dni") || "sin_dni";
+      const nombres = form.getFieldValue("nombres") || "";
+      const apellidos = form.getFieldValue("apellidos") || "";
+
+      // 🔹 Estructurar datos para Excel
+      const dataForExcel = rows.map((item) => ({
+        "Curso del plan": item.curso_plan || "",
+        "Curso del récord (match)": item.curso_extraido_equivalente || "",
+        Convalidable: item.convalidable ? "Sí" : "No",
+        Razón: item.razon || "",
+      }));
+
+      // 🔹 Crear hoja de cálculo
+      const worksheet = utils.json_to_sheet(dataForExcel);
+      const workbook = utils.book_new();
+      utils.book_append_sheet(workbook, worksheet, "Convalidación");
+
+      // 🔹 Ajustar ancho de columnas
+      const columnWidths = [
+        { wch: 40 }, // Curso del plan
+        { wch: 40 }, // Curso del récord (match)
+        { wch: 15 }, // Convalidable
+        { wch: 60 }, // Razón
+      ];
+      worksheet["!cols"] = columnWidths;
+
+      // 🔹 Nombre del archivo
+      const fileName = `${dni} - ${nombres} ${apellidos}.xlsx`.trim();
+
+      // 🔹 Descargar archivo
+      writeFile(workbook, fileName);
+
+      message.success("Archivo Excel generado correctamente.");
+    } catch (err) {
+      console.error("Error generando Excel:", err);
+      message.error("Error al generar el archivo Excel.");
+    }
+  };
 
   const convalidadas =
     convResult?.convalidadas ??
@@ -388,12 +567,56 @@ export default function Page() {
               <Text type="secondary">Formatos permitidos: JPG, PNG, PDF.</Text>
             </Form.Item>
 
+            {/* Datos del estudiante */}
+            <Row gutter={[16, 0]}>
+              <Col xs={24} md={8}>
+                <Form.Item
+                  label="DNI"
+                  name="dni"
+                  rules={[
+                    {
+                      required: true,
+                      message: "Ingrese el DNI del estudiante",
+                    },
+                  ]}
+                >
+                  <Input placeholder="Ingrese el DNI" maxLength={15} />
+                </Form.Item>
+              </Col>
+
+              <Col xs={24} md={8}>
+                <Form.Item
+                  label="Nombres"
+                  name="nombres"
+                  rules={[{ required: true, message: "Ingrese los nombres" }]}
+                >
+                  <Input placeholder="Nombres del estudiante" />
+                </Form.Item>
+              </Col>
+
+              <Col xs={24} md={8}>
+                <Form.Item
+                  label="Apellidos"
+                  name="apellidos"
+                  rules={[{ required: true, message: "Ingrese los apellidos" }]}
+                >
+                  <Input placeholder="Apellidos del estudiante" />
+                </Form.Item>
+              </Col>
+            </Row>
+
             <div className="flex gap-2">
               <Button
                 type="primary"
                 onClick={handleExtract}
                 loading={loadingExtract}
-                disabled={fileList.length === 0 || algoCargando}
+                disabled={
+                  fileList.length === 0 ||
+                  algoCargando ||
+                  !dni?.trim() ||
+                  !nombres?.trim() ||
+                  !apellidos?.trim()
+                }
               >
                 {loadingExtract ? "Extrayendo…" : "Extraer cursos"}
               </Button>
@@ -404,7 +627,7 @@ export default function Page() {
               ) : null}
             </div>
 
-            {/* ---- ALERTA DE ERROR DEL BACKEND (validación) ---- */}
+            {/* ---- ALERTA DE ERROR DEL BACKEND ---- */}
             {!algoCargando && serverError && (
               <Alert
                 style={{ marginTop: 8, marginBottom: 8 }}
@@ -432,8 +655,7 @@ export default function Page() {
                         <i>historial de notas/récord académico</i>.
                       </li>
                       <li>
-                        Si es foto, asegúrate de que sea <b>legible</b> (sin
-                        recortes ni sombras fuertes).
+                        Si es foto, asegúrate de que sea <b>legible</b>.
                       </li>
                       <li>
                         Formatos aceptados: <b>PDF, JPG o PNG</b>.
@@ -444,7 +666,6 @@ export default function Page() {
               />
             )}
 
-            {/* Paso 2: convalidar — SOLO habilitado si ya hay extraídos */}
             <Divider />
 
             <Row gutter={[16, 0]}>
@@ -531,282 +752,247 @@ export default function Page() {
             </Form.Item>
           </Form>
 
-          {/* Loading global */}
           {algoCargando && (
             <div className="w-full flex flex-col items-center justify-center mt-4 gap-2">
-              <Spin
-                tip={loadingExtract ? "Extrayendo cursos" : "Convalidando"}
-              />
               <Text type="secondary">
                 No cierres esta ventana hasta finalizar.
               </Text>
             </div>
           )}
 
-          {/* ---- RESULTADOS (post convalidar) ---- */}
           {!!convResult && !algoCargando && (
             <>
               <Divider />
 
-              {/* KPIs / Resumen visual */}
-              <Row gutter={[16, 16]}>
-                <Col xs={24} md={12} lg={6}>
-                  <Card>
-                    <Statistic
-                      title="% Convalidación Real"
-                      value={
-                        typeof pctReal === "number"
-                          ? Number(pctReal.toFixed(2))
-                          : undefined
-                      }
-                      precision={2}
-                      suffix="%"
-                    />
-                    {typeof pctReal === "number" && (
-                      <div style={{ marginTop: 12 }}>
-                        <Progress percent={Number(pctReal.toFixed(2))} />
-                      </div>
-                    )}
-                  </Card>
-                </Col>
-                <Col xs={24} md={12} lg={6}>
-                  <Card>
-                    <Statistic
-                      title="% Convalidación vs Plan"
-                      value={
-                        typeof pctPlan === "number"
-                          ? Number(pctPlan.toFixed(2))
-                          : undefined
-                      }
-                      precision={2}
-                      suffix="%"
-                    />
-                    {typeof pctPlan === "number" && (
-                      <div style={{ marginTop: 12 }}>
-                        <Progress percent={Number(pctPlan.toFixed(2))} />
-                      </div>
-                    )}
-                  </Card>
-                </Col>
-                <Col xs={24} md={12} lg={6}>
-                  <Card>
-                    <Statistic
-                      title="Total del plan"
-                      value={
-                        convResult?.resultado_convalidacion?.plan_total ?? "-"
-                      }
-                    />
-                    <Text type="secondary">plan_total</Text>
-                  </Card>
-                </Col>
-                <Col xs={24} md={12} lg={6}>
-                  <Card>
-                    <Statistic
-                      title="Cursos extraídos"
-                      value={
-                        extractionResp?.resultado?.total_cursos_extraidos ??
-                        convResult?.resultado_convalidacion?.extraidos_total ??
-                        "-"
-                      }
-                    />
-                    <Text type="secondary">extraidos_total</Text>
-                  </Card>
-                </Col>
+              {/* ✅ CONTENEDOR COMPLETO PARA PDF */}
+              <div id="reporte-convalidacion">
+                {/* KPIs */}
+                <Row gutter={[16, 16]}>
+                  <Col xs={24} md={12} lg={6}>
+                    <Card>
+                      <Statistic
+                        title="% Convalidación Real"
+                        value={
+                          typeof pctReal === "number"
+                            ? Number(pctReal.toFixed(2))
+                            : undefined
+                        }
+                        precision={2}
+                        suffix="%"
+                      />
+                      {typeof pctReal === "number" && (
+                        <div style={{ marginTop: 12 }}>
+                          <Progress percent={Number(pctReal.toFixed(2))} />
+                        </div>
+                      )}
+                    </Card>
+                  </Col>
+                  <Col xs={24} md={12} lg={6}>
+                    <Card>
+                      <Statistic
+                        title="% Convalidación vs Plan"
+                        value={
+                          typeof pctPlan === "number"
+                            ? Number(pctPlan.toFixed(2))
+                            : undefined
+                        }
+                        precision={2}
+                        suffix="%"
+                      />
+                      {typeof pctPlan === "number" && (
+                        <div style={{ marginTop: 12 }}>
+                          <Progress percent={Number(pctPlan.toFixed(2))} />
+                        </div>
+                      )}
+                    </Card>
+                  </Col>
+                  <Col xs={24} md={12} lg={6}>
+                    <Card>
+                      <Statistic
+                        title="Total del plan"
+                        value={
+                          convResult?.resultado_convalidacion?.plan_total ?? "-"
+                        }
+                      />
+                      <Text type="secondary">plan_total</Text>
+                    </Card>
+                  </Col>
+                  <Col xs={24} md={12} lg={6}>
+                    <Card>
+                      <Statistic
+                        title="Cursos extraídos"
+                        value={
+                          extractionResp?.resultado?.total_cursos_extraidos ??
+                          convResult?.resultado_convalidacion
+                            ?.extraidos_total ??
+                          "-"
+                        }
+                      />
+                      <Text type="secondary">extraidos_total</Text>
+                    </Card>
+                  </Col>
+                  <Col xs={24} md={12} lg={6}>
+                    <Card>
+                      <Statistic
+                        title="Cursos convalidados"
+                        value={convalidadas ?? "-"}
+                      />
+                      <Text type="secondary">convalidadas</Text>
+                    </Card>
+                  </Col>
+                </Row>
 
-                {/* NUEVO: KPI cantidad de cursos convalidados */}
-                <Col xs={24} md={12} lg={6}>
-                  <Card>
-                    <Statistic
-                      title="Cursos convalidados"
-                      value={convalidadas ?? "-"}
-                    />
-                    <Text type="secondary">convalidadas</Text>
-                  </Card>
-                </Col>
-              </Row>
+                <Divider />
 
-              {/* Costo estimado si está disponible */}
-              {typeof convResult?.costo_total_usd === "number" && (
-                <div style={{ marginTop: 12 }}>
-                  <Text type="secondary">
-                    Costo total estimado: $
-                    {convResult.costo_total_usd.toFixed(4)}
-                  </Text>
-                </div>
-              )}
-
-              <Divider />
-
-              {/* Tabs: Detalle y Cursos extraídos */}
-              <Tabs
-                items={[
-                  {
-                    key: "detalle",
-                    label: "Detalle de convalidación",
-                    children: (
-                      <>
-                        <Title
-                          level={5}
-                          style={{ marginTop: 0, marginBottom: 8 }}
-                        >
-                          Detalle de cursos (plan vs récord)
-                        </Title>
-
-                        {rows.length ? (
-                          <Table<Row>
-                            size="small"
-                            rowKey={(_, i) => String(i)}
-                            dataSource={rows}
-                            pagination={false}
-                            columns={[
-                              {
-                                title: "Curso del plan",
-                                dataIndex: "curso_plan",
-                                onCell: () => ({
-                                  style: {
-                                    whiteSpace: "normal",
-                                    wordBreak: "break-word",
-                                  },
-                                }),
-                              },
-                              {
-                                title: "Curso del récord (match)",
-                                dataIndex: "curso_extraido_equivalente",
-                                render: (v) =>
-                                  v ?? (
-                                    <Text type="secondary">— sin match —</Text>
-                                  ),
-                                onCell: () => ({
-                                  style: {
-                                    whiteSpace: "normal",
-                                    wordBreak: "break-word",
-                                  },
-                                }),
-                              },
-                              {
-                                title: "Convalidable",
-                                dataIndex: "convalidable",
-                                width: 130,
-                                render: (ok: boolean) =>
-                                  ok ? (
-                                    <Tag color="green">Sí</Tag>
-                                  ) : (
-                                    <Tag color="red">No</Tag>
-                                  ),
-                              },
-                              {
-                                title: "Razón",
-                                dataIndex: "razon",
-                                render: (v: string) =>
-                                  v?.trim() ? (
-                                    v
-                                  ) : (
-                                    <Text type="secondary">—</Text>
-                                  ),
-                                onCell: () => ({
-                                  style: {
-                                    whiteSpace: "normal",
-                                    wordBreak: "break-word",
-                                  },
-                                }),
-                              },
-                            ]}
-                          />
-                        ) : (
-                          <Alert
-                            type="info"
-                            message="No se detectaron equivalencias o el detalle no está disponible."
-                            showIcon
-                          />
-                        )}
-                      </>
-                    ),
-                  },
-                  {
-                    key: "extraidos",
-                    label: "Cursos extraídos",
-                    children: (
-                      <>
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "space-between",
-                            gap: 12,
-                            marginBottom: 8,
-                          }}
-                        >
+                {/* Tabs */}
+                <Tabs
+                  items={[
+                    {
+                      key: "detalle",
+                      label: "Detalle de convalidación",
+                      children: (
+                        <>
                           <Title
                             level={5}
-                            style={{ marginTop: 0, marginBottom: 0 }}
+                            style={{ marginTop: 0, marginBottom: 8 }}
                           >
-                            Cursos extraídos del récord
+                            Detalle de cursos (plan vs récord)
                           </Title>
-                          <Input
-                            allowClear
-                            value={searchText}
-                            onChange={(e) => setSearchText(e.target.value)}
-                            placeholder="Buscar por curso o ciclo…"
-                            prefix={<SearchOutlined />}
-                            style={{ maxWidth: 320 }}
-                          />
-                        </div>
 
-                        {filteredExtraidos?.length ? (
-                          <Table<{
-                            curso: string;
-                            ciclo: string | null;
-                            nota: number;
-                          }>
-                            size="small"
-                            rowKey={(_, i) => String(i)}
-                            dataSource={filteredExtraidos}
-                            pagination={{
-                              pageSize: 10,
-                              showSizeChanger: false,
+                          {rows.length ? (
+                            <Table<Row>
+                              size="small"
+                              rowKey={(_, i) => String(i)}
+                              dataSource={rows}
+                              pagination={false}
+                              columns={[
+                                {
+                                  title: "Curso del plan",
+                                  dataIndex: "curso_plan",
+                                },
+                                {
+                                  title: "Curso del récord (match)",
+                                  dataIndex: "curso_extraido_equivalente",
+                                  render: (v) =>
+                                    v ?? (
+                                      <Text type="secondary">
+                                        — sin match —
+                                      </Text>
+                                    ),
+                                },
+                                {
+                                  title: "Convalidable",
+                                  dataIndex: "convalidable",
+                                  width: 130,
+                                  render: (ok: boolean) =>
+                                    ok ? (
+                                      <Tag color="green">Sí</Tag>
+                                    ) : (
+                                      <Tag color="red">No</Tag>
+                                    ),
+                                },
+                                {
+                                  title: "Razón",
+                                  dataIndex: "razon",
+                                  render: (v: string) =>
+                                    v?.trim() ? (
+                                      v
+                                    ) : (
+                                      <Text type="secondary">—</Text>
+                                    ),
+                                },
+                              ]}
+                            />
+                          ) : (
+                            <Alert
+                              type="info"
+                              message="No se detectaron equivalencias o el detalle no está disponible."
+                              showIcon
+                            />
+                          )}
+                        </>
+                      ),
+                    },
+                    {
+                      key: "extraidos",
+                      label: "Cursos extraídos",
+                      children: (
+                        <>
+                          <div
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "space-between",
+                              gap: 12,
+                              marginBottom: 8,
                             }}
-                            columns={[
-                              {
-                                title: "Curso",
-                                dataIndex: "curso",
-                                onCell: () => ({
-                                  style: {
-                                    whiteSpace: "normal",
-                                    wordBreak: "break-word",
-                                  },
-                                }),
-                              },
-                              {
-                                title: "Ciclo",
-                                dataIndex: "ciclo",
-                                width: 180,
-                                render: (v) =>
-                                  v ?? <Text type="secondary">—</Text>,
-                              },
-                              {
-                                title: "Nota",
-                                dataIndex: "nota",
-                                width: 100,
-                                sorter: (a, b) => (a.nota ?? 0) - (b.nota ?? 0),
-                              },
-                            ]}
-                          />
-                        ) : (
-                          <Alert
-                            type="info"
-                            message={
-                              searchText
-                                ? "Sin resultados para el filtro."
-                                : "No hay cursos extraídos para mostrar."
-                            }
-                            showIcon
-                          />
-                        )}
-                      </>
-                    ),
-                  },
-                ]}
-              />
+                          >
+                            <Title level={5} style={{ margin: 0 }}>
+                              Cursos extraídos del récord
+                            </Title>
+                            <Input
+                              allowClear
+                              value={searchText}
+                              onChange={(e) => setSearchText(e.target.value)}
+                              placeholder="Buscar por curso o ciclo…"
+                              prefix={<SearchOutlined />}
+                              style={{ maxWidth: 320 }}
+                            />
+                          </div>
+
+                          {filteredExtraidos?.length ? (
+                            <Table<{
+                              curso: string;
+                              ciclo: string | null;
+                              nota: number;
+                            }>
+                              size="small"
+                              rowKey={(_, i) => String(i)}
+                              dataSource={filteredExtraidos}
+                              pagination={{
+                                pageSize: 10,
+                                showSizeChanger: false,
+                              }}
+                              columns={[
+                                { title: "Curso", dataIndex: "curso" },
+                                {
+                                  title: "Ciclo",
+                                  dataIndex: "ciclo",
+                                  width: 180,
+                                  render: (v) =>
+                                    v ?? <Text type="secondary">—</Text>,
+                                },
+                                {
+                                  title: "Nota",
+                                  dataIndex: "nota",
+                                  width: 100,
+                                },
+                              ]}
+                            />
+                          ) : (
+                            <Alert
+                              type="info"
+                              message={
+                                searchText
+                                  ? "Sin resultados para el filtro."
+                                  : "No hay cursos extraídos para mostrar."
+                              }
+                              showIcon
+                            />
+                          )}
+                        </>
+                      ),
+                    },
+                  ]}
+                />
+              </div>
+
+              {/* ✅ Botón Descargar PDF */}
+              <div className="flex justify-end mt-4">
+                <Button type="primary" onClick={handleDownloadPDF}>
+                  Descargar Excel
+                </Button>
+              </div>
             </>
           )}
         </Card>
