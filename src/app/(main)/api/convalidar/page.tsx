@@ -849,7 +849,7 @@ export default function Page() {
                         type="danger"
                         style={{ fontWeight: 800 }}
                       >
-                        No oficial sujeto a evalución
+                        No oficial sujeto a evaluación
                       </Text>
                     </Card>
                   </Col>
