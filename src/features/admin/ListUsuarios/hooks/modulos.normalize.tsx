@@ -19,6 +19,9 @@ export type TpPayload = { rol?: string };
 export type ApiPayload = { rol?: string };
 
 // ===================================================================================
+export type HrPayload = { rol?: string; especialidades?: string[] };
+
+// ===================================================================================
 // ===================================================================================
 export function normalizeADM(p?: AdmPayload) {
   if (!p?.rol) return null;
@@ -58,4 +61,19 @@ export function normalizeTP(p?: TpPayload) {
 export function normalizeAPI(p?: ApiPayload) {
   if (!p?.rol) return null;
   return { rol: p.rol };
+}
+
+// ===================================================================================
+export function normalizeHR(p?: HrPayload) {
+  if (!p?.rol || !p?.especialidades || p.especialidades.length === 0)
+    return null;
+
+  const rol = p.rol;
+  const especialidades = Array.isArray(p.especialidades)
+    ? p.especialidades.filter((e) => typeof e === "string" && e.trim() !== "")
+    : [];
+
+  if (especialidades.length === 0) return null;
+
+  return { rol, especialidades };
 }
