@@ -747,7 +747,9 @@ export default function Page() {
                 disabled={!extractionResp || algoCargando}
                 loading={loadingConv}
               >
-                {loadingConv ? "Convalidando…" : "Convalidar"}
+                {loadingConv
+                  ? "Simulando Convalidación…"
+                  : "Simular Convalidación"}
               </Button>
             </Form.Item>
           </Form>
@@ -838,6 +840,17 @@ export default function Page() {
                         value={convalidadas ?? "-"}
                       />
                       <Text type="secondary">convalidadas</Text>
+                    </Card>
+                  </Col>
+                  <Col xs={24} md={12} lg={6}>
+                    <Card className="border-[red]">
+                      <Text
+                        className="text-[20px] bold-[400]"
+                        type="danger"
+                        style={{ fontWeight: 800 }}
+                      >
+                        No oficial sujeto a evaluación
+                      </Text>
                     </Card>
                   </Col>
                 </Row>
