@@ -39,6 +39,7 @@ const CARRERAS: Record<string, Array<{ value: string; label: string }>> = {
   E: [
     { value: "E2", label: "ADMINISTRACIÓN Y MARKETING" },
     { value: "E4", label: "ADMINISTRACIÓN Y NEGOCIOS INTERNACIONALES" },
+    { value: "E3", label: "CONTABILIDAD Y FINANZAS" },
     { value: "E6", label: "INGENIERÍA DE INTELIGENCIA ARTIFICIAL" },
   ],
   S: [
