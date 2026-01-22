@@ -52,7 +52,7 @@ async function getAreasMock(): Promise<AreaOption[]> {
     { id: 5, nombre: "Tesorería (TES)" },
     { id: 6, nombre: "Defensoria Estudiante" },
     { id: 7, nombre: "Admisión" },
-    { id: 8, nombre: "Educación (EV)" },
+    { id: 8, nombre: "Educación Virtual" },
   ];
 }
 
@@ -119,9 +119,9 @@ export default function TicketCreateStudentView() {
   const areaOptions = useMemo(
     () =>
       areas
-        .filter((a) => [1, 2, 5, 8].includes(a.id))
+        .filter((a) => [1, 3, 4, 5, 8].includes(a.id))
         .map((a) => ({ label: a.nombre, value: a.id })),
-    [areas]
+    [areas],
   );
 
   const getSelectedAreaLabel = (id?: number) =>
@@ -159,7 +159,7 @@ export default function TicketCreateStudentView() {
       const values = await form.validateFields();
       if (!isValidDesc(values.descripcion)) {
         message.warning(
-          `La descripción debe tener entre ${MIN_DESC} y ${MAX_DESC} caracteres.`
+          `La descripción debe tener entre ${MIN_DESC} y ${MAX_DESC} caracteres.`,
         );
         return;
       }
@@ -179,7 +179,7 @@ export default function TicketCreateStudentView() {
           <>
             Ticket creado correctamente. Código:{" "}
             <Tag color="geekblue">{(res as any).codigo}</Tag>
-          </>
+          </>,
         );
 
         form.resetFields();
@@ -352,8 +352,8 @@ export default function TicketCreateStudentView() {
                         isBlank(v) || v.trim().length < MIN_DESC
                           ? Promise.reject(
                               new Error(
-                                `Debe tener al menos ${MIN_DESC} caracteres`
-                              )
+                                `Debe tener al menos ${MIN_DESC} caracteres`,
+                              ),
                             )
                           : Promise.resolve(),
                     },
