@@ -45,15 +45,16 @@ export type AreaOption = { id: number; nombre: string };
 // Reemplaza por tu servicio real getAreas()
 async function getAreasMock(): Promise<AreaOption[]> {
   return [
-    { id: 1, nombre: "Tecnologías de la Información (TI)" },
-    { id: 2, nombre: "Oficina de Coordinación académica (COA)" },
-    { id: 3, nombre: "Oficina de Servicios académicos (OSAR)" },
+    { id: 1, nombre: "Tecnologías de la Información" },
+    { id: 2, nombre: "Oficina de Coordinación académica" },
+    { id: 3, nombre: "Oficina de Servicios académicos" },
     { id: 4, nombre: "Mesa de partes" },
-    { id: 5, nombre: "Tesorería (TES)" },
+    { id: 5, nombre: "Tesorería" },
     { id: 6, nombre: "Defensoria Estudiante" },
     { id: 7, nombre: "Admisión" },
     { id: 8, nombre: "Educación Virtual" },
   ];
+  // [1, 3, 4, 5, 8
 }
 
 /* ====== Constantes UI ====== */
