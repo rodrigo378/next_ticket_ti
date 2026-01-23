@@ -89,8 +89,8 @@ function HeaderResumen({ ticket }: { ticket?: TicketWithUserInfo }) {
   const estadoColor = estadoNombre.includes("abierto")
     ? "green"
     : estadoNombre.includes("progreso")
-    ? "blue"
-    : "default";
+      ? "blue"
+      : "default";
 
   const asignadoNombre = ticket?.asignado
     ? [ticket.asignado.nombre, ticket.asignado.apellidos]
@@ -118,7 +118,6 @@ function CardUsuarioCreador({ ticket }: { ticket?: TicketWithUserInfo }) {
   const { token } = theme.useToken();
   const info = ticket?.infoUsuario?.[0];
 
-  // Nombre: 1) nombre/apellidos del creador 2) nombreCompleto del infoUsuario 3) fallback
   const nombre =
     [ticket?.titular?.nombre, ticket?.titular?.apellidos]
       .filter(Boolean)
@@ -126,12 +125,11 @@ function CardUsuarioCreador({ ticket }: { ticket?: TicketWithUserInfo }) {
     (info as HD_InfoUsuarioEstudiante | HD_InfoUsuarioAdmin)?.nombreCompleto ||
     "Usuario";
 
-  // Normalización de campos por tipo
   const correoInstitucional = isEstudiante(info)
     ? info.c_email_institucional
     : isAdmin(info)
-    ? info.emails
-    : undefined;
+      ? info.emails
+      : undefined;
 
   const correoPersonal = isEstudiante(info) ? info.c_email : undefined;
   const celular = isEstudiante(info) ? info.c_celu : undefined;
@@ -158,7 +156,6 @@ function CardUsuarioCreador({ ticket }: { ticket?: TicketWithUserInfo }) {
               : nombre}
           </Text>
 
-          {/* Solo Estudiante: DNI y Código con botón de copiar */}
           {dni && (
             <div
               className="text-sm flex items-center gap-2"
@@ -199,7 +196,6 @@ function CardUsuarioCreador({ ticket }: { ticket?: TicketWithUserInfo }) {
             </div>
           )}
 
-          {/* Correo institucional (o emails de admin) */}
           {correoInstitucional && (
             <div className="text-sm" style={{ color: token.colorText }}>
               <MailOutlined className="mr-1" />
@@ -207,7 +203,6 @@ function CardUsuarioCreador({ ticket }: { ticket?: TicketWithUserInfo }) {
             </div>
           )}
 
-          {/* Correo personal (solo estudiante si existe) */}
           {correoPersonal && (
             <div
               className="text-sm"
@@ -218,7 +213,6 @@ function CardUsuarioCreador({ ticket }: { ticket?: TicketWithUserInfo }) {
             </div>
           )}
 
-          {/* Teléfonos (solo estudiante si existen) */}
           {(celular || fono) && (
             <div className="text-sm" style={{ color: token.colorText }}>
               <PhoneOutlined className="mr-1" />
@@ -245,6 +239,8 @@ function Content({
   nuevoMensaje: string;
   setNuevoMensaje: React.Dispatch<React.SetStateAction<string>>;
   loadingMensaje: boolean;
+  // ✅ CAMBIO CLAVE: ESTE VIEW LE PASA A CardMensaje "UploadFile[]"
+  // porque CardMensaje es el que transforma a File[] internamente.
   handleEnviarMensaje: (opts?: { archivos?: UploadFile[] }) => void;
 }) {
   if (!ticket) {
@@ -259,13 +255,10 @@ function Content({
 
   return (
     <Row gutter={[16, 16]}>
-      {/* Izquierda (principal) */}
       <Col span={16}>
         <div className="space-y-6">
-          {/* Calificación (cierre) */}
           <CardCalificacion ticket={ticket} />
 
-          {/* Chat */}
           <CardMensaje
             ticket={ticket}
             nuevoMensaje={nuevoMensaje}
@@ -274,21 +267,14 @@ function Content({
             handleEnviarMensaje={handleEnviarMensaje}
           />
 
-          {/* Detalle del ticket */}
           <CardDetalle ticket={ticket} />
-
-          {/* Archivos */}
           <CardArchivos ticket={ticket} />
-
-          {/* Origen / Derivado */}
           <CardTicketOrigen ticket={ticket} />
         </div>
       </Col>
 
-      {/* Derecha (sticky) */}
       <Col span={8}>
         <div style={{ position: "sticky", top: 16 }}>
-          {/* Acciones rápidas */}
           <div>
             <CardOpcionesRapidas
               ticket={ticket}
@@ -296,12 +282,10 @@ function Content({
             />
           </div>
 
-          {/* SLA */}
           <div className="mt-4">
             <CardSla ticket={ticket} />
           </div>
 
-          {/* Usuario que creó el ticket */}
           <div className="mt-4">
             <CardUsuarioCreador ticket={ticket} />
           </div>
@@ -325,7 +309,6 @@ export default function DetalleTicketView() {
     handleEnviarMensaje,
   } = useDetalleTicket();
 
-  // Cast de conveniencia al tipo extendido (no modifica tu modelo global)
   const ticketPlus = ticket as TicketWithUserInfo | undefined;
 
   const onTicketUpdate = useCallback(() => {
@@ -334,7 +317,6 @@ export default function DetalleTicketView() {
 
   return (
     <div className="mx-auto p-6" style={{ overflowAnchor: "none" }}>
-      {/* Botón volver (arriba-izquierda) */}
       <div className="mb-3">
         <Button icon={<ArrowLeftOutlined />} onClick={() => router.back()}>
           Volver
@@ -342,6 +324,7 @@ export default function DetalleTicketView() {
       </div>
 
       <HeaderResumen ticket={ticketPlus} />
+
       <Content
         ticket={ticketPlus}
         id={id}

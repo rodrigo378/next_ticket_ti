@@ -1,4 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+"use client";
+
 import { useMemo, useState } from "react";
 import {
   Button,
@@ -29,7 +31,25 @@ interface Props {
   nuevoMensaje: string;
   loadingMensaje: boolean;
   setNuevoMensaje: React.Dispatch<React.SetStateAction<string>>;
-  handleEnviarMensaje: (opts?: { archivos?: UploadFile[] }) => void;
+  handleEnviarMensaje: (opts?: {
+    archivos?: UploadFile[];
+  }) => void | Promise<void>;
+}
+
+const API = process.env.NEXT_PUBLIC_API_URL ?? "";
+
+// ✅ MISMA LÓGICA QUE LOS OTROS COMPONENTES (por archivo_id / archivo.id)
+function resolveDownloadUrl(m: HD_MensajeTicket) {
+  const id = m?.archivo_id ?? (m as any)?.archivo?.id;
+  if (!id) return "";
+  const base = API.replace(/\/+$/, "");
+  return `${base}/core/onedrive/onedrive/${encodeURIComponent(String(id))}/download`;
+}
+
+// ✅ abrir SOLO por click (evita descargas “fantasma”)
+function openDownload(url: string) {
+  if (!url) return;
+  window.open(url, "_blank", "noopener,noreferrer");
 }
 
 export default function CardMensajeUsuario({
@@ -59,7 +79,7 @@ export default function CardMensajeUsuario({
 
   const chatBloqueado = Boolean((ticket as any)?.chatBloqueado ?? false);
 
-  // ====== Regla: soporte debe escribir primero + usuario máx 2 ======
+  // ====== Regla: soporte debe escribir primero + usuario máx 3 ======
   const esMensajeDeSoporte = (m: HD_MensajeTicket) => {
     if (!ticket) return false;
 
@@ -93,7 +113,7 @@ export default function CardMensajeUsuario({
     const arr = [...mensajes];
     return arr.sort(
       (a: any, b: any) =>
-        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
     );
   }, [mensajes]);
 
@@ -150,9 +170,6 @@ export default function CardMensajeUsuario({
   })();
 
   // ====== Enviar ======
-  // const puedeEnviar =
-  // !inputsDisabled && (nuevoMensaje.trim().length > 0 || fileList.length > 0);
-
   const onEnviar = async () => {
     await handleEnviarMensaje({ archivos: fileList });
     setNuevoMensaje("");
@@ -163,8 +180,11 @@ export default function CardMensajeUsuario({
     LIMITE_REPLIES -
     Math.min(
       lastSupportIdx === -1 ? 0 : userReplyCountSinceSupport,
-      LIMITE_REPLIES
+      LIMITE_REPLIES,
     );
+
+  const canSend =
+    !inputsDisabled && (nuevoMensaje.trim().length > 0 || fileList.length > 0);
 
   return (
     <Card
@@ -176,15 +196,15 @@ export default function CardMensajeUsuario({
               requierePrimerMensajeSoporte
                 ? "default"
                 : excedioCupoUsuario
-                ? "red"
-                : "blue"
+                  ? "red"
+                  : "blue"
             }
           >
             {requierePrimerMensajeSoporte
               ? "Esperando respuesta del soporte"
               : excedioCupoUsuario
-              ? "Límite alcanzado"
-              : `Te quedan ${mensajesRestantes} mensaje(s)`}
+                ? "Límite alcanzado"
+                : `Te quedan ${mensajesRestantes} mensaje(s)`}
           </Tag>
         </div>
       }
@@ -199,53 +219,71 @@ export default function CardMensajeUsuario({
         {mensajesOrdenados.length === 0 ? (
           <Empty description="Sin mensajes en este ticket" />
         ) : (
-          mensajesOrdenados.map((m: HD_MensajeTicket) => (
-            <div key={m.id} className="flex gap-3 items-start">
-              <Avatar
-                size="large"
-                icon={
-                  esMensajeDeSoporte(m) ? <TeamOutlined /> : <UserOutlined />
-                }
-                className={
-                  esMensajeDeSoporte(m)
-                    ? "bg-blue-100 text-blue-600 me-3"
-                    : "bg-gray-100 text-gray-600 me-3"
-                }
-              />
-              <div className="flex-1" style={{ paddingLeft: 10 }}>
-                <div className="flex items-center justify-between">
-                  <Typography.Text strong>
-                    {m?.emisor?.nombre ?? "—"}
-                  </Typography.Text>
-                  <Typography.Text type="secondary" className="text-xs">
-                    {dayjs(m.createdAt).format("DD/MM/YYYY HH:mm")}
-                  </Typography.Text>
-                </div>
-                <div className="mt-1 rounded-lg border border-gray-100 bg-white p-3 shadow-sm">
-                  {m.contenido && (
-                    <Typography.Paragraph
-                      style={{ margin: 0, whiteSpace: "pre-wrap" }}
-                    >
-                      {m.contenido}
-                    </Typography.Paragraph>
-                  )}
-                  {m.url && (
-                    <div className="mt-2">
-                      <Button
-                        size="small"
-                        type="link"
-                        icon={<DownloadOutlined />}
-                        href={m.url}
-                        target="_blank"
+          mensajesOrdenados.map((m: HD_MensajeTicket) => {
+            const deSoporte = esMensajeDeSoporte(m);
+
+            // ✅ Documento si tipo=documento y existe archivo_id/archivo.id
+            const isDocumento =
+              String((m as any)?.tipo ?? "").toLowerCase() === "documento" &&
+              (!!(m as any)?.archivo_id || !!(m as any)?.archivo?.id);
+
+            const downloadUrl = isDocumento ? resolveDownloadUrl(m) : "";
+
+            return (
+              <div key={m.id} className="flex gap-3 items-start">
+                <Avatar
+                  size="large"
+                  icon={deSoporte ? <TeamOutlined /> : <UserOutlined />}
+                  className={
+                    deSoporte
+                      ? "bg-blue-100 text-blue-600 me-3"
+                      : "bg-gray-100 text-gray-600 me-3"
+                  }
+                />
+                <div className="flex-1" style={{ paddingLeft: 10 }}>
+                  <div className="flex items-center justify-between">
+                    <Typography.Text strong>
+                      {m?.emisor?.nombre ?? "—"}
+                    </Typography.Text>
+                    <Typography.Text type="secondary" className="text-xs">
+                      {dayjs(m.createdAt).format("DD/MM/YYYY HH:mm")}
+                    </Typography.Text>
+                  </div>
+
+                  <div className="mt-1 rounded-lg border border-gray-100 bg-white p-3 shadow-sm">
+                    {m.contenido ? (
+                      <Typography.Paragraph
+                        style={{ margin: 0, whiteSpace: "pre-wrap" }}
                       >
-                        {m.nombre ?? "archivo"}
-                      </Button>
-                    </div>
-                  )}
+                        {m.contenido}
+                      </Typography.Paragraph>
+                    ) : null}
+
+                    {/* ✅ ARCHIVO: NO usar m.url, usar endpoint download */}
+                    {isDocumento ? (
+                      <div className="mt-2">
+                        <Button
+                          size="small"
+                          type="link"
+                          icon={<DownloadOutlined />}
+                          disabled={!downloadUrl}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            openDownload(downloadUrl);
+                          }}
+                        >
+                          {(m as any)?.nombre ??
+                            (m as any)?.archivo?.nombre ??
+                            "archivo"}
+                        </Button>
+                      </div>
+                    ) : null}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
 
@@ -306,12 +344,7 @@ export default function CardMensajeUsuario({
               icon={<SendOutlined />}
               onClick={onEnviar}
               loading={loadingMensaje}
-              disabled={
-                !(
-                  !inputsDisabled &&
-                  (nuevoMensaje.trim().length > 0 || fileList.length > 0)
-                )
-              }
+              disabled={!canSend}
             >
               Enviar
             </Button>

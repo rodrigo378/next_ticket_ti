@@ -1,6 +1,7 @@
 import { HD_CalificacionTicket, HD_Ticket } from "@interfaces/hd";
 import { createCalificacion, createMensaje, getTicket } from "@services/hd";
 import { message } from "antd";
+import type { UploadFile } from "antd/es/upload/interface";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -14,6 +15,7 @@ export default function useDetalleTicket() {
 
   useEffect(() => {
     fetchTicket(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   const fetchTicket = async (idParam: string) => {
@@ -25,14 +27,39 @@ export default function useDetalleTicket() {
     }
   };
 
-  const handleEnviarMensaje = async () => {
-    if (!nuevoMensaje.trim()) return;
+  const toFiles = (list?: UploadFile[]): File[] => {
+    const out: File[] = [];
+    for (const f of list ?? []) {
+      const real = f?.originFileObj;
+      if (real instanceof File) out.push(real);
+    }
+    return out;
+  };
+
+  // ✅ Ahora acepta archivos desde Upload.Dragger (UploadFile[])
+  const handleEnviarMensaje = async (opts?: { archivos?: UploadFile[] }) => {
+    const texto = nuevoMensaje.trim();
+    const archivos = toFiles(opts?.archivos);
+
+    // ✅ permite: solo texto, solo archivos, o ambos
+    if (!texto && archivos.length === 0) return;
+
     setLoadingMensaje(true);
     try {
-      await createMensaje({
-        ticket_id: Number(id),
-        contenido: nuevoMensaje,
-      });
+      const fd = new FormData();
+      fd.append("ticket_id", String(Number(id)));
+
+      // si tu backend necesita "tipo" sí o sí, déjalo
+      fd.append("tipo", "texto");
+
+      if (texto) fd.append("contenido", texto);
+
+      for (const file of archivos) {
+        fd.append("archivos", file);
+      }
+
+      await createMensaje(fd);
+
       setNuevoMensaje("");
       const res = await getTicket(Number(id));
       setTicket(res);
@@ -54,7 +81,6 @@ export default function useDetalleTicket() {
     try {
       await createCalificacion(data);
       message.success("Gracias por tu calificación.");
-      // 🔄 refresca el ticket para que aparezca CalificacionTicket
       const res = await getTicket(ticket.id);
       setTicket(res);
     } catch (error) {

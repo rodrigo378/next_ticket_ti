@@ -2,6 +2,8 @@ import { createMensaje, getTicket } from "@services/hd";
 import { HD_Ticket } from "@interfaces/hd";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import type { UploadFile } from "antd/es/upload/interface";
+import type { RcFile } from "antd/es/upload";
 
 // interface Props {
 //   ticket: Ticket;
@@ -32,16 +34,31 @@ export default function useDetalleTicket() {
     }
   };
 
-  const handleEnviarMensaje = async () => {
-    console.log("se ejeuctro");
+  const handleEnviarMensaje = async (opts?: { archivos?: UploadFile[] }) => {
+    const texto = (nuevoMensaje ?? "").trim();
 
-    if (!nuevoMensaje.trim()) return;
+    // ✅ originFileObj es RcFile | undefined
+    const archivosRc: RcFile[] = (opts?.archivos ?? [])
+      .map((f) => f.originFileObj)
+      .filter((f): f is RcFile => !!f); // ✅ type guard correcto (NO File)
+
+    // ✅ si no hay texto ni archivos, no envía
+    if (!texto && archivosRc.length === 0) return;
+
     setLoadingMensaje(true);
     try {
-      await createMensaje({
-        ticket_id: Number(id),
-        contenido: nuevoMensaje,
-      });
+      const fd = new FormData();
+      fd.append("ticket_id", String(id));
+      fd.append("tipo", texto ? "texto" : "documento");
+      if (texto) fd.append("contenido", texto);
+
+      // ✅ append recibe Blob; RcFile extiende File -> OK
+      for (const f of archivosRc) {
+        fd.append("archivos", f, f.name); // ✅ filename explícito
+      }
+
+      await createMensaje(fd);
+
       setNuevoMensaje("");
       const res = await getTicket(Number(id));
       setTicket(res);

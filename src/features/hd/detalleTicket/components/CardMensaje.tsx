@@ -1,3 +1,5 @@
+"use client";
+
 import { useCallback, useMemo, useState } from "react";
 import {
   Button,
@@ -31,7 +33,9 @@ interface Props {
   nuevoMensaje: string;
   loadingMensaje: boolean;
   setNuevoMensaje: React.Dispatch<React.SetStateAction<string>>;
-  handleEnviarMensaje: (opts?: { archivos?: UploadFile[] }) => void;
+  handleEnviarMensaje: (opts?: {
+    archivos?: UploadFile[];
+  }) => void | Promise<void>;
   onToggleBloqueo?: (blocked: boolean) => void;
 }
 
@@ -42,9 +46,13 @@ function resolveDownloadUrl(m: HD_MensajeTicket) {
   const id = m?.archivo_id ?? m?.archivo?.id;
   if (!id) return "";
   const base = API.replace(/\/+$/, "");
-  return `${base}/core/onedrive/onedrive/${encodeURIComponent(
-    String(id),
-  )}/download`;
+  return `${base}/core/onedrive/onedrive/${encodeURIComponent(String(id))}/download`;
+}
+
+// ✅ abrir SOLO por click (evita descargas “fantasma”)
+function openDownload(url: string) {
+  if (!url) return;
+  window.open(url, "_blank", "noopener,noreferrer");
 }
 
 export default function CardMensajeSoporte({
@@ -77,11 +85,8 @@ export default function CardMensajeSoporte({
 
   const [bloquearUsuario, setBloquearUsuario] = useState<boolean>(false);
 
-  const baseEstadoDisabled =
+  const inputsDisabled =
     !ticket || esAbierto || esCancelado || esFinalizado ? true : !enProceso;
-
-  // Soporte no está limitado por la regla de 2; solo por estado
-  const inputsDisabled = baseEstadoDisabled;
 
   const disabledReason = (() => {
     if (!ticket) return "El ticket no está disponible.";
@@ -99,8 +104,9 @@ export default function CardMensajeSoporte({
   const esMensajeDelEquipo = useCallback(
     (m: HD_MensajeTicket) => {
       if (!ticket) return false;
-      if (m.emisor_id === ticket.titular_id) return false; // solicitante
+      if (m.emisor_id === ticket.titular_id) return false;
       if (ticket.asignado_id && m.emisor_id === ticket.asignado_id) return true;
+
       const rol = m?.emisor?.rol?.nombre?.toLowerCase?.() ?? "";
       const tokens = [
         "soporte",
@@ -112,12 +118,12 @@ export default function CardMensajeSoporte({
         "especialista",
       ];
       if (tokens.some((t) => rol.includes(t))) return true;
-      return true; // fallback
+
+      return true;
     },
     [ticket],
   );
 
-  // Orden cronológico
   const mensajesOrdenados = useMemo(() => {
     const arr = [...mensajes];
     return arr.sort(
@@ -126,7 +132,6 @@ export default function CardMensajeSoporte({
     );
   }, [mensajes]);
 
-  // Último mensaje del equipo
   const lastEquipoIdx = useMemo(() => {
     for (let i = mensajesOrdenados.length - 1; i >= 0; i--) {
       if (esMensajeDelEquipo(mensajesOrdenados[i])) return i;
@@ -134,7 +139,6 @@ export default function CardMensajeSoporte({
     return -1;
   }, [mensajesOrdenados, esMensajeDelEquipo]);
 
-  // Respuestas del solicitante DESPUÉS del último mensaje del equipo
   const repliesSolicitanteDesdeUltimoEquipo = useMemo(() => {
     if (lastEquipoIdx === -1) return 0;
     let c = 0;
@@ -153,14 +157,12 @@ export default function CardMensajeSoporte({
         ? "red"
         : "blue";
 
-  // ====== Enviar ======
   const onEnviar = async () => {
     await handleEnviarMensaje({ archivos: fileList });
     setNuevoMensaje("");
     setFileList([]);
   };
 
-  // ====== estilos acordes a tema ======
   const bubbleEquipoStyle: React.CSSProperties = {
     background: token.colorPrimaryBg,
     border: `1px solid ${token.colorPrimaryBorder}`,
@@ -181,6 +183,9 @@ export default function CardMensajeSoporte({
     backgroundColor: token.colorFillQuaternary,
     color: token.colorTextTertiary,
   };
+
+  const canSend =
+    !inputsDisabled && (nuevoMensaje.trim().length > 0 || fileList.length > 0);
 
   return (
     <Card
@@ -215,7 +220,6 @@ export default function CardMensajeSoporte({
         </Space>
       }
     >
-      {/* Mensajes */}
       <div
         className="mb-4 max-h-96 overflow-y-auto pr-2 space-y-4"
         id="hilo-ticket"
@@ -226,7 +230,6 @@ export default function CardMensajeSoporte({
           mensajesOrdenados.map((m: HD_MensajeTicket) => {
             const delEquipo = esMensajeDelEquipo(m);
 
-            // ✅ documento si tipo=documento y hay archivo_id/archivo
             const isDocumento =
               String(m?.tipo ?? "").toLowerCase() === "documento" &&
               (!!m?.archivo_id || !!m?.archivo?.id);
@@ -259,7 +262,7 @@ export default function CardMensajeSoporte({
                       delEquipo ? bubbleEquipoStyle : bubbleSolicitanteStyle
                     }
                   >
-                    {m.contenido && (
+                    {m?.contenido ? (
                       <Typography.Paragraph
                         style={{
                           margin: 0,
@@ -269,24 +272,25 @@ export default function CardMensajeSoporte({
                       >
                         {m.contenido}
                       </Typography.Paragraph>
-                    )}
+                    ) : null}
 
-                    {/* ✅ ARCHIVO (SIN url) */}
-                    {isDocumento && (
+                    {isDocumento ? (
                       <div className="mt-2">
                         <Button
                           size="small"
                           type="link"
                           icon={<DownloadOutlined />}
-                          href={downloadUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
                           disabled={!downloadUrl}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            openDownload(downloadUrl);
+                          }}
                         >
                           {m?.nombre ?? m?.archivo?.nombre ?? "archivo"}
                         </Button>
                       </div>
-                    )}
+                    ) : null}
                   </div>
                 </div>
               </div>
@@ -299,7 +303,7 @@ export default function CardMensajeSoporte({
         Redactar respuesta
       </Divider>
 
-      {inputsDisabled && (
+      {inputsDisabled ? (
         <div
           className="mb-3 rounded-lg p-3"
           style={{
@@ -318,9 +322,8 @@ export default function CardMensajeSoporte({
             </Typography.Text>
           </Space>
         </div>
-      )}
+      ) : null}
 
-      {/* Redactor soporte */}
       <div className="flex flex-col gap-3">
         <TextArea
           rows={5}
@@ -366,12 +369,7 @@ export default function CardMensajeSoporte({
               icon={<SendOutlined />}
               onClick={onEnviar}
               loading={loadingMensaje}
-              disabled={
-                !(
-                  !inputsDisabled &&
-                  (nuevoMensaje.trim().length > 0 || fileList.length > 0)
-                )
-              }
+              disabled={!canSend}
             >
               Enviar
             </Button>
