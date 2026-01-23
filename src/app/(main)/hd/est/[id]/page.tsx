@@ -35,6 +35,14 @@ import {
   TeamOutlined,
   DownloadOutlined,
   MessageOutlined,
+  PaperClipOutlined,
+  DeleteOutlined,
+  FilePdfOutlined,
+  FileWordOutlined,
+  FileExcelOutlined,
+  FilePptOutlined,
+  FileImageOutlined,
+  FileOutlined,
 } from "@ant-design/icons";
 
 import TextArea from "antd/es/input/TextArea";
@@ -42,6 +50,7 @@ import { useParams, useRouter } from "next/navigation";
 import dayjs from "@shared/date/dayjs";
 import { HD_MensajeTicket, HD_Ticket } from "@interfaces/hd";
 import { createCalificacion, createMensaje } from "@services/hd";
+import CardArchivos from "@/features/hd/usuario/detalleTicket/components/CardArchivos";
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -67,7 +76,11 @@ const ESTADO_META: Record<
 
 const fmt = (iso?: string) =>
   iso ? dayjs(iso).format("DD/MM/YYYY HH:mm") : "—";
+
 const API = process.env.NEXT_PUBLIC_API_URL ?? "";
+
+// ✅ Si tienes endpoint para “descarga real”, ponlo aquí.
+// Ejemplo: `${API}/core/archivo/${id}/download`
 
 // Normaliza claves de estado ("EN PROCESO" -> "EN_PROCESO")
 const toEstadoKey = (v?: string): TicketEstado => {
@@ -104,6 +117,104 @@ function EllipsisTag({ children }: { children?: React.ReactNode }) {
         {children}
       </Typography.Text>
     </Tag>
+  );
+}
+
+/* ========================= Helpers archivos (WhatsApp-like) ======================== */
+const hasExt = (name = "", exts: string[]) =>
+  exts.some((e) => name.toLowerCase().endsWith(e));
+
+function pickFileIcon(nombre?: string, urlOrMime?: string) {
+  const base = `${nombre ?? ""} ${urlOrMime ?? ""}`.toLowerCase();
+
+  const isImage = hasExt(base, [".png", ".jpg", ".jpeg", ".gif", ".webp"]);
+  const isPDF = hasExt(base, [".pdf"]) || base.includes("application/pdf");
+  const isWord =
+    hasExt(base, [".doc", ".docx"]) ||
+    base.includes("word") ||
+    base.includes("officedocument.wordprocessingml");
+  const isExcel =
+    hasExt(base, [".xls", ".xlsx"]) ||
+    base.includes("excel") ||
+    base.includes("officedocument.spreadsheetml");
+  const isPpt =
+    hasExt(base, [".ppt", ".pptx"]) ||
+    base.includes("powerpoint") ||
+    base.includes("officedocument.presentationml");
+
+  if (isImage) return <FileImageOutlined />;
+  if (isPDF) return <FilePdfOutlined />;
+  if (isWord) return <FileWordOutlined />;
+  if (isExcel) return <FileExcelOutlined />;
+  if (isPpt) return <FilePptOutlined />;
+  return <FileOutlined />;
+}
+
+/**
+ * ✅ Resuelve URL final para descargar:
+ * - Preferimos endpoint propio si existe (descarga real / auth / headers)
+ * - Si no, usamos webUrl directo (SharePoint/OneDrive)
+ */
+function resolveDownloadUrl(m: HD_MensajeTicket) {
+  const id = m?.archivo_id ?? m?.archivo?.id;
+  if (!id) return "";
+  return `${API}/core/onedrive/onedrive/${id}/download`;
+}
+
+function FileBubble({
+  nombre,
+  contentType,
+  downloadUrl,
+  deSoporte,
+}: {
+  nombre?: string;
+  contentType?: string | null;
+  downloadUrl: string;
+  deSoporte: boolean;
+}) {
+  return (
+    <div
+      className={`rounded-2xl border p-3 shadow-sm ${
+        deSoporte
+          ? "border-blue-50 bg-white"
+          : "border-emerald-100 bg-emerald-50"
+      }`}
+      style={{ overflowWrap: "anywhere", wordBreak: "break-word" }}
+    >
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3 min-w-0">
+          <span className="text-lg">
+            {pickFileIcon(nombre, contentType ?? "")}
+          </span>
+          <div className="min-w-0">
+            <Text
+              strong
+              className="block truncate"
+              style={{ maxWidth: "48vw" }}
+            >
+              {nombre ?? "archivo"}
+            </Text>
+            <Text type="secondary" className="text-xs">
+              Archivo adjunto
+            </Text>
+          </div>
+        </div>
+
+        <Space>
+          <Button
+            size="small"
+            type="link"
+            icon={<DownloadOutlined />}
+            href={downloadUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            disabled={!downloadUrl}
+          >
+            Descargar
+          </Button>
+        </Space>
+      </div>
+    </div>
   );
 }
 
@@ -232,13 +343,16 @@ function CardChatEstudiante({
   onSend,
 }: {
   ticket: HD_Ticket;
-  onSend: (texto: string) => Promise<void> | void;
+  onSend: (texto: string, files: File[]) => Promise<void> | void;
 }) {
   const mensajes = useMemo(() => ticket.mensajes ?? [], [ticket.mensajes]);
   const [nuevoMensaje, setNuevoMensaje] = useState<string>("");
   const [sending, setSending] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
+
+  const [files, setFiles] = useState<File[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const code = toEstadoKey(ticket?.estado?.codigo);
   const nameKey = toEstadoKey(ticket?.estado?.nombre);
@@ -273,14 +387,14 @@ function CardChatEstudiante({
       if (rol && soporteTokens.some((tok) => rol.includes(tok))) return true;
       return m.emisor_id !== ticket.titular_id;
     },
-    [ticket.titular_id]
+    [ticket],
   );
 
   const mensajesOrdenados = useMemo(() => {
     const arr = [...(mensajes || [])];
     return arr.sort(
       (a, b) =>
-        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
     );
   }, [mensajes]);
 
@@ -337,16 +451,49 @@ function CardChatEstudiante({
     return null;
   })();
 
+  const handlePickFiles = () => {
+    if (inputsDisabled) return;
+    fileInputRef.current?.click();
+  };
+
+  const onFilesSelected: React.ChangeEventHandler<HTMLInputElement> = (e) => {
+    const selected = Array.from(e.target.files ?? []);
+    if (!selected.length) return;
+
+    setFiles((prev) => {
+      const next = [...prev];
+      for (const f of selected) {
+        const exists = next.some(
+          (x) =>
+            x.name === f.name &&
+            x.size === f.size &&
+            x.lastModified === f.lastModified,
+        );
+        if (!exists) next.push(f);
+      }
+      return next;
+    });
+
+    e.target.value = "";
+  };
+
+  const removeFile = (idx: number) =>
+    setFiles((prev) => prev.filter((_, i) => i !== idx));
+
   const handleSend = async () => {
     if (inputsDisabled) return;
-    if (!nuevoMensaje.trim()) {
-      message.info("Escribe un mensaje.");
+
+    const texto = nuevoMensaje.trim();
+    if (!texto && files.length === 0) {
+      message.info("Escribe un mensaje o adjunta un archivo.");
       return;
     }
+
     try {
       setSending(true);
-      await onSend(nuevoMensaje.trim());
+      await onSend(texto, files);
       setNuevoMensaje("");
+      setFiles([]);
       message.success("Mensaje enviado.");
     } catch {
       message.error("No se pudo enviar el mensaje.");
@@ -356,7 +503,7 @@ function CardChatEstudiante({
   };
 
   const handleKeyDown: React.KeyboardEventHandler<HTMLTextAreaElement> = (
-    e
+    e,
   ) => {
     if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
       e.preventDefault();
@@ -368,7 +515,7 @@ function CardChatEstudiante({
     LIMITE_REPLIES -
     Math.min(
       lastSupportIdx === -1 ? 0 : userReplyCountSinceSupport,
-      LIMITE_REPLIES
+      LIMITE_REPLIES,
     );
 
   return (
@@ -383,8 +530,8 @@ function CardChatEstudiante({
               !soporteHaEscrito
                 ? "default"
                 : excedioCupoUsuario
-                ? "red"
-                : "blue"
+                  ? "red"
+                  : "blue"
             }
           >
             {(!soporteHaEscrito && "Esperando mensaje inicial de Soporte") ||
@@ -407,16 +554,22 @@ function CardChatEstudiante({
         ) : (
           mensajesOrdenados.map((m) => {
             const deSoporte = esDeSoporte(m);
-            const nombre =
-              [m.emisor?.nombre, m.emisor?.apellidos]
+            const nombrePersona =
+              [m?.emisor?.nombre, m?.emisor?.apellidos]
                 .filter(Boolean)
                 .join(" ") || (deSoporte ? "Soporte" : "Usuario");
+
+            // ✅ Documento si tipo=documento y tenemos archivo o archivo_id
+            const isDocumento =
+              String(m?.tipo ?? "").toLowerCase() === "documento" &&
+              (!!m?.archivo?.webUrl || !!m?.archivo_id);
+
+            const downloadUrl = isDocumento ? resolveDownloadUrl(m) : "";
+
             return (
               <div
                 key={m.id}
-                className={`flex items-start gap-3 ${
-                  deSoporte ? "" : "justify-end"
-                }`}
+                className={`flex items-start gap-3 ${deSoporte ? "" : "justify-end"}`}
               >
                 {deSoporte && (
                   <Avatar
@@ -425,10 +578,9 @@ function CardChatEstudiante({
                     className="bg-blue-100 text-blue-600 shrink-0"
                   />
                 )}
+
                 <div
-                  className={`${
-                    deSoporte ? "" : "text-right"
-                  } max-w-[88%] xs:max-w-[86%] sm:max-w-[80%] md:max-w-[70%]`}
+                  className={`${deSoporte ? "" : "text-right"} max-w-[88%] xs:max-w-[86%] sm:max-w-[80%] md:max-w-[70%]`}
                 >
                   <div
                     className={`mb-1 flex items-center justify-between ${
@@ -436,7 +588,7 @@ function CardChatEstudiante({
                     }`}
                   >
                     <Typography.Text className="text-[13px] sm:text-sm" strong>
-                      {nombre}
+                      {nombrePersona}
                     </Typography.Text>
                     <Typography.Text
                       type="secondary"
@@ -445,41 +597,39 @@ function CardChatEstudiante({
                       {dayjs(String(m.createdAt)).format("DD/MM/YYYY HH:mm")}
                     </Typography.Text>
                   </div>
-                  <div
-                    className={`rounded-2xl border p-3 shadow-sm ${
-                      deSoporte
-                        ? "border-blue-50 bg-white"
-                        : "border-emerald-50 bg-emerald-50"
-                    }`}
-                    style={{
-                      overflowWrap: "anywhere",
-                      wordBreak: "break-word",
-                    }}
-                  >
-                    {m.contenido && (
-                      <Paragraph style={{ margin: 0, whiteSpace: "pre-wrap" }}>
-                        {m.contenido}
-                      </Paragraph>
-                    )}
-                    {m.url && (
-                      <div className="mt-2">
-                        <Button
-                          size="small"
-                          type="link"
-                          icon={<DownloadOutlined />}
-                          href={m.url}
-                          target="_blank"
-                          aria-label={`Descargar adjunto ${
-                            m.nombre ?? "archivo"
-                          }`}
-                          className="max-w-full truncate"
+
+                  {isDocumento ? (
+                    <FileBubble
+                      nombre={m?.nombre ?? m?.archivo?.nombre ?? "archivo"}
+                      contentType={m?.archivo?.contentType ?? null}
+                      downloadUrl={downloadUrl}
+                      deSoporte={deSoporte}
+                    />
+                  ) : (
+                    <div
+                      className={`rounded-2xl border p-3 shadow-sm ${
+                        deSoporte
+                          ? "border-blue-50 bg-white"
+                          : "border-emerald-50 bg-emerald-50"
+                      }`}
+                      style={{
+                        overflowWrap: "anywhere",
+                        wordBreak: "break-word",
+                      }}
+                    >
+                      {m?.contenido ? (
+                        <Paragraph
+                          style={{ margin: 0, whiteSpace: "pre-wrap" }}
                         >
-                          {m.nombre ?? "archivo"}
-                        </Button>
-                      </div>
-                    )}
-                  </div>
+                          {m.contenido}
+                        </Paragraph>
+                      ) : (
+                        <Text type="secondary">—</Text>
+                      )}
+                    </div>
+                  )}
                 </div>
+
                 {!deSoporte && (
                   <Avatar
                     size="large"
@@ -512,10 +662,19 @@ function CardChatEstudiante({
         </div>
       )}
 
-      {/* Redactor */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        multiple
+        onChange={onFilesSelected}
+        style={{ display: "none" }}
+        disabled={inputsDisabled}
+      />
+
       <div className="flex flex-col gap-2 sm:gap-3">
         <TextArea
           rows={4}
+          className="mb-1"
           autoSize={{ minRows: 4, maxRows: 6 }}
           placeholder={
             inputsDisabled
@@ -534,20 +693,80 @@ function CardChatEstudiante({
             paddingRight: isMobile ? 0 : 28,
           }}
         />
+
         {isMobile && (
           <div className="text-right text-[11px] text-gray-400">{`${nuevoMensaje.length} / 2000`}</div>
         )}
 
+        {files.length > 0 && (
+          <div className="rounded-xl border border-gray-100 bg-white p-3">
+            <div className="flex items-center justify-between mb-2">
+              <Text strong className="text-xs">
+                Archivos adjuntos ({files.length})
+              </Text>
+              <Button
+                size="small"
+                type="text"
+                danger
+                icon={<DeleteOutlined />}
+                onClick={() => setFiles([])}
+                disabled={inputsDisabled}
+              >
+                Limpiar
+              </Button>
+            </div>
+
+            <div className="space-y-2">
+              {files.map((f, idx) => (
+                <div
+                  key={`${f.name}-${f.size}-${f.lastModified}`}
+                  className="flex items-center justify-between gap-2"
+                >
+                  <Space size={8} className="min-w-0">
+                    <PaperClipOutlined />
+                    <Text className="truncate" style={{ maxWidth: "65vw" }}>
+                      {f.name}
+                    </Text>
+                    <Text type="secondary" className="text-xs">
+                      {(f.size / (1024 * 1024)).toFixed(2)} MB
+                    </Text>
+                  </Space>
+                  <Button
+                    size="small"
+                    type="text"
+                    danger
+                    onClick={() => removeFile(idx)}
+                    disabled={inputsDisabled}
+                  >
+                    Quitar
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sticky sm:static bottom-0 bg-white/80 backdrop-blur-md py-2">
           <Text type="secondary" className="text-[11px] sm:text-xs">
-            * Adjuntar archivos no está disponible en esta vista.
+            Puedes adjuntar archivos (se enviarán como mensajes tipo documento).
           </Text>
+
           <Space wrap className="w-full sm:w-auto">
+            <Button
+              onClick={handlePickFiles}
+              disabled={inputsDisabled}
+              icon={<PaperClipOutlined />}
+              className="w-full sm:w-auto"
+            >
+              Adjuntar
+            </Button>
             <Button
               type="primary"
               onClick={handleSend}
               loading={sending}
-              disabled={inputsDisabled || !nuevoMensaje.trim()}
+              disabled={
+                inputsDisabled || (!nuevoMensaje.trim() && files.length === 0)
+              }
               aria-label="Enviar mensaje"
               className="w-full sm:w-auto"
             >
@@ -573,7 +792,7 @@ export default function TicketDetailStudentPage() {
   const [firstLoad, setFirstLoad] = useState(true);
 
   const estadoActual = toEstadoKey(
-    ticket?.estado?.codigo || ticket?.estado?.nombre || "ABIERTO"
+    ticket?.estado?.codigo || ticket?.estado?.nombre || "ABIERTO",
   );
   const estadoMeta = ESTADO_META[estadoActual] || ESTADO_META.ABIERTO;
 
@@ -600,9 +819,17 @@ export default function TicketDetailStudentPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [idNum]);
 
-  const handleSend = async (texto: string) => {
-    if (Number.isNaN(idNum) || !texto.trim()) return;
-    await createMensaje({ ticket_id: idNum, contenido: texto.trim() });
+  const handleSend = async (texto: string, files: File[]) => {
+    if (Number.isNaN(idNum)) return;
+
+    const fd = new FormData();
+    fd.append("ticket_id", String(idNum));
+    fd.append("tipo", "texto"); // si tu DTO aún lo exige
+    if (texto?.trim()) fd.append("contenido", texto.trim());
+
+    for (const file of files ?? []) fd.append("archivos", file);
+
+    await createMensaje(fd);
     await fetchTicket();
   };
 
@@ -638,9 +865,7 @@ export default function TicketDetailStudentPage() {
               border: `1px solid ${token.colorBorderSecondary}`,
             }}
           >
-            {/* mobile-first en 3 filas */}
             <div className="flex flex-col gap-3">
-              {/* Botón */}
               <div className="flex">
                 <Button
                   icon={<ArrowLeftOutlined />}
@@ -652,7 +877,6 @@ export default function TicketDetailStudentPage() {
                 </Button>
               </div>
 
-              {/* Título */}
               <div className="min-w-0">
                 <Title
                   level={isMobile ? 4 : 3}
@@ -669,7 +893,6 @@ export default function TicketDetailStudentPage() {
                 </Text>
               </div>
 
-              {/* Chips */}
               <Space size={8} wrap className="justify-start">
                 <Tooltip title="Tus datos están protegidos">
                   <SafetyCertificateTwoTone twoToneColor={token.colorSuccess} />
@@ -677,8 +900,6 @@ export default function TicketDetailStudentPage() {
                 <Tag color={estadoMeta.color} className="m-0">
                   {estadoMeta.label}
                 </Tag>
-                {/* Si deseas mostrar el área también aquí, descomenta: */}
-                {/* <EllipsisTag>{ticket?.area?.nombre ?? "—"}</EllipsisTag> */}
               </Space>
             </div>
 
@@ -730,7 +951,6 @@ export default function TicketDetailStudentPage() {
           </Card>
         ) : (
           <>
-            {/* Detalles del ticket */}
             <Card
               className="rounded-2xl shadow-sm mb-6"
               loading={loading}
@@ -738,7 +958,6 @@ export default function TicketDetailStudentPage() {
                 background: token.colorBgContainer,
                 border: `1px solid ${token.colorBorderSecondary}`,
               }}
-              bodyStyle={{ paddingTop: 16 }}
             >
               <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
                 <div className="flex flex-col min-w-0">
@@ -751,25 +970,20 @@ export default function TicketDetailStudentPage() {
                 </div>
                 <Space wrap>
                   <Tag color={estadoMeta.color}>{estadoMeta.label}</Tag>
-                  {/* Área como chip con ellipsis REAL (arriba) */}
                   <div className="max-w-[80vw] sm:max-w-none">
-                    <EllipsisTag>{ticket.area?.nombre ?? "—"}</EllipsisTag>
+                    <EllipsisTag>{ticket?.area?.nombre ?? "—"}</EllipsisTag>
                   </div>
                 </Space>
               </div>
 
-              {/* === Detalle responsive === */}
               {isMobile ? (
-                // --- Móvil: ficha vertical, sin tabla ---
                 <div className="rounded-xl border border-gray-100">
-                  {/* Área */}
                   <div className="px-4 py-3 border-b border-gray-100">
                     <div className="text-[11px] text-gray-500 mb-1">Área</div>
                     <Typography.Text style={{ display: "block" }}>
-                      {ticket.area?.nombre ?? "—"}
+                      {ticket?.area?.nombre ?? "—"}
                     </Typography.Text>
                   </div>
-                  {/* Descripción */}
                   <div className="px-4 py-3 border-b border-gray-100">
                     <div className="text-[11px] text-gray-500 mb-1">
                       Descripción
@@ -778,22 +992,22 @@ export default function TicketDetailStudentPage() {
                       className="!mb-0 whitespace-pre-wrap"
                       style={{ overflowWrap: "anywhere" }}
                     >
-                      {ticket.descripcion ?? "—"}
+                      {ticket?.descripcion ?? "—"}
                     </Paragraph>
                   </div>
-                  {/* Creado */}
                   <div className="px-4 py-3">
                     <div className="text-[11px] text-gray-500 mb-1">Creado</div>
                     <Text>
                       <FieldTimeOutlined className="mr-1" />
                       {fmt(
-                        ticket?.createdAt ? String(ticket.createdAt) : undefined
+                        ticket?.createdAt
+                          ? String(ticket.createdAt)
+                          : undefined,
                       )}
                     </Text>
                   </div>
                 </div>
               ) : (
-                // --- Desktop: tabla Descriptions ---
                 <Descriptions
                   bordered
                   size="middle"
@@ -810,7 +1024,7 @@ export default function TicketDetailStudentPage() {
                         ellipsis={{ tooltip: false }}
                         style={{ display: "block", maxWidth: "100%" }}
                       >
-                        {ticket.area?.nombre ?? "—"}
+                        {ticket?.area?.nombre ?? "—"}
                       </Typography.Text>
                     </div>
                   </Descriptions.Item>
@@ -820,32 +1034,34 @@ export default function TicketDetailStudentPage() {
                       className="!mb-0 whitespace-pre-wrap"
                       style={{ overflowWrap: "anywhere" }}
                     >
-                      {ticket.descripcion ?? "—"}
+                      {ticket?.descripcion ?? "—"}
                     </Paragraph>
                   </Descriptions.Item>
 
                   <Descriptions.Item label="Creado">
                     <FieldTimeOutlined className="mr-1" />
                     {fmt(
-                      ticket?.createdAt ? String(ticket.createdAt) : undefined
+                      ticket?.createdAt ? String(ticket.createdAt) : undefined,
                     )}
                   </Descriptions.Item>
                 </Descriptions>
               )}
             </Card>
 
-            {/* Calificación si RESUELTO */}
-            {(ticket.estado_id === 4 ||
-              toEstadoKey(ticket.estado?.codigo) === "RESUELTO" ||
-              toEstadoKey(ticket.estado?.nombre) === "RESUELTO") && (
+            {ticket.estado_id === 4 ||
+            toEstadoKey(ticket?.estado?.codigo) === "RESUELTO" ||
+            toEstadoKey(ticket?.estado?.nombre) === "RESUELTO" ? (
               <CardCalificacionInline
                 ticket={ticket}
                 onCrear={crearCalificacion}
               />
-            )}
+            ) : null}
 
-            {/* Chat */}
             <CardChatEstudiante ticket={ticket} onSend={handleSend} />
+
+            {/* OJO: este componente CardArchivos si antes usaba ticket.documentos/url,
+                tendrás que cambiarlo a que lea ticket.mensajes tipo documento y use archivo.webUrl */}
+            <CardArchivos ticket={ticket} />
           </>
         )}
       </div>

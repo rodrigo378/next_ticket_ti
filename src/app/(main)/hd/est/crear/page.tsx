@@ -54,7 +54,6 @@ async function getAreasMock(): Promise<AreaOption[]> {
     { id: 7, nombre: "Admisión" },
     { id: 8, nombre: "Educación Virtual" },
   ];
-  // [1, 3, 4, 5, 8
 }
 
 /* ====== Constantes UI ====== */

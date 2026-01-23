@@ -35,6 +35,18 @@ interface Props {
   onToggleBloqueo?: (blocked: boolean) => void;
 }
 
+const API = process.env.NEXT_PUBLIC_API_URL ?? "";
+
+// ✅ MISMA LÓGICA QUE EL OTRO COMPONENTE (por archivo_id)
+function resolveDownloadUrl(m: HD_MensajeTicket) {
+  const id = m?.archivo_id ?? m?.archivo?.id;
+  if (!id) return "";
+  const base = API.replace(/\/+$/, "");
+  return `${base}/core/onedrive/onedrive/${encodeURIComponent(
+    String(id),
+  )}/download`;
+}
+
 export default function CardMensajeSoporte({
   ticket,
   nuevoMensaje,
@@ -100,9 +112,9 @@ export default function CardMensajeSoporte({
         "especialista",
       ];
       if (tokens.some((t) => rol.includes(t))) return true;
-      return true; // fallback: cualquier NO-creador → equipo
+      return true; // fallback
     },
-    [ticket]
+    [ticket],
   );
 
   // Orden cronológico
@@ -110,7 +122,7 @@ export default function CardMensajeSoporte({
     const arr = [...mensajes];
     return arr.sort(
       (a, b) =>
-        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
     );
   }, [mensajes]);
 
@@ -138,8 +150,8 @@ export default function CardMensajeSoporte({
     lastEquipoIdx === -1
       ? "default"
       : repliesSolicitanteDesdeUltimoEquipo >= LIMITE_REPLIES
-      ? "red"
-      : "blue";
+        ? "red"
+        : "blue";
 
   // ====== Enviar ======
   const onEnviar = async () => {
@@ -213,6 +225,14 @@ export default function CardMensajeSoporte({
         ) : (
           mensajesOrdenados.map((m: HD_MensajeTicket) => {
             const delEquipo = esMensajeDelEquipo(m);
+
+            // ✅ documento si tipo=documento y hay archivo_id/archivo
+            const isDocumento =
+              String(m?.tipo ?? "").toLowerCase() === "documento" &&
+              (!!m?.archivo_id || !!m?.archivo?.id);
+
+            const downloadUrl = isDocumento ? resolveDownloadUrl(m) : "";
+
             return (
               <div key={m.id} className="flex gap-3 items-start">
                 <Avatar
@@ -250,16 +270,20 @@ export default function CardMensajeSoporte({
                         {m.contenido}
                       </Typography.Paragraph>
                     )}
-                    {m.url && (
+
+                    {/* ✅ ARCHIVO (SIN url) */}
+                    {isDocumento && (
                       <div className="mt-2">
                         <Button
                           size="small"
                           type="link"
                           icon={<DownloadOutlined />}
-                          href={m.url}
+                          href={downloadUrl}
                           target="_blank"
+                          rel="noopener noreferrer"
+                          disabled={!downloadUrl}
                         >
-                          {m.nombre ?? "archivo"}
+                          {m?.nombre ?? m?.archivo?.nombre ?? "archivo"}
                         </Button>
                       </div>
                     )}
