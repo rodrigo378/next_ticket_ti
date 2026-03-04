@@ -38,6 +38,7 @@ const especialidades: { label: string; value: string }[] = [
     value: "S6",
   },
   { label: "S7 — MEDICINA", value: "S7" },
+  { label: "S8 — OPTOMETRIA", value: "S8" },
 ];
 
 // ===================================================================================
