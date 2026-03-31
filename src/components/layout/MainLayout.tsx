@@ -61,13 +61,45 @@ export default function MainLayout({
           if (!isDesktop) setDrawerOpen(false);
         },
       }),
-    [modules, collapsed, isDesktop]
+    [modules, collapsed, isDesktop],
   );
 
   // ===================================================================================
   const selectedKey = useMemo(() => mapPathToMenuKey(pathname), [pathname]);
 
   // ===================================================================================
+  // useEffect(() => {
+  //   const findGroupKeyByPath = (mods: IamMenuModule[], path: string) => {
+  //     for (const m of mods) {
+  //       for (const g of m.groups ?? []) {
+  //         if (
+  //           (g.children ?? []).some((it) => it.path === path || it.key === path)
+  //         ) {
+  //           return g.key;
+  //         }
+  //       }
+  //     }
+  //     return undefined;
+  //   };
+
+  //   const k = findGroupKeyByPath(modules, selectedKey);
+
+  //   setOpenKeys((prev) => {
+  //     if (
+  //       prev.length === k.length &&
+  //       prev.every((item, index) => item === nextKeys[index])
+  //     ) {
+  //       return prev;
+  //     }
+  //     return nextKeys;
+  //   });
+
+  //   // setOpenKeys(k ? [k] : []);
+  //   // if (navigating) {
+  //   //   const t = setTimeout(() => setNavigating(false), 120);
+  //   //   return () => clearTimeout(t);
+  //   // }
+  // }, [modules, selectedKey, navigating]);
   useEffect(() => {
     const findGroupKeyByPath = (mods: IamMenuModule[], path: string) => {
       for (const m of mods) {
@@ -83,7 +115,16 @@ export default function MainLayout({
     };
 
     const k = findGroupKeyByPath(modules, selectedKey);
-    setOpenKeys(k ? [k] : []);
+    const nextKeys = k ? [k] : [];
+
+    setOpenKeys((prev) => {
+      const sameLength = prev.length === nextKeys.length;
+      const sameValues =
+        sameLength && prev.every((item, index) => item === nextKeys[index]);
+
+      return sameValues ? prev : nextKeys;
+    });
+
     if (navigating) {
       const t = setTimeout(() => setNavigating(false), 120);
       return () => clearTimeout(t);

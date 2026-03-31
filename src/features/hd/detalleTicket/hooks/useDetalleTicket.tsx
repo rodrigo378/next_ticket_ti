@@ -5,26 +5,18 @@ import { useEffect, useState } from "react";
 import type { UploadFile } from "antd/es/upload/interface";
 import type { RcFile } from "antd/es/upload";
 
-// interface Props {
-//   ticket: Ticket;
-// }
-
 export default function useDetalleTicket() {
   const params = useParams();
   const id = params.id as string;
 
-  // STATE =====================
   const [ticket, setTicket] = useState<HD_Ticket>();
   const [nuevoMensaje, setNuevoMensaje] = useState("");
   const [loadingMensaje, setLoadingMensaje] = useState(false);
 
-  // USEEFECT ==================
   useEffect(() => {
-    console.log("se ejeuctro 2");
     fetchTicket(id);
   }, [id]);
 
-  // FETCHS ====================
   const fetchTicket = async (id: string) => {
     try {
       const data = await getTicket(Number(id));
@@ -37,12 +29,10 @@ export default function useDetalleTicket() {
   const handleEnviarMensaje = async (opts?: { archivos?: UploadFile[] }) => {
     const texto = (nuevoMensaje ?? "").trim();
 
-    // ✅ originFileObj es RcFile | undefined
     const archivosRc: RcFile[] = (opts?.archivos ?? [])
       .map((f) => f.originFileObj)
-      .filter((f): f is RcFile => !!f); // ✅ type guard correcto (NO File)
+      .filter((f): f is RcFile => !!f);
 
-    // ✅ si no hay texto ni archivos, no envía
     if (!texto && archivosRc.length === 0) return;
 
     setLoadingMensaje(true);
@@ -52,9 +42,8 @@ export default function useDetalleTicket() {
       fd.append("tipo", texto ? "texto" : "documento");
       if (texto) fd.append("contenido", texto);
 
-      // ✅ append recibe Blob; RcFile extiende File -> OK
       for (const f of archivosRc) {
-        fd.append("archivos", f, f.name); // ✅ filename explícito
+        fd.append("archivos", f, f.name);
       }
 
       await createMensaje(fd);
