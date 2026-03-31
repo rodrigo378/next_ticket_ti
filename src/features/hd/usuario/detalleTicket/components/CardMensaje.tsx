@@ -38,7 +38,6 @@ interface Props {
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? "";
 
-// ✅ MISMA LÓGICA QUE LOS OTROS COMPONENTES (por archivo_id / archivo.id)
 function resolveDownloadUrl(m: HD_MensajeTicket) {
   const id = m?.archivo_id ?? (m as any)?.archivo?.id;
   if (!id) return "";
@@ -46,7 +45,6 @@ function resolveDownloadUrl(m: HD_MensajeTicket) {
   return `${base}/core/onedrive/onedrive/${encodeURIComponent(String(id))}/download`;
 }
 
-// ✅ abrir SOLO por click (evita descargas “fantasma”)
 function openDownload(url: string) {
   if (!url) return;
   window.open(url, "_blank", "noopener,noreferrer");
@@ -62,9 +60,9 @@ export default function CardMensajeUsuario({
   const mensajes = useMemo(() => ticket?.mensajes ?? [], [ticket?.mensajes]);
   const [fileList, setFileList] = useState<UploadFile[]>([]);
 
-  // ====== Estado/bloqueo ======
   const estadoNombre = (ticket?.estado?.nombre || "").toLowerCase();
-  const estadoCodigo = (ticket?.estado?.nombre || "").toUpperCase();
+  const estadoCodigo = (ticket?.estado?.codigo || "").toUpperCase();
+
   const esAbierto =
     estadoNombre.includes("abierto") || estadoCodigo === "ABIERTO";
   const enProceso =
@@ -79,14 +77,11 @@ export default function CardMensajeUsuario({
 
   const chatBloqueado = Boolean((ticket as any)?.chatBloqueado ?? false);
 
-  // ====== Regla: soporte debe escribir primero + usuario máx 3 ======
   const esMensajeDeSoporte = (m: HD_MensajeTicket) => {
     if (!ticket) return false;
 
-    // Si el emisor es el creador del ticket, NO es soporte
     if (m.emisor_id === ticket.titular_id) return false;
 
-    // Si trae rol, normalizamos y chequeamos contra lista conocida
     const rol = m?.emisor?.rol?.nombre?.toLowerCase?.() ?? "";
     const soporteTokens = [
       "soporte",
@@ -102,10 +97,16 @@ export default function CardMensajeUsuario({
       "nivel_5",
       "admin",
       "superadmin",
+      "administrativo",
+      "mesa",
+      "ti",
+      "operador",
+      "analista",
+      "especialista",
     ];
+
     if (rol && soporteTokens.some((tok) => rol.includes(tok))) return true;
 
-    // Fallback: cualquier NO-creador lo consideramos “soporte”
     return true;
   };
 
@@ -122,7 +123,6 @@ export default function CardMensajeUsuario({
       if (esMensajeDeSoporte(mensajesOrdenados[i])) return i;
     }
     return -1;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mensajesOrdenados]);
 
   const userReplyCountSinceSupport = useMemo(() => {
@@ -132,18 +132,15 @@ export default function CardMensajeUsuario({
       if (!esMensajeDeSoporte(mensajesOrdenados[i])) c++;
     }
     return c;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lastSupportIdx, mensajesOrdenados]);
 
   const LIMITE_REPLIES = 3;
   const excedioCupoUsuario =
     lastSupportIdx >= 0 && userReplyCountSinceSupport >= LIMITE_REPLIES;
 
-  // ====== Habilitación ======
   const baseEstadoDisabled =
     !ticket || esAbierto || esCancelado || esFinalizado ? true : !enProceso;
 
-  // Para el usuario: debe existir al menos un mensaje de soporte
   const requierePrimerMensajeSoporte = lastSupportIdx === -1;
 
   const inputsDisabled =
@@ -169,7 +166,6 @@ export default function CardMensajeUsuario({
     return null;
   })();
 
-  // ====== Enviar ======
   const onEnviar = async () => {
     await handleEnviarMensaje({ archivos: fileList });
     setNuevoMensaje("");
@@ -185,6 +181,24 @@ export default function CardMensajeUsuario({
 
   const canSend =
     !inputsDisabled && (nuevoMensaje.trim().length > 0 || fileList.length > 0);
+
+  const bubbleStyle: React.CSSProperties = {
+    background: "#f3f4f6",
+    border: "1px solid #d1d5db",
+    borderRadius: 14,
+    padding: 12,
+    boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
+  };
+
+  const avatarSoporteStyle: React.CSSProperties = {
+    backgroundColor: "#e5e7eb",
+    color: "#374151",
+  };
+
+  const avatarUsuarioStyle: React.CSSProperties = {
+    backgroundColor: "#d1d5db",
+    color: "#374151",
+  };
 
   return (
     <Card
@@ -211,7 +225,6 @@ export default function CardMensajeUsuario({
       className="mb-6 shadow-sm rounded-xl"
       styles={{ body: { paddingTop: 16 } }}
     >
-      {/* Mensajes */}
       <div
         className="mb-4 max-h-96 overflow-y-auto pr-2 space-y-4"
         id="hilo-ticket"
@@ -222,46 +235,77 @@ export default function CardMensajeUsuario({
           mensajesOrdenados.map((m: HD_MensajeTicket) => {
             const deSoporte = esMensajeDeSoporte(m);
 
-            // ✅ Documento si tipo=documento y existe archivo_id/archivo.id
             const isDocumento =
               String((m as any)?.tipo ?? "").toLowerCase() === "documento" &&
               (!!(m as any)?.archivo_id || !!(m as any)?.archivo?.id);
 
             const downloadUrl = isDocumento ? resolveDownloadUrl(m) : "";
 
+            const nombreMostrar = deSoporte
+              ? "Soporte"
+              : `${m?.emisor?.nombre ?? ""} ${m?.emisor?.apellidos ?? ""}`.trim() ||
+                "Usuario";
+
             return (
-              <div key={m.id} className="flex gap-3 items-start">
-                <Avatar
-                  size="large"
-                  icon={deSoporte ? <TeamOutlined /> : <UserOutlined />}
-                  className={
-                    deSoporte
-                      ? "bg-blue-100 text-blue-600 me-3"
-                      : "bg-gray-100 text-gray-600 me-3"
-                  }
-                />
-                <div className="flex-1" style={{ paddingLeft: 10 }}>
-                  <div className="flex items-center justify-between">
-                    <Typography.Text strong>
-                      {m?.emisor?.nombre ?? "—"}
+              <div
+                key={m.id}
+                className={`flex gap-3 items-start ${
+                  deSoporte ? "justify-end" : "justify-start"
+                }`}
+              >
+                {deSoporte && (
+                  <Avatar
+                    size="large"
+                    icon={<TeamOutlined />}
+                    style={avatarSoporteStyle}
+                  />
+                )}
+
+                <div
+                  className="max-w-[75%]"
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: deSoporte ? "flex-start" : "flex-end",
+                  }}
+                >
+                  <div className="mb-1 flex items-center gap-2">
+                    <Typography.Text
+                      strong
+                      style={{
+                        color: "#374151",
+                        fontSize: 13,
+                      }}
+                    >
+                      {nombreMostrar}
                     </Typography.Text>
-                    <Typography.Text type="secondary" className="text-xs">
+
+                    <Typography.Text
+                      type="secondary"
+                      style={{
+                        fontSize: 11,
+                        color: "#9ca3af",
+                      }}
+                    >
                       {dayjs(m.createdAt).format("DD/MM/YYYY HH:mm")}
                     </Typography.Text>
                   </div>
 
-                  <div className="mt-1 rounded-lg border border-gray-100 bg-white p-3 shadow-sm">
+                  <div style={bubbleStyle}>
                     {m.contenido ? (
                       <Typography.Paragraph
-                        style={{ margin: 0, whiteSpace: "pre-wrap" }}
+                        style={{
+                          margin: 0,
+                          whiteSpace: "pre-wrap",
+                          color: "#111827",
+                        }}
                       >
                         {m.contenido}
                       </Typography.Paragraph>
                     ) : null}
 
-                    {/* ✅ ARCHIVO: NO usar m.url, usar endpoint download */}
                     {isDocumento ? (
-                      <div className="mt-2">
+                      <div style={{ marginTop: m?.contenido ? 10 : 0 }}>
                         <Button
                           size="small"
                           type="link"
@@ -272,6 +316,7 @@ export default function CardMensajeUsuario({
                             e.stopPropagation();
                             openDownload(downloadUrl);
                           }}
+                          style={{ paddingInline: 0 }}
                         >
                           {(m as any)?.nombre ??
                             (m as any)?.archivo?.nombre ??
@@ -281,6 +326,14 @@ export default function CardMensajeUsuario({
                     ) : null}
                   </div>
                 </div>
+
+                {!deSoporte && (
+                  <Avatar
+                    size="large"
+                    icon={<UserOutlined />}
+                    style={avatarUsuarioStyle}
+                  />
+                )}
               </div>
             );
           })
@@ -302,7 +355,6 @@ export default function CardMensajeUsuario({
         </div>
       )}
 
-      {/* Redactor usuario */}
       <div className="flex flex-col gap-3">
         <TextArea
           rows={5}

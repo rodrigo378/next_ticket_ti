@@ -41,7 +41,7 @@ interface Props {
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? "";
 
-// ✅ MISMA LÓGICA QUE EL OTRO COMPONENTE (por archivo_id)
+// Descargar por archivo_id
 function resolveDownloadUrl(m: HD_MensajeTicket) {
   const id = m?.archivo_id ?? m?.archivo?.id;
   if (!id) return "";
@@ -49,7 +49,6 @@ function resolveDownloadUrl(m: HD_MensajeTicket) {
   return `${base}/core/onedrive/onedrive/${encodeURIComponent(String(id))}/download`;
 }
 
-// ✅ abrir SOLO por click (evita descargas “fantasma”)
 function openDownload(url: string) {
   if (!url) return;
   window.open(url, "_blank", "noopener,noreferrer");
@@ -67,10 +66,12 @@ export default function CardMensajeSoporte({
 
   const mensajes = useMemo(() => ticket?.mensajes ?? [], [ticket?.mensajes]);
   const [fileList, setFileList] = useState<UploadFile[]>([]);
+  const [bloquearUsuario, setBloquearUsuario] = useState<boolean>(false);
 
-  // ====== Estado general del ticket ======
+  // ====== Estado del ticket ======
   const estadoNombre = (ticket?.estado?.nombre || "").toLowerCase();
   const estadoCodigo = (ticket?.estado?.codigo || "").toUpperCase();
+
   const esAbierto =
     estadoNombre.includes("abierto") || estadoCodigo === "ABIERTO";
   const enProceso =
@@ -83,24 +84,27 @@ export default function CardMensajeSoporte({
     estadoCodigo === "FINALIZADO" ||
     estadoCodigo === "CERRADO";
 
-  const [bloquearUsuario, setBloquearUsuario] = useState<boolean>(false);
-
   const inputsDisabled =
     !ticket || esAbierto || esCancelado || esFinalizado ? true : !enProceso;
 
   const disabledReason = (() => {
     if (!ticket) return "El ticket no está disponible.";
-    if (esAbierto)
+    if (esAbierto) {
       return "Este ticket está en estado Abierto; la conversación se habilitará cuando pase a En Proceso.";
-    if (esCancelado)
+    }
+    if (esCancelado) {
       return "Este ticket fue Cancelado; no se pueden enviar nuevos mensajes.";
-    if (esFinalizado)
+    }
+    if (esFinalizado) {
       return "Este ticket fue Finalizado; la conversación está cerrada.";
-    if (!enProceso) return "La conversación no está habilitada en este estado.";
+    }
+    if (!enProceso) {
+      return "La conversación no está habilitada en este estado.";
+    }
     return null;
   })();
 
-  // ====== ¿Mensaje del EQUIPO o del SOLICITANTE? ======
+  // ====== Determinar si el mensaje es del equipo ======
   const esMensajeDelEquipo = useCallback(
     (m: HD_MensajeTicket) => {
       if (!ticket) return false;
@@ -117,6 +121,7 @@ export default function CardMensajeSoporte({
         "analista",
         "especialista",
       ];
+
       if (tokens.some((t) => rol.includes(t))) return true;
 
       return true;
@@ -154,7 +159,7 @@ export default function CardMensajeSoporte({
     lastEquipoIdx === -1
       ? "default"
       : repliesSolicitanteDesdeUltimoEquipo >= LIMITE_REPLIES
-        ? "red"
+        ? "green"
         : "blue";
 
   const onEnviar = async () => {
@@ -163,25 +168,23 @@ export default function CardMensajeSoporte({
     setFileList([]);
   };
 
-  const bubbleEquipoStyle: React.CSSProperties = {
-    background: token.colorPrimaryBg,
-    border: `1px solid ${token.colorPrimaryBorder}`,
-    borderRadius: token.borderRadiusLG,
+  // ====== Estilos grises para todos ======
+  const bubbleStyle: React.CSSProperties = {
+    background: "#f3f4f6",
+    border: "1px solid #d1d5db",
+    borderRadius: 14,
     padding: 12,
+    boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
   };
-  const bubbleSolicitanteStyle: React.CSSProperties = {
-    background: token.colorFillQuaternary,
-    border: `1px solid ${token.colorBorderSecondary}`,
-    borderRadius: token.borderRadiusLG,
-    padding: 12,
-  };
+
   const avatarEquipoStyle: React.CSSProperties = {
-    backgroundColor: token.colorPrimaryBg,
-    color: token.colorPrimaryText,
+    backgroundColor: "#e5e7eb",
+    color: "#374151",
   };
+
   const avatarSolicitanteStyle: React.CSSProperties = {
-    backgroundColor: token.colorFillQuaternary,
-    color: token.colorTextTertiary,
+    backgroundColor: "#d1d5db",
+    color: "#374151",
   };
 
   const canSend =
@@ -237,37 +240,61 @@ export default function CardMensajeSoporte({
             const downloadUrl = isDocumento ? resolveDownloadUrl(m) : "";
 
             return (
-              <div key={m.id} className="flex gap-3 items-start">
-                <Avatar
-                  size="large"
-                  icon={delEquipo ? <TeamOutlined /> : <UserOutlined />}
-                  style={delEquipo ? avatarEquipoStyle : avatarSolicitanteStyle}
-                />
-                <div className="flex-1" style={{ paddingLeft: 10 }}>
-                  <div className="flex items-center justify-between">
-                    <Typography.Text strong style={{ color: token.colorText }}>
-                      {m?.emisor?.nombre ?? "—"}
+              <div
+                key={m.id}
+                className={`flex gap-3 items-start ${
+                  delEquipo ? "justify-start" : "justify-end"
+                }`}
+              >
+                {delEquipo && (
+                  <Avatar
+                    size="large"
+                    icon={<TeamOutlined />}
+                    style={avatarEquipoStyle}
+                  />
+                )}
+
+                <div
+                  className="max-w-[75%]"
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: delEquipo ? "flex-start" : "flex-end",
+                  }}
+                >
+                  <div className="mb-1 flex items-center gap-2">
+                    <Typography.Text
+                      strong
+                      style={{
+                        color: "#374151",
+                        fontSize: 13,
+                      }}
+                    >
+                      {m?.emisor?.nombre
+                        ? `${m.emisor.nombre} ${m?.emisor?.apellidos ?? ""}`.trim()
+                        : delEquipo
+                          ? "Soporte"
+                          : "Usuario"}
                     </Typography.Text>
+
                     <Typography.Text
                       type="secondary"
-                      className="text-xs"
-                      style={{ color: token.colorTextTertiary }}
+                      style={{
+                        fontSize: 11,
+                        color: "#9ca3af",
+                      }}
                     >
                       {dayjs(m.createdAt).format("DD/MM/YYYY HH:mm")}
                     </Typography.Text>
                   </div>
 
-                  <div
-                    style={
-                      delEquipo ? bubbleEquipoStyle : bubbleSolicitanteStyle
-                    }
-                  >
+                  <div style={bubbleStyle}>
                     {m?.contenido ? (
                       <Typography.Paragraph
                         style={{
                           margin: 0,
                           whiteSpace: "pre-wrap",
-                          color: token.colorText,
+                          color: "#111827",
                         }}
                       >
                         {m.contenido}
@@ -275,7 +302,7 @@ export default function CardMensajeSoporte({
                     ) : null}
 
                     {isDocumento ? (
-                      <div className="mt-2">
+                      <div style={{ marginTop: m?.contenido ? 10 : 0 }}>
                         <Button
                           size="small"
                           type="link"
@@ -286,6 +313,7 @@ export default function CardMensajeSoporte({
                             e.stopPropagation();
                             openDownload(downloadUrl);
                           }}
+                          style={{ paddingInline: 0 }}
                         >
                           {m?.nombre ?? m?.archivo?.nombre ?? "archivo"}
                         </Button>
@@ -293,6 +321,14 @@ export default function CardMensajeSoporte({
                     ) : null}
                   </div>
                 </div>
+
+                {!delEquipo && (
+                  <Avatar
+                    size="large"
+                    icon={<UserOutlined />}
+                    style={avatarSolicitanteStyle}
+                  />
+                )}
               </div>
             );
           })
