@@ -25,12 +25,12 @@ export default function Step_0({
 }: Props) {
   const catalogo_id = Form.useWatch<number | undefined>(
     "catalogo_servicio_id",
-    form
+    form,
   );
   const tipo = Form.useWatch<string | undefined>("tipo", form);
   const incidencia_id = Form.useWatch<number | undefined>(
     "incidencia_id",
-    form
+    form,
   );
 
   const handleAreaChange = (area_id: number) => {
@@ -55,8 +55,8 @@ export default function Step_0({
     tipo === "incidencia"
       ? "Incidencia"
       : tipo === "requerimiento"
-      ? "Requerimiento"
-      : "Detalle";
+        ? "Requerimiento"
+        : "Detalle";
 
   return (
     <>
@@ -86,7 +86,7 @@ export default function Step_0({
               }
             >
               {areas
-                .filter((a) => [1, 2, 5, 8].includes(a.id))
+                .filter((a) => [1, 11, 12].includes(a.id))
                 .map((area) => (
                   <Select.Option
                     key={area.id}
