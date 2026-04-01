@@ -86,7 +86,7 @@ export default function Step_0({
               }
             >
               {areas
-                .filter((a) => [1, 11, 12].includes(a.id))
+                .filter((a) => [1, 11, 12, 3, 7].includes(a.id))
                 .map((area) => (
                   <Select.Option
                     key={area.id}
