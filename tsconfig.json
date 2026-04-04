@@ -1,6 +1,10 @@
 {
   "compilerOptions": {
-    "lib": ["dom", "dom.iterable", "esnext"],
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
@@ -18,11 +22,21 @@
       }
     ],
     "paths": {
-      "@/*": ["./src/*"],
-      "@shared/*": ["./src/shared/*"],
-      "@interfaces/*": ["./src/interfaces/*"],
-      "@services/*": ["./src/services/*"],
-      "@features/*": ["./src/features/*"]
+      "@/*": [
+        "./src/*"
+      ],
+      "@shared/*": [
+        "./src/shared/*"
+      ],
+      "@interfaces/*": [
+        "./src/interfaces/*"
+      ],
+      "@services/*": [
+        "./src/services/*"
+      ],
+      "@features/*": [
+        "./src/features/*"
+      ]
     },
     "target": "ES2017"
   },
@@ -31,7 +45,10 @@
     "**/*.ts",
     "**/*.tsx",
     ".next/types/**/*.ts",
-    "src/features/ticket-vir/create/utils/buildFormData.ts"
+    "src/features/ticket-vir/create/utils/buildFormData.ts",
+    ".next/dev/types/**/*.ts"
   ],
-  "exclude": ["node_modules"]
+  "exclude": [
+    "node_modules"
+  ]
 }
