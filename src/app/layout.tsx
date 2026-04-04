@@ -55,7 +55,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { Metadata, Viewport } from "next";
+import type { Viewport } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 
@@ -102,11 +102,6 @@ export default function RootLayout({
 
     return () => clearInterval(interval);
   }, []);
-
-  const minutes = Math.floor(seconds / 60);
-  const secs = seconds % 60;
-
-  const format = `${minutes}:${secs.toString().padStart(2, "0")}`;
 
   const isMaintenance = seconds > 0;
 

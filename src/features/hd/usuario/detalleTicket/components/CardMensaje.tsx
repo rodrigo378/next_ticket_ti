@@ -123,6 +123,7 @@ export default function CardMensajeUsuario({
       if (esMensajeDeSoporte(mensajesOrdenados[i])) return i;
     }
     return -1;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mensajesOrdenados]);
 
   const userReplyCountSinceSupport = useMemo(() => {
@@ -132,6 +133,7 @@ export default function CardMensajeUsuario({
       if (!esMensajeDeSoporte(mensajesOrdenados[i])) c++;
     }
     return c;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lastSupportIdx, mensajesOrdenados]);
 
   const LIMITE_REPLIES = 3;
