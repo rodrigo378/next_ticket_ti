@@ -27,9 +27,6 @@ export default function AsignarTicketView() {
   // 2) Tickets (server state con useQuery)
   const { data: tickets = [], isLoading } = useTicketsQuery(estados_id);
 
-  // 3) Usuarios soporte
-  const { data: usuarios = [] } = useUsuariosSoporteQuery(1);
-
   // 4) Form (UI Drawer)
   const form = useTicketForm();
 
@@ -40,6 +37,9 @@ export default function AsignarTicketView() {
   // 6) Árbol por área del ticket
   const areaId = ticket?.area_id || 0;
   const { data: arbol = [] } = useArbolIncidenciasQuery(areaId);
+
+  // 3) Usuarios soporte
+  const { data: usuarios = [] } = useUsuariosSoporteQuery(areaId);
 
   // 7) Mutación asignar
   const asignarMut = useAsignarTicketMutation();
