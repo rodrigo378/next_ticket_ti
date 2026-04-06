@@ -60,6 +60,8 @@ export default function Step_0({
 
   return (
     <>
+      {/* 🔹 Info general arriba */}
+
       <Row gutter={16}>
         <Col xs={24} md={12}>
           {/* Select de área */}
@@ -136,30 +138,19 @@ export default function Step_0({
       <Row gutter={16}>
         <Col xs={24} md={12}>
           {/* Select tipo */}
-          <Form.Item label="Tipo de solicitud" required>
-            <div className="mb-2 text-gray-500 text-sm">
-              <span className="italic">
-                📌 <strong>Incidencia</strong>: problema o falla técnica.
-                &nbsp;|&nbsp; 📌 <strong>Requerimiento</strong>: instalación,
-                acceso o configuración.
-              </span>
-            </div>
-            <Form.Item
-              name="tipo"
-              noStyle
-              rules={[{ required: true, message: "Selecciona tipo" }]}
+          <Form.Item
+            label="Tipo de solicitud"
+            name="tipo"
+            rules={[{ required: true, message: "Selecciona tipo" }]}
+          >
+            <Select
+              placeholder="Selecciona tipo"
+              size="large"
+              disabled={!catalogo_id || loadingIncidencias || loadingCatalogo}
             >
-              <Select
-                placeholder="Selecciona tipo"
-                size="large"
-                disabled={!catalogo_id || loadingIncidencias || loadingCatalogo}
-              >
-                <Select.Option value="incidencia">Incidencia</Select.Option>
-                <Select.Option value="requerimiento">
-                  Requerimiento
-                </Select.Option>
-              </Select>
-            </Form.Item>
+              <Select.Option value="incidencia">Incidencia</Select.Option>
+              <Select.Option value="requerimiento">Requerimiento</Select.Option>
+            </Select>
           </Form.Item>
         </Col>
 
@@ -205,11 +196,7 @@ export default function Step_0({
         <Col xs={24} md={12}>
           {/* Select categoría */}
           <Form.Item
-            label={
-              <div className="flex items-center gap-2">
-                <span>Categoría</span>
-              </div>
-            }
+            label="Categoría"
             name="categoria_id"
             rules={[{ required: true, message: "Selecciona categoría" }]}
           >
