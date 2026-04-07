@@ -26,7 +26,11 @@ export default function TicketTableAdmin({
       render: (record: HD_Ticket) => {
         const tipo = record.categoria?.incidencia?.tipo;
         const icon =
-          tipo === "requerimiento" ? "📌" : tipo === "incidencia" ? "⚠️" : "X";
+          tipo === "requerimiento"
+            ? "📌"
+            : tipo === "incidencia"
+              ? "⚠️"
+              : "RECATEGORIZAR";
         return (
           <span>
             {icon} {tipo}
@@ -43,10 +47,10 @@ export default function TicketTableAdmin({
           prioridad?.nombre === "Alta"
             ? "red"
             : prioridad?.nombre === "Media"
-            ? "orange"
-            : prioridad?.nombre === "Baja"
-            ? "green"
-            : "";
+              ? "orange"
+              : prioridad?.nombre === "Baja"
+                ? "green"
+                : "";
         return (
           <Tag color={color}>
             {prioridad?.nombre === undefined ? "Sin asignar" : prioridad.nombre}
@@ -63,8 +67,8 @@ export default function TicketTableAdmin({
           estado?.toLowerCase() === "resuelto"
             ? "green"
             : estado?.toLowerCase() === "abierto"
-            ? "blue"
-            : "orange";
+              ? "blue"
+              : "orange";
         return <Tag color={color}>{estado?.toUpperCase()}</Tag>;
       },
     },
